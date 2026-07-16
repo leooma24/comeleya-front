@@ -24,7 +24,9 @@
           <!-- Hero Image -->
           <div class="mc-hero-image">
             <q-img
+              v-if="mainStore.product.photo"
               :src="mainStore.product.photo"
+              :ratio="16 / 9"
               class="mc-hero-img"
               fit="cover"
             >
@@ -32,6 +34,9 @@
                 <q-skeleton class="full-width full-height" square />
               </template>
             </q-img>
+            <div v-else class="mc-hero-placeholder">
+              <q-icon name="restaurant_menu" size="48px" />
+            </div>
           </div>
 
           <!-- Product Header -->
@@ -60,6 +65,8 @@
                   rounded
                   class="q-ml-sm"
                 />
+                <q-space />
+                <span class="mc-extra-rule">{{ selectionRule(extra) }}</span>
               </div>
               <q-list dense class="mc-extra-list">
                 <q-item
@@ -211,6 +218,13 @@ const checkOptionType = (extra, option) => {
   if (option.price > 0) return `+ $${option.price}`;
   return "";
 };
+
+// Regla de selección para el encabezado del grupo de extras
+const selectionRule = (extra) => {
+  if (extra.qty === 1) return "Elige 1";
+  if (extra.qty > 1) return `Elige hasta ${extra.qty}`;
+  return "";
+};
 </script>
 
 <style lang="scss" scoped>
@@ -223,6 +237,23 @@ const checkOptionType = (extra, option) => {
 .mc-hero-img {
   border-radius: var(--radius-lg);
   max-height: 280px;
+}
+
+.mc-hero-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  background: var(--color-surface-variant);
+  color: var(--color-text-tertiary);
+  border-radius: var(--radius-lg);
+}
+
+.mc-extra-rule {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .mc-product-name {
