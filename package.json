@@ -1,0 +1,46 @@
+{
+  "name": "delivery-food",
+  "version": "0.0.1",
+  "description": "Ahorra en impresiones. Comparte tu menú de manera digital Imprime tu QR y comparte con tus comensales ¿Menús impresos en época de coronavirus? !Ya no más! Imprime tu QR dinámica y compártela en tu restaurante. URL Personalizada Obtén tu dirección web con el nombre de tu restaurante y compártelo con tus clientes. Platillos ilimitados Agregar platillos, portres, bebidas, etc. a placer. Cuentas con un espacio virtualmente ilimitado para subir tus platillos. Comparte en todas partes Utiliza los canales de comunicación más populares para compartir de manera dinámica tu menú y platillos de forma individual. Tu menú indexado en Google Todos tus platillos tienen una URL única que les permite ser indexados de manera única en google y generar ¡rich snippets¡. Nuestro menú para tí El entremés Gratuito QR para acceso directo. Gestor de contenido. Monitoreo de estadísticas Posicionamiento orgánico en google. Acceso desde la nube. Publicación de platillos. Imágenes en platillos. URL Personalizada. Remover Google Ads. La especialidad de la casa Premium QR para acceso directo. Gestor de contenido. Monitoreo de estadísticas Posicionamiento orgánico en google. Acceso desde la nube. Publicación de platillos. Imágenes en platillos. URL Personalizada. Remover Google Ads. ¿Por qué hacerte premium? Sin anuncios Hay una razón porque a nadie le gustan los comerciales. Obtén tu propia URL Tú página web personalizada, fácil de recordar.",
+  "productName": "ComeleYa",
+  "author": "Omar Lerma <leooma24@gmail.com>",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .js,.vue ./",
+    "format": "prettier --write \"**/*.{js,vue,scss,html,md,json}\" --ignore-path .gitignore",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "dev": "quasar dev",
+    "build": "quasar build"
+  },
+  "dependencies": {
+    "@quasar/cli": "^2.4.1",
+    "@quasar/extras": "^1.16.4",
+    "axios": "^1.2.1",
+    "pinia": "^2.0.11",
+    "pinia-plugin-persistedstate": "^3.2.1",
+    "quasar": "^2.16.0",
+    "vue": "^3.4.18",
+    "vue-draggable-next": "^2.2.1",
+    "vue-router": "^4.0.12"
+  },
+  "devDependencies": {
+    "@pinia/testing": "^1.0.3",
+    "@quasar/app-vite": "^2.0.2",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-vue": "^9.0.0",
+    "jsdom": "^24.1.3",
+    "postcss": "^8.4.14",
+    "prettier": "^2.5.1",
+    "vite-plugin-checker": "^0.6.4",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": "^22 || ^20 || ^18",
+    "npm": ">= ^7",
+    "yarn": ">= 1.21.1"
+  }
+}
