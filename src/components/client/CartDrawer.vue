@@ -23,7 +23,9 @@
         <!-- Header -->
         <div class="mc-drawer-header q-mb-md">
           <h5 class="mc-drawer-title">Tu Pedido</h5>
-          <span class="mc-drawer-count">{{ mainStore.cart.length }} productos</span>
+          <span class="mc-drawer-count">
+            {{ unitCount }} {{ unitCount === 1 ? 'artículo' : 'artículos' }}
+          </span>
         </div>
 
         <!-- Empty State -->
@@ -42,7 +44,6 @@
             <div class="mc-cart-item__main">
               <div class="mc-cart-item__info">
                 <span class="mc-cart-item__name">{{ product.name }}</span>
-                <span class="mc-cart-item__qty">x{{ product.qty }}</span>
               </div>
 
               <div class="mc-cart-item__actions">
@@ -92,11 +93,41 @@
               </div>
             </ul>
 
-            <!-- Item Price -->
-            <div class="mc-cart-item__price" v-if="!product.extras.length">
-              ${{ product.qty * product.price }}
+            <!-- Cantidad + total de la línea -->
+            <div class="mc-cart-item__footer">
+              <div class="mc-qty-stepper">
+                <q-btn
+                  flat
+                  dense
+                  round
+                  color="primary"
+                  icon="remove"
+                  size="sm"
+                  :disable="product.qty <= 1"
+                  @click="mainStore.cartStore.decrementLine(index)"
+                />
+                <span class="mc-qty-value">{{ product.qty }}</span>
+                <q-btn
+                  flat
+                  dense
+                  round
+                  color="primary"
+                  icon="add"
+                  size="sm"
+                  @click="mainStore.cartStore.incrementLine(index)"
+                />
+              </div>
+              <div class="mc-cart-item__price">
+                ${{ (product.totalPrice * product.qty).toFixed(2) }}
+              </div>
             </div>
           </div>
+        </div>
+
+        <!-- Subtotal -->
+        <div v-if="mainStore.cart.length" class="mc-cart-subtotal">
+          <span>Subtotal</span>
+          <span class="mc-cart-subtotal__value">${{ Number(mainStore.total).toFixed(2) }}</span>
         </div>
       </div>
     </q-scroll-area>
@@ -110,7 +141,7 @@
         <div class="mc-cart-bar-left">
           <q-icon name="shopping_cart" size="24px" />
           <q-badge color="white" text-color="primary" rounded>
-            {{ mainStore.cart.length }}
+            {{ unitCount }}
           </q-badge>
         </div>
 
@@ -131,8 +162,14 @@
 defineOptions({
   name: "CartDrawer",
 });
+import { computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
+
+// Total de artículos por unidades (no por líneas)
+const unitCount = computed(() =>
+  mainStore.cart.reduce((acc, item) => acc + (item.qty || 0), 0)
+);
 </script>
 
 <style lang="scss" scoped>
@@ -231,14 +268,20 @@ const mainStore = useMainStore();
     color: var(--color-text-primary);
   }
 
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px dashed var(--color-border);
+  }
+
   &__price {
     text-align: right;
     font-weight: 700;
     font-size: var(--text-base);
     color: var(--q-primary);
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px dashed var(--color-border);
     font-variant-numeric: tabular-nums;
   }
 
@@ -255,6 +298,26 @@ const mainStore = useMainStore();
     &:hover {
       opacity: 1;
     }
+  }
+}
+
+.mc-cart-subtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+
+  &__value {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    font-variant-numeric: tabular-nums;
   }
 }
 

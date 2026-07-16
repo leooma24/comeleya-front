@@ -41,6 +41,19 @@ export const useCartStore = defineStore("cart", {
       this.cart.splice(index, 1);
       this.updateTotal();
     },
+    incrementLine(index) {
+      const item = this.cart[index];
+      if (!item) return;
+      item.qty = (item.qty || 1) + 1;
+      this.updateTotal();
+    },
+    decrementLine(index) {
+      const item = this.cart[index];
+      if (!item) return;
+      if ((item.qty || 1) <= 1) return; // no baja de 1 (para quitar, usar eliminar)
+      item.qty -= 1;
+      this.updateTotal();
+    },
     updateTotal() {
       this.total = this.cart.reduce((acc, product) => {
         return acc + product.totalPrice * product.qty;
