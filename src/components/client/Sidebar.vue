@@ -98,11 +98,11 @@
             <span>{{ mainStore.businessAddress }}</span>
           </div>
           <div
-            v-if="!mainStore.company.isOpen && nextOpenText"
+            v-if="!mainStore.company.isOpen && mainStore.nextOpenText"
             class="mc-next-open"
           >
             <q-icon name="access_time" size="14px" class="q-mr-xs" />
-            {{ nextOpenText }}
+            {{ mainStore.nextOpenText }}
           </div>
         </div>
       </div>
@@ -278,36 +278,6 @@ onMounted(async () => {
   }
 });
 
-const dayNames = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-
-const nextOpenText = computed(() => {
-  const hours = mainStore.getHours;
-  if (!hours || !hours.length) return "";
-
-  const now = new Date();
-  const todayIndex = now.getDay();
-
-  for (let offset = 0; offset < 7; offset++) {
-    const checkIndex = (todayIndex + offset) % 7;
-    const dayName = dayNames[checkIndex];
-    const schedule = hours.find(
-      (h) => h.day_of_week.toLowerCase() === dayName
-    );
-    if (!schedule || schedule.is_closed) continue;
-
-    if (offset === 0) {
-      const [openH, openM] = schedule.open_time.split(":").map(Number);
-      if (now.getHours() < openH || (now.getHours() === openH && now.getMinutes() < openM)) {
-        return `Abre hoy a las ${schedule.open_time.substring(0, 5)}`;
-      }
-      continue;
-    }
-
-    const label = offset === 1 ? "mañana" : dayName;
-    return `Abre ${label} a las ${schedule.open_time.substring(0, 5)}`;
-  }
-  return "";
-});
 
 function shareMenu() {
   const url = window.location.href;

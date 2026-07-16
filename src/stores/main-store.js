@@ -60,6 +60,35 @@ export const useMainStore = defineStore("main", {
     getHours() {
       return this.companyStore.hours ?? [];
     },
+    // Texto de próxima apertura (reusado por Sidebar y el banner de "Cerrado")
+    nextOpenText() {
+      const hours = this.getHours;
+      if (!hours || !hours.length) return "";
+      const dayNames = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+      const now = new Date();
+      const todayIndex = now.getDay();
+
+      for (let offset = 0; offset < 7; offset++) {
+        const checkIndex = (todayIndex + offset) % 7;
+        const dayName = dayNames[checkIndex];
+        const schedule = hours.find(
+          (h) => h.day_of_week.toLowerCase() === dayName
+        );
+        if (!schedule || schedule.is_closed) continue;
+
+        if (offset === 0) {
+          const [openH, openM] = schedule.open_time.split(":").map(Number);
+          if (now.getHours() < openH || (now.getHours() === openH && now.getMinutes() < openM)) {
+            return `Abre hoy a las ${schedule.open_time.substring(0, 5)}`;
+          }
+          continue;
+        }
+
+        const label = offset === 1 ? "mañana" : dayName;
+        return `Abre ${label} a las ${schedule.open_time.substring(0, 5)}`;
+      }
+      return "";
+    },
     product() {
       return this.productStore.product;
     },

@@ -12,6 +12,21 @@
             mainStore.isExternal ? 'mc-content-external' : '',
           ]"
         >
+          <!-- Aviso: establecimiento cerrado -->
+          <div
+            v-if="mainStore.categories.length && !mainStore.company.isOpen"
+            class="mc-closed-banner"
+          >
+            <q-icon name="schedule" size="22px" class="mc-closed-banner__icon" />
+            <div class="mc-closed-banner__text">
+              <strong>Cerrado por ahora</strong>
+              <span>
+                Puedes ver el menú, pero no se pueden hacer pedidos en este momento.
+                <template v-if="mainStore.nextOpenText"> {{ mainStore.nextOpenText }}.</template>
+              </span>
+            </div>
+          </div>
+
           <!-- Toolbar -->
           <div class="mc-toolbar">
             <div class="mc-view-toggle">
@@ -279,6 +294,37 @@ onMounted(async () => {
 .mc-page-bg {
   background: var(--color-surface-variant);
   min-height: 100vh;
+}
+
+.mc-closed-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-md) var(--space-md) 0;
+  padding: var(--space-md);
+  background: var(--color-warning-bg, #FFF3E0);
+  border: 1px solid #FFB74D;
+  border-radius: var(--radius-md);
+  color: #E65100;
+
+  &__icon {
+    flex-shrink: 0;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+
+    strong {
+      font-size: var(--text-base);
+    }
+
+    span {
+      font-size: var(--text-sm);
+      color: color-mix(in srgb, #E65100 85%, #000 15%);
+    }
+  }
 }
 
 .mc-toolbar {
