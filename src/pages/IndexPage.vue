@@ -85,16 +85,7 @@
             </div>
             <div class="mc-content-products row">
               <div
-                :class="[
-                  'q-pa-sm col-12',
-                  type === 'Tarjeta'
-                    ? !mainStore.isExternal
-                      ? 'col-sm-6 col-lg-4 col-xl-2'
-                      : 'col-sm-6 col-md-4'
-                    : !mainStore.isExternal
-                    ? 'col-md-6 col-xl-3'
-                    : 'col-md-6 ',
-                ]"
+                :class="['q-pa-sm col-12', productColClass]"
                 v-for="item in mainStore.searchResults"
                 :key="'search_' + item.id"
               >
@@ -126,16 +117,7 @@
             </div>
             <div class="mc-content-products row">
               <div
-                :class="[
-                  'q-pa-sm col-12',
-                  type === 'Tarjeta'
-                    ? !mainStore.isExternal
-                      ? 'col-sm-6 col-lg-4 col-xl-2'
-                      : 'col-sm-6 col-md-4'
-                    : !mainStore.isExternal
-                    ? 'col-md-6 col-xl-3'
-                    : 'col-md-6 ',
-                ]"
+                :class="['q-pa-sm col-12', productColClass]"
                 v-for="item in mainStore.specialOffers"
                 :key="'offer_' + item.id"
               >
@@ -160,16 +142,7 @@
             </div>
             <div class="mc-content-products row">
               <div
-                :class="[
-                  'q-pa-sm col-12',
-                  type === 'Tarjeta'
-                    ? !mainStore.isExternal
-                      ? 'col-sm-6 col-lg-4 col-xl-2'
-                      : 'col-sm-6 col-md-4'
-                    : !mainStore.isExternal
-                    ? 'col-md-6 col-xl-3'
-                    : 'col-md-6 ',
-                ]"
+                :class="['q-pa-sm col-12', productColClass]"
                 v-for="item in mainStore.featuredProducts"
                 :key="'featured_' + item.id"
               >
@@ -201,16 +174,7 @@
             </div>
             <div class="mc-content-products row">
               <div
-                :class="[
-                  'q-pa-sm col-12',
-                  type === 'Tarjeta'
-                    ? !mainStore.isExternal
-                      ? 'col-sm-6 col-lg-4 col-xl-2'
-                      : 'col-sm-6 col-md-4'
-                    : !mainStore.isExternal
-                    ? 'col-md-6 col-xl-3'
-                    : 'col-md-6 ',
-                ]"
+                :class="['q-pa-sm col-12', productColClass]"
                 v-for="item in mainStore.getProductsByCategoryId(record.id)"
                 :key="'product_' + item.id"
               >
@@ -243,6 +207,17 @@ import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
 const route = useRoute();
 const type = ref("Lista");
+
+// Clases de columna para la cuadrícula de productos (una sola fuente de verdad).
+// Vista Tarjeta: máx 4 por fila en pantallas anchas (antes eran 6, muy chicas).
+const productColClass = computed(() => {
+  if (type.value === "Tarjeta") {
+    return mainStore.isExternal
+      ? "col-sm-6 col-md-4"
+      : "col-sm-6 col-lg-4 col-xl-3";
+  }
+  return mainStore.isExternal ? "col-md-6" : "col-md-6 col-xl-3";
+});
 
 // Dynamic SEO meta tags
 const metaData = computed(() => {
