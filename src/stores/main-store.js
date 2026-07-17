@@ -25,6 +25,8 @@ export const useMainStore = defineStore("main", {
     messageStore: useMessageStore(),
     search: "",
     tab: 0,
+    // Vista del menú: "Tarjeta" (cuadrícula) o "Lista"
+    viewType: "Tarjeta",
     tip: {
       type: "price",
       value: 0,

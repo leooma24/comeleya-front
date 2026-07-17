@@ -4,7 +4,7 @@
     :class="{ 'dish-card--sold-out': item.is_sold_out }"
     flat
     bordered
-    @click="seeProduct(item)"
+    @click="seeProduct"
   >
     <!-- Imagen con overlay de precio -->
     <div class="dish-card__image-wrapper">
@@ -69,7 +69,7 @@
         size="sm"
         icon="share"
         color="grey-5"
-        @click.stop="shareProduct(item)"
+        @click.stop="shareProduct"
       >
         <q-tooltip>Compartir</q-tooltip>
       </q-btn>
@@ -102,7 +102,8 @@ defineOptions({
   name: "CardDish",
 });
 
-import { computed } from "vue";
+import { toRef } from "vue";
+import { useDish } from "src/composables/useDish";
 
 const props = defineProps({
   item: {
@@ -111,38 +112,9 @@ const props = defineProps({
   },
 });
 
-const hasSpecialPrice = computed(() => {
-  return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
-});
-
-// "Nuevo" = creado en los últimos 14 días
-const isNew = computed(() => {
-  if (!props.item.created_at) return false;
-  const created = new Date(props.item.created_at);
-  if (isNaN(created)) return false;
-  const days = (Date.now() - created.getTime()) / 86400000;
-  return days <= 14;
-});
-
-import { useMainStore } from "src/stores/main-store";
-const mainStore = useMainStore();
-
-const seeProduct = (item) => {
-  const productClone = JSON.parse(JSON.stringify(item));
-  mainStore.seeProduct(productClone);
-};
-
-const shareProduct = (item) => {
-  const url = window.location.href;
-  const text = `${item.name} - $${item.price} en ${mainStore.company.name}`;
-
-  if (navigator.share) {
-    navigator.share({ title: item.name, text, url });
-  } else {
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-    window.open(waUrl, "_blank");
-  }
-};
+const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+  toRef(props, "item")
+);
 </script>
 
 <style lang="scss" scoped>

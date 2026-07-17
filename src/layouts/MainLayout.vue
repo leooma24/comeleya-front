@@ -1,21 +1,26 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header class="mc-header">
+    <q-header :class="['mc-header', scrolled ? 'mc-header--scrolled' : '']">
       <q-toolbar
         v-if="!mainStore.isExternal"
         class="q-py-sm q-px-md"
       >
         <q-img
           src="~/src/assets/logo.svg"
-          alt="ComeleYa"
-          class="q-mr-sm mc-logo"
+          alt="ComeleYa — ir al inicio"
+          class="q-mr-sm mc-logo cursor-pointer"
           width="44px"
+          role="button"
+          tabindex="0"
+          @click="scrollTop"
+          @keyup.enter="scrollTop"
         />
         <q-space />
         <div v-if="showSearch" class="mc-search-wrapper">
           <q-input
             v-model="mainStore.search"
             :placeholder="searchExpanded ? 'Buscar platillo...' : ''"
+            aria-label="Buscar platillo"
             dense
             rounded
             filled
@@ -31,6 +36,8 @@
                 color="grey-6"
                 size="20px"
                 class="cursor-pointer"
+                role="button"
+                aria-label="Buscar"
                 @click="searchExpanded = true"
               />
             </template>
@@ -40,10 +47,43 @@
                 color="grey-6"
                 size="16px"
                 class="cursor-pointer mc-search-clear"
+                role="button"
+                aria-label="Limpiar búsqueda"
                 @click="mainStore.search = ''; searchExpanded = false"
               />
             </template>
           </q-input>
+        </div>
+
+        <!-- Toggle de vista: cuadrícula / lista -->
+        <div
+          v-if="showSearch && mainStore.categories.length"
+          class="mc-view-toggle q-ml-sm"
+        >
+          <q-btn
+            flat
+            dense
+            round
+            size="sm"
+            :color="mainStore.viewType === 'Tarjeta' ? 'primary' : 'grey-6'"
+            icon="grid_view"
+            aria-label="Vista cuadrícula"
+            @click="mainStore.viewType = 'Tarjeta'"
+          >
+            <q-tooltip>Vista cuadrícula</q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            dense
+            round
+            size="sm"
+            :color="mainStore.viewType === 'Lista' ? 'primary' : 'grey-6'"
+            icon="view_list"
+            aria-label="Vista lista"
+            @click="mainStore.viewType = 'Lista'"
+          >
+            <q-tooltip>Vista lista</q-tooltip>
+          </q-btn>
         </div>
 
         <!-- Toggle modo claro/oscuro -->
@@ -54,6 +94,7 @@
           :icon="isDark ? 'light_mode' : 'dark_mode'"
           :color="isDark ? 'amber-6' : 'grey-8'"
           class="q-ml-sm"
+          :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
           @click="toggleTheme"
         >
           <q-tooltip>{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</q-tooltip>
@@ -98,6 +139,16 @@ mainStore.checkColor();
 const showSearch = ref(true);
 const searchExpanded = ref(false);
 
+// Sombra del header al hacer scroll (separa el contenido del header translúcido)
+const scrolled = ref(false);
+const onScroll = () => {
+  scrolled.value = window.scrollY > 8;
+};
+
+const scrollTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
 // Modo claro/oscuro — activo SOLO en el menú del cliente (se revierte al salir)
 const $q = useQuasar();
 const isDark = ref(false);
@@ -112,15 +163,24 @@ const toggleTheme = () => {
 };
 onMounted(() => {
   try {
-    isDark.value = localStorage.getItem("mc-theme") === "dark";
+    const saved = localStorage.getItem("mc-theme");
+    // Primera visita: respeta la preferencia del sistema
+    if (saved === null) {
+      isDark.value =
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+    } else {
+      isDark.value = saved === "dark";
+    }
   } catch {
     isDark.value = false;
   }
   $q.dark.set(isDark.value);
+  window.addEventListener("scroll", onScroll, { passive: true });
 });
 onUnmounted(() => {
   // Al salir del menú (p. ej. al admin) volvemos a claro
   $q.dark.set(false);
+  window.removeEventListener("scroll", onScroll);
 });
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
   showSearch.value = false;
@@ -137,14 +197,24 @@ if (primaryColor) {
 
 <style lang="scss" scoped>
 .mc-header {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-header-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
   box-shadow: none;
+  transition: box-shadow var(--transition-normal);
+
+  &--scrolled {
+    box-shadow: var(--shadow-sm);
+  }
 }
 
-:global(body.body--dark) .mc-header {
-  background: rgba(28, 28, 33, 0.9);
+.mc-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-full);
+  padding: 2px;
 }
 
 .mc-logo {

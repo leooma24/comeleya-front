@@ -29,6 +29,8 @@ html {
   --color-surface-elevated: #ffffff;
   --color-border: #e8eaed;
   --color-border-subtle: #f1f3f4;
+  // Fondo del header translúcido (se redefine en dark)
+  --color-header-bg: rgba(255, 255, 255, 0.95);
 
   // Colors - Semantic
   --color-price: var(--q-primary);
@@ -80,11 +82,16 @@ body.body--dark {
   --color-surface-elevated: #2b2b33;
   --color-border: #34353c;
   --color-border-subtle: #2a2b31;
+  --color-header-bg: rgba(28, 28, 33, 0.9);
 
   --color-success-bg: #17331c;
   --color-error-bg: #3a1b1e;
   --color-warning-bg: #3a2a12;
   --color-primary-soft: color-mix(in srgb, var(--q-primary) 22%, transparent);
+
+  // Rojo de marca por defecto un poco más claro en oscuro (menos saturado).
+  // Los negocios con color propio lo fijan por estilo inline y este override no les aplica.
+  --q-primary: #ef5350;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
@@ -213,6 +220,7 @@ h6 {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  margin: 0;
   padding: var(--space-lg) 0 var(--space-md);
   font-family: var(--font-display);
   font-size: var(--text-2xl);
@@ -434,7 +442,7 @@ h6 {
   );
   color: white;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--shadow-cart);
   cursor: pointer;
   transition: var(--transition-normal);
   user-select: none;

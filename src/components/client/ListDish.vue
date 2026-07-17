@@ -4,7 +4,7 @@
     :class="{ 'dish-card--sold-out': item.is_sold_out }"
     flat
     bordered
-    @click="mainStore.seeProduct(item)"
+    @click="seeProduct"
   >
     <div class="row no-wrap full-height">
       <!-- Imagen -->
@@ -63,7 +63,7 @@
               size="xs"
               icon="share"
               color="grey-5"
-              @click.stop="shareProduct(item)"
+              @click.stop="shareProduct"
             >
               <q-tooltip>Compartir</q-tooltip>
             </q-btn>
@@ -81,7 +81,8 @@ defineOptions({
   name: "ListDish",
 });
 
-import { computed } from "vue";
+import { toRef } from "vue";
+import { useDish } from "src/composables/useDish";
 
 const props = defineProps({
   item: {
@@ -90,31 +91,9 @@ const props = defineProps({
   },
 });
 
-const hasSpecialPrice = computed(() => {
-  return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
-});
-
-const isNew = computed(() => {
-  if (!props.item.created_at) return false;
-  const created = new Date(props.item.created_at);
-  if (isNaN(created)) return false;
-  return (Date.now() - created.getTime()) / 86400000 <= 14;
-});
-
-import { useMainStore } from "src/stores/main-store";
-const mainStore = useMainStore();
-
-const shareProduct = (item) => {
-  const url = window.location.href;
-  const text = `${item.name} - $${item.price} en ${mainStore.company.name}`;
-
-  if (navigator.share) {
-    navigator.share({ title: item.name, text, url });
-  } else {
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-    window.open(waUrl, "_blank");
-  }
-};
+const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+  toRef(props, "item")
+);
 </script>
 
 <style lang="scss" scoped>
@@ -163,15 +142,15 @@ const shareProduct = (item) => {
 
   &__sold-out-badge {
     position: absolute;
-    top: 6px;
-    left: 6px;
+    top: var(--space-sm);
+    left: var(--space-sm);
     z-index: 2;
     background: var(--q-negative, #D32F2F);
     color: #fff;
-    font-size: 10px;
+    font-size: var(--text-xs);
     font-weight: 800;
-    letter-spacing: 0.06em;
-    padding: 3px 8px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
   }
@@ -223,12 +202,6 @@ const shareProduct = (item) => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px dashed var(--color-border);
-  }
-
-  &__price {
     margin-top: var(--space-sm);
     padding-top: var(--space-sm);
     border-top: 1px dashed var(--color-border);

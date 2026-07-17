@@ -27,32 +27,6 @@
             </div>
           </div>
 
-          <!-- Toolbar -->
-          <div class="mc-toolbar">
-            <div class="mc-view-toggle">
-              <q-btn
-                flat
-                round
-                :color="type === 'Tarjeta' ? 'primary' : 'grey-5'"
-                icon="grid_view"
-                size="sm"
-                @click="type = 'Tarjeta'"
-              >
-                <q-tooltip>Vista cuadrícula</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                :color="type === 'Lista' ? 'primary' : 'grey-5'"
-                icon="view_list"
-                size="sm"
-                @click="type = 'Lista'"
-              >
-                <q-tooltip>Vista lista</q-tooltip>
-              </q-btn>
-            </div>
-          </div>
-
           <!-- Skeleton Loading -->
           <div
             v-if="!mainStore.categories.length"
@@ -94,7 +68,7 @@
                 :key="'search_' + item.id"
               >
                 <component
-                  :is="type === 'Tarjeta' ? CardDish : ListDish"
+                  :is="mainStore.viewType === 'Tarjeta' ? CardDish : ListDish"
                   :item="item"
                 />
               </div>
@@ -144,7 +118,7 @@
                 :key="'offer_' + item.id"
               >
                 <component
-                  :is="type === 'Tarjeta' ? CardDish : ListDish"
+                  :is="mainStore.viewType === 'Tarjeta' ? CardDish : ListDish"
                   :item="item"
                 />
               </div>
@@ -157,10 +131,10 @@
             class="q-mb-xl mc-featured-section"
           >
             <div class="col-12">
-              <div class="mc-category-heading mc-featured-heading">
+              <h2 class="mc-category-heading mc-featured-heading">
                 <q-icon name="star" size="20px" color="amber-8" class="q-mr-xs" />
                 Recomendados
-              </div>
+              </h2>
             </div>
             <div class="mc-featured-carousel-wrap">
               <q-btn
@@ -228,9 +202,9 @@
               :data-id="record.id"
               v-intersection="onIntersection"
             >
-              <div class="mc-category-heading">
+              <h2 class="mc-category-heading">
                 {{ record.name }}
-              </div>
+              </h2>
             </div>
             <div class="mc-content-products row">
               <div
@@ -239,7 +213,7 @@
                 :key="'product_' + item.id"
               >
                 <component
-                  :is="type === 'Tarjeta' ? CardDish : ListDish"
+                  :is="mainStore.viewType === 'Tarjeta' ? CardDish : ListDish"
                   :item="item"
                 />
               </div>
@@ -266,12 +240,11 @@ import { useMainStore } from "src/stores/main-store";
 
 const mainStore = useMainStore();
 const route = useRoute();
-const type = ref("Tarjeta");
 
 // Clases de columna para la cuadrícula de productos (una sola fuente de verdad).
 // Vista Tarjeta: máx 4 por fila en pantallas anchas (antes eran 6, muy chicas).
 const productColClass = computed(() => {
-  if (type.value === "Tarjeta") {
+  if (mainStore.viewType === "Tarjeta") {
     return mainStore.isExternal
       ? "col-sm-6 col-md-4"
       : "col-sm-6 col-lg-4 col-xl-3";
@@ -452,31 +425,6 @@ onBeforeUnmount(() => {
       color: color-mix(in srgb, #E65100 85%, #000 15%);
     }
   }
-}
-
-.mc-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: var(--space-sm) var(--space-md);
-}
-
-.mc-view-toggle {
-  display: flex;
-  gap: var(--space-xs);
-  background: var(--color-surface);
-  border-radius: var(--radius-full);
-  padding: 2px;
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-}
-
-.mc-results-count {
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
 }
 
 .mc-offers-section {
