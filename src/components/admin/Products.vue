@@ -322,10 +322,16 @@
         <q-btn
           v-if="offerProduct?.special_price"
           flat no-caps color="negative" label="Quitar oferta"
+          :disable="adminStore.loading"
           @click="removeOffer"
         />
         <q-space />
-        <q-btn unelevated no-caps color="primary" label="Guardar" @click="saveOffer" />
+        <q-btn
+          unelevated no-caps color="primary" label="Guardar"
+          :loading="adminStore.loading"
+          :disable="adminStore.loading"
+          @click="saveOffer"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>

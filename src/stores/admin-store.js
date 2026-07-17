@@ -111,6 +111,8 @@ export const useAdminStore = defineStore({
   },
   actions: {
     async saveNewEstablishment() {
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.post(`/admin/new-establishment`, {
           company: this.companyStore.companyForm,
@@ -123,6 +125,8 @@ export const useAdminStore = defineStore({
       } catch (e) {
         console.error("Error al guardar el nuevo establecimiento", e);
         this.messageStore.error(e.response?.data?.msg ?? "Error al guardar el establecimiento");
+      } finally {
+        this.loading = false;
       }
     },
     addPackage() {
@@ -797,7 +801,8 @@ export const useAdminStore = defineStore({
       }
     },
     async cloneProduct(product) {
-
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.post(`/admin/${this.slug}/dish/clone`, {
           id: product.id,
@@ -806,6 +811,8 @@ export const useAdminStore = defineStore({
         this.messageStore.success("Platillo clonado");
       } catch (error) {
         this.messageStore.error("Error al clonar el platillo");
+      } finally {
+        this.loading = false;
       }
     },
     async toggleFeatured(product) {
@@ -845,6 +852,8 @@ export const useAdminStore = defineStore({
       }
     },
     async setSpecialOffer(product, specialPrice, specialUntil) {
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.put(
           `/admin/${this.slug}/${product.id}/special-offer`,
@@ -859,6 +868,8 @@ export const useAdminStore = defineStore({
         );
       } catch (error) {
         this.messageStore.error("Error al actualizar la oferta");
+      } finally {
+        this.loading = false;
       }
     },
     async saveCategory() {
@@ -1322,6 +1333,8 @@ export const useAdminStore = defineStore({
       }
     },
     async saveProspect() {
+      if (this.loading) return;
+      this.loading = true;
       try {
         if (this.prospectForm.id) {
           const { data } = await api.put(`/admin/prospects/${this.prospectForm.id}`, this.prospectForm);
@@ -1335,6 +1348,8 @@ export const useAdminStore = defineStore({
         this.prospectDrawer = false;
       } catch (e) {
         this.messageStore.error(e.response?.data?.message ?? "Error al guardar prospecto");
+      } finally {
+        this.loading = false;
       }
     },
     async deleteProspect(prospect) {
