@@ -69,6 +69,31 @@ html {
 }
 
 // ============================================
+// DARK MODE (usa el dark nativo de Quasar: body.body--dark)
+// ============================================
+body.body--dark {
+  --color-text-primary: #f2f2f4;
+  --color-text-secondary: #b9bdc4;
+  --color-text-tertiary: #868b93;
+  --color-surface: #1c1c21;
+  --color-surface-variant: #26262d;
+  --color-surface-elevated: #2b2b33;
+  --color-border: #34353c;
+  --color-border-subtle: #2a2b31;
+
+  --color-success-bg: #17331c;
+  --color-error-bg: #3a1b1e;
+  --color-warning-bg: #3a2a12;
+  --color-primary-soft: color-mix(in srgb, var(--q-primary) 22%, transparent);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-cart: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+// ============================================
 // GLOBAL BASE STYLES
 // ============================================
 

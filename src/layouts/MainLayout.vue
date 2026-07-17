@@ -45,6 +45,19 @@
             </template>
           </q-input>
         </div>
+
+        <!-- Toggle modo claro/oscuro -->
+        <q-btn
+          flat
+          round
+          dense
+          :icon="isDark ? 'light_mode' : 'dark_mode'"
+          :color="isDark ? 'amber-6' : 'grey-8'"
+          class="q-ml-sm"
+          @click="toggleTheme"
+        >
+          <q-tooltip>{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</q-tooltip>
+        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -68,7 +81,8 @@
 defineOptions({
   name: "MainLayout",
 });
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+import { useQuasar } from "quasar";
 import AddCartDrawer from "src/components/client/AddCartDrawer.vue";
 import CartDrawer from "src/components/client/CartDrawer.vue";
 import DataDrawer from "src/components/client/DataDrawer.vue";
@@ -83,6 +97,31 @@ mainStore.getPositions();
 mainStore.checkColor();
 const showSearch = ref(true);
 const searchExpanded = ref(false);
+
+// Modo claro/oscuro — activo SOLO en el menú del cliente (se revierte al salir)
+const $q = useQuasar();
+const isDark = ref(false);
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  $q.dark.set(isDark.value);
+  try {
+    localStorage.setItem("mc-theme", isDark.value ? "dark" : "light");
+  } catch {
+    // ignore
+  }
+};
+onMounted(() => {
+  try {
+    isDark.value = localStorage.getItem("mc-theme") === "dark";
+  } catch {
+    isDark.value = false;
+  }
+  $q.dark.set(isDark.value);
+});
+onUnmounted(() => {
+  // Al salir del menú (p. ej. al admin) volvemos a claro
+  $q.dark.set(false);
+});
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
   showSearch.value = false;
 }
@@ -102,6 +141,10 @@ if (primaryColor) {
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
   box-shadow: none;
+}
+
+:global(body.body--dark) .mc-header {
+  background: rgba(28, 28, 33, 0.9);
 }
 
 .mc-logo {

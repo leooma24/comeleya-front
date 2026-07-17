@@ -270,6 +270,10 @@ const shareProduct = (item) => {
     right: var(--space-sm);
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
+
+    :global(body.body--dark) & {
+      background: rgba(20, 20, 24, 0.88);
+    }
     padding: var(--space-xs) 14px;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);
