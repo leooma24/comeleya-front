@@ -26,7 +26,7 @@
             <q-img
               v-if="mainStore.product.photo"
               :src="mainStore.product.photo"
-              :ratio="16 / 9"
+              :ratio="4 / 3"
               class="mc-hero-img"
               fit="cover"
             >
@@ -166,12 +166,13 @@
     <!-- Add to Cart Button -->
     <div class="mc-add-to-cart-bar" v-if="mainStore.product">
       <q-btn
+        ref="addBtnRef"
         color="primary"
         unelevated
         no-caps
         class="full-width mc-add-btn"
         size="lg"
-        @click="mainStore.addToCart"
+        @click="handleAdd"
       >
         <div class="row items-center justify-between full-width q-px-sm">
           <span>{{ mainStore.btnType }} {{ mainStore.product?.qty }}</span>
@@ -186,8 +187,67 @@
 defineOptions({
   name: "AddCartDrawer",
 });
+import { ref, nextTick } from "vue";
 import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
+const addBtnRef = ref(null);
+
+// Anima un "punto" con la foto del producto desde el botón hacia la barra del carrito
+const flyToCart = (fromRect, photo) => {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+  const bars = [...document.querySelectorAll(".mc-cart-bar")];
+  const target = bars
+    .map((b) => b.getBoundingClientRect())
+    .find((r) => r.width > 0 && r.top >= 0 && r.top < window.innerHeight);
+  if (!target) return;
+
+  const dot = document.createElement("div");
+  const size = 60;
+  Object.assign(dot.style, {
+    position: "fixed",
+    left: `${fromRect.left + fromRect.width / 2 - size / 2}px`,
+    top: `${fromRect.top + fromRect.height / 2 - size / 2}px`,
+    width: `${size}px`,
+    height: `${size}px`,
+    borderRadius: "50%",
+    zIndex: "9999",
+    pointerEvents: "none",
+    boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+    background: photo
+      ? `center/cover no-repeat url(${photo})`
+      : "var(--q-primary)",
+  });
+  document.body.appendChild(dot);
+
+  const dx = target.left + target.width / 2 - (fromRect.left + fromRect.width / 2);
+  const dy = target.top + target.height / 2 - (fromRect.top + fromRect.height / 2);
+
+  const anim = dot.animate(
+    [
+      { transform: "translate(0,0) scale(1)", opacity: 1 },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 40}px) scale(0.9)`, opacity: 1, offset: 0.5 },
+      { transform: `translate(${dx}px, ${dy}px) scale(0.15)`, opacity: 0.4 },
+    ],
+    { duration: 650, easing: "cubic-bezier(0.4, 0, 0.6, 1)" }
+  );
+  anim.onfinish = () => dot.remove();
+};
+
+const handleAdd = async () => {
+  const el = addBtnRef.value?.$el;
+  const fromRect = el?.getBoundingClientRect();
+  const photo = mainStore.product?.photo;
+  const wasEditing = mainStore.cartStore.isEditing;
+
+  mainStore.addToCart();
+
+  // Si se agregó (el drawer se cerró) y no era edición, lanza la animación
+  if (!mainStore.addCartDrawer && !wasEditing && fromRect) {
+    await nextTick();
+    flyToCart(fromRect, photo);
+  }
+};
 
 const decrementValue = (option) => {
   option.qty = option.qty ?? 0;
@@ -231,12 +291,12 @@ const selectionRule = (extra) => {
 .mc-hero-image {
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-height: 280px;
+  max-height: 340px;
 }
 
 .mc-hero-img {
   border-radius: var(--radius-lg);
-  max-height: 280px;
+  max-height: 340px;
 }
 
 .mc-hero-placeholder {

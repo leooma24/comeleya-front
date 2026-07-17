@@ -9,10 +9,11 @@
     <!-- Imagen con overlay de precio -->
     <div class="dish-card__image-wrapper">
       <!-- Etiquetas -->
+      <!-- Prioridad: agotado > (oferta, que ya se ve en el precio rojo) > nuevo -->
       <div v-if="item.is_sold_out" class="dish-card__badge dish-card__badge--sold-out">
         AGOTADO
       </div>
-      <div v-else-if="isNew" class="dish-card__badge dish-card__badge--new">
+      <div v-else-if="isNew && !hasSpecialPrice" class="dish-card__badge dish-card__badge--new">
         NUEVO
       </div>
       <q-img
@@ -292,8 +293,7 @@ const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   }
 
   &__actions {
-    padding: var(--space-sm) var(--space-md) var(--space-md);
-    border-top: 1px solid var(--color-border-subtle);
+    padding: var(--space-xs) var(--space-md) var(--space-md);
   }
 
   &__cta {

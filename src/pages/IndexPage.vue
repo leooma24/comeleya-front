@@ -425,15 +425,33 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes mcSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .mc-offers-section {
   background: linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(255, 87, 34, 0.05) 100%);
   border-radius: var(--radius-lg);
   padding: var(--space-sm);
   margin-left: var(--space-sm);
   margin-right: var(--space-sm);
+  animation: mcSectionIn 0.45s ease both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
   border: 1px solid rgba(244, 67, 54, 0.18);
   border-left: 4px solid var(--q-primary);
   box-shadow: 0 4px 16px rgba(244, 67, 54, 0.08);
+  // Más aire debajo: separa las secciones especiales del listado de categorías
+  margin-bottom: var(--space-2xl);
 }
 
 .mc-offers-heading {
@@ -472,7 +490,13 @@ onBeforeUnmount(() => {
   padding: var(--space-sm);
   margin-left: var(--space-sm);
   margin-right: var(--space-sm);
+  margin-bottom: var(--space-2xl);
   border: 1px solid rgba(255, 193, 7, 0.15);
+  animation: mcSectionIn 0.45s ease 0.05s both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 .mc-featured-heading {

@@ -59,10 +59,18 @@
 
       <!-- ============ PASO 2: Confirmación ============ -->
       <template v-else>
-      <!-- Icono de éxito -->
+      <!-- Icono de éxito con confeti -->
       <div class="success-dialog__icon-wrapper">
-        <div class="success-dialog__icon-circle">
-          <q-icon name="check" size="24px" color="white" />
+        <div class="success-dialog__celebrate">
+          <span
+            v-for="n in 8"
+            :key="n"
+            class="success-dialog__confetti"
+            :style="{ '--i': n }"
+          ></span>
+          <div class="success-dialog__icon-circle success-dialog__icon-circle--done">
+            <q-icon name="check" size="36px" color="white" />
+          </div>
         </div>
       </div>
 
@@ -371,6 +379,34 @@ const shareReceipt = () => {
       animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
         whatsappPulse 2s ease-in-out 0.5s infinite;
     }
+
+    &--done {
+      width: 74px;
+      height: 74px;
+      box-shadow: 0 6px 18px rgba(67, 160, 71, 0.4);
+    }
+  }
+
+  &__celebrate {
+    position: relative;
+    display: inline-flex;
+  }
+
+  &__confetti {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    opacity: 0;
+    background: hsl(calc(var(--i) * 45deg), 85%, 58%);
+    animation: mcConfetti 0.75s ease-out 0.25s forwards;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      display: none;
+    }
   }
 
   &__fallback {
@@ -564,6 +600,20 @@ const shareReceipt = () => {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+// Estalla cada confeti radialmente desde el centro del check
+@keyframes mcConfetti {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 45deg)) translateY(0)
+      scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 45deg))
+      translateY(-64px) scale(0.4);
   }
 }
 </style>

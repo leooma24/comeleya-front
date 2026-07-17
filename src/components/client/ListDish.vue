@@ -13,7 +13,7 @@
         <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
           AGOTADO
         </div>
-        <div v-else-if="isNew" class="dish-card__sold-out-badge dish-card__new-badge">
+        <div v-else-if="isNew && !hasSpecialPrice" class="dish-card__sold-out-badge dish-card__new-badge">
           NUEVO
         </div>
         <q-img

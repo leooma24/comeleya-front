@@ -125,12 +125,19 @@
       style="background: var(--color-surface)"
     >
       <q-tab
-        v-for="(category, indexCategory) in mainStore.categories"
-        :key="indexCategory"
+        v-for="category in mainStore.categories"
+        :key="category.id"
         :name="category.id"
-        :label="category.name"
         @click="goToCategory(category.id)"
-      />
+      >
+        <div class="mc-tab-inner">
+          <span class="mc-tab-name">{{ category.name }}</span>
+          <span
+            v-if="$q.screen.width >= 1024 && categoryCount(category.id)"
+            class="mc-tab-count"
+          >{{ categoryCount(category.id) }}</span>
+        </div>
+      </q-tab>
     </q-tabs>
 
     <!-- Loyalty Banner -->
@@ -184,7 +191,7 @@
       v-if="mainStore.cart.length > 0"
     >
       <div class="row items-center justify-between full-width">
-        <div class="mc-cart-bar-left">
+        <div class="mc-cart-bar-left" :key="cartUnits">
           <q-icon name="shopping_cart" size="24px" />
           <q-badge color="white" text-color="primary" rounded>
             {{ cartUnits }}
@@ -301,6 +308,10 @@ const hasReservations = computed(() => {
 const cartUnits = computed(() =>
   mainStore.cart.reduce((acc, item) => acc + (item.qty || 0), 0)
 );
+
+// Productos por categoría (para el contador en los tabs del sidebar)
+const categoryCount = (id) =>
+  mainStore.productStore.items.filter((p) => p.dish_category_id === id).length;
 
 watch(() => mainStore.company?.name, () => {
   setTimeout(updateSidebarHeight, 100);
@@ -473,10 +484,22 @@ function goToCategory(id) {
   }
 }
 
+@keyframes mcCartBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.25); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
 .mc-cart-bar-left {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  animation: mcCartBounce 0.4s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 .mc-cart-bar-right {
@@ -645,6 +668,34 @@ function goToCategory(id) {
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
   }
+}
+
+.mc-tab-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.mc-tab-count {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-variant);
+  color: var(--color-text-secondary);
+}
+
+// En el tab activo (fondo primary), el contador se adapta
+.q-tab--active .mc-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 .mc-establishment-banner {
