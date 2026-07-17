@@ -278,7 +278,8 @@ h6 {
     .q-tab--active {
       background: var(--q-primary);
       color: white;
-      font-weight: 600;
+      font-weight: 700;
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent);
     }
 
     .q-tabs__arrow {
