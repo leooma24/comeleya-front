@@ -25,6 +25,9 @@
       <!-- Tip Section -->
       <div class="mc-form-section">
         <h6 class="mc-section-title">Propina</h6>
+        <p class="mc-section-caption">
+          Opcional — va completa para el equipo del restaurante 🙌
+        </p>
         <div class="mc-tip-grid">
           <q-btn
             v-for="amount in [0, 10, 20, 30, 40]"
@@ -226,7 +229,10 @@
 
       <!-- Comments -->
       <div class="mc-form-section">
-        <h6 class="mc-section-title">Comentarios</h6>
+        <h6 class="mc-section-title">Instrucciones para el restaurante</h6>
+        <p class="mc-section-caption">
+          Opcional — alergias, sin cebolla, tocar el timbre, etc.
+        </p>
         <q-input
           filled
           dense
@@ -234,7 +240,8 @@
           color="primary"
           v-model="mainStore.data.comments"
           type="textarea"
-          label="Ejemplo: Sin cebolla, extra queso"
+          autogrow
+          placeholder="Ej: Sin cebolla, alergia al maní, dejar en recepción…"
         />
       </div>
     </div>
@@ -279,6 +286,13 @@ const submitOrder = async () => {
 </script>
 
 <style lang="scss" scoped>
+.mc-section-caption {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.4;
+}
+
 .mc-drawer-title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
