@@ -45,28 +45,6 @@
             </template>
           </q-input>
         </div>
-
-        <!-- Carrito siempre accesible -->
-        <q-btn
-          flat
-          round
-          dense
-          color="grey-9"
-          icon="shopping_cart"
-          class="q-ml-sm mc-cart-btn"
-          @click="mainStore.cartDrawer = true"
-        >
-          <q-badge
-            v-if="cartCount > 0"
-            color="primary"
-            floating
-            rounded
-            class="mc-cart-badge"
-          >
-            {{ cartCount }}
-          </q-badge>
-          <q-tooltip>Ver carrito</q-tooltip>
-        </q-btn>
       </q-toolbar>
     </q-header>
 
@@ -90,7 +68,7 @@
 defineOptions({
   name: "MainLayout",
 });
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import AddCartDrawer from "src/components/client/AddCartDrawer.vue";
 import CartDrawer from "src/components/client/CartDrawer.vue";
 import DataDrawer from "src/components/client/DataDrawer.vue";
@@ -103,12 +81,6 @@ import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
 mainStore.getPositions();
 mainStore.checkColor();
-
-// Total de unidades en el carrito (suma de cantidades, no de líneas)
-const cartCount = computed(() =>
-  mainStore.cartStore.cart.reduce((acc, item) => acc + (item.qty || 0), 0)
-);
-
 const showSearch = ref(true);
 const searchExpanded = ref(false);
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
