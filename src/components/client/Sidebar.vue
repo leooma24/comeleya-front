@@ -350,7 +350,7 @@ function goToCategory(id) {
 .mc-restaurant-cover {
   // Sangra el padding del contenedor (var(--space-md)) para llegar a los bordes
   margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
-  height: 130px;
+  height: 92px; // móvil: modesto para no comer pantalla (header fijo)
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
