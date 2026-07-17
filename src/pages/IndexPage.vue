@@ -100,7 +100,23 @@
               class="mc-empty-search"
             >
               <q-icon name="search_off" size="48px" color="grey-4" />
-              <p>No se encontraron productos</p>
+              <p class="mc-empty-search__title">
+                No encontramos "{{ mainStore.search }}"
+              </p>
+              <p class="mc-empty-search__hint">
+                Revisa la ortografía o explora las categorías:
+              </p>
+              <div class="mc-empty-search__cats">
+                <q-chip
+                  v-for="cat in mainStore.categories"
+                  :key="'sc_' + cat.id"
+                  clickable
+                  color="primary"
+                  text-color="white"
+                  :label="cat.name"
+                  @click="goToCategoryFromSearch(cat.id)"
+                />
+              </div>
             </div>
           </div>
 
@@ -196,7 +212,7 @@ defineOptions({
   name: "IndexPage",
 });
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useMeta } from "quasar";
 import SidebarComponent from "src/components/client/Sidebar.vue";
 import CardDish from "src/components/client/CardDish.vue";
@@ -218,6 +234,15 @@ const productColClass = computed(() => {
   }
   return mainStore.isExternal ? "col-md-6" : "col-md-6 col-xl-3";
 });
+
+// Desde el estado vacío de búsqueda: limpia el término y salta a la categoría
+const goToCategoryFromSearch = (id) => {
+  mainStore.search = "";
+  nextTick(() => {
+    const el = document.getElementById(String(id));
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+};
 
 // Dynamic SEO meta tags
 const metaData = computed(() => {
@@ -360,9 +385,24 @@ onMounted(async () => {
   padding: var(--space-xl) var(--space-md);
   color: var(--color-text-tertiary);
 
-  p {
+  &__title {
     margin-top: var(--space-sm);
+    font-size: var(--text-base);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  &__hint {
+    margin-top: var(--space-xs);
     font-size: var(--text-sm);
+  }
+
+  &__cats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-xs);
+    margin-top: var(--space-md);
   }
 }
 </style>
