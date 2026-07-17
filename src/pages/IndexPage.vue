@@ -8,7 +8,7 @@
       <div :class="['col-12', mainStore.isExternal ? '' : 'col-md-9']">
         <div
           :class="[
-            'mc-content scroll',
+            'mc-content',
             mainStore.isExternal ? 'mc-content-external' : '',
           ]"
         >
@@ -196,16 +196,14 @@
             :key="record.id"
             :id="record.id"
           >
-            <div
-              class="col-12"
+            <h2
+              class="mc-category-heading"
               v-if="mainStore.countByCategory(record.id)"
               :data-id="record.id"
               v-intersection="onIntersection"
             >
-              <h2 class="mc-category-heading">
-                {{ record.name }}
-              </h2>
-            </div>
+              {{ record.name }}
+            </h2>
             <div class="mc-content-products row">
               <div
                 :class="['q-pa-sm col-12', productColClass]"

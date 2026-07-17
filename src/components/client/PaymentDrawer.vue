@@ -84,6 +84,7 @@
             v-model="couponCode"
             label="Código de cupón"
             class="col"
+            @keyup.enter="applyCoupon"
           />
           <q-btn
             color="primary"
@@ -92,7 +93,9 @@
             no-caps
             dense
             class="mc-coupon-btn"
-            @click="mainStore.applyCoupon(couponCode)"
+            :loading="applyingCoupon"
+            :disable="!couponCode"
+            @click="applyCoupon"
           />
         </div>
         <div v-else class="mc-coupon-applied">
@@ -149,7 +152,11 @@
           <q-icon name="payments" size="24px" />
           <span class="mc-payment-option__label">Efectivo</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Efectivo" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Efectivo' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Efectivo' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
         <q-input
           filled
@@ -182,7 +189,11 @@
           <q-icon name="credit_card" size="24px" />
           <span class="mc-payment-option__label">Tarjeta (Terminal)</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Tarjeta" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Tarjeta' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Tarjeta' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
 
         <!-- Transfer -->
@@ -197,7 +208,11 @@
           <q-icon name="account_balance" size="24px" />
           <span class="mc-payment-option__label">Transferencia</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Transferencia" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Transferencia' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Transferencia' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
 
         <!-- MercadoPago Online -->
@@ -212,7 +227,11 @@
           <q-icon name="credit_score" size="24px" />
           <span class="mc-payment-option__label">Pago en línea (MercadoPago)</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="MercadoPago" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'MercadoPago' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'MercadoPago' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
         <div class="mc-mercadopago-info" v-if="mainStore.payment.type === 'MercadoPago'">
           <q-icon name="info" size="16px" color="info" />
@@ -276,6 +295,17 @@ import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
 const couponCode = ref("");
 const sendingOrder = ref(false);
+const applyingCoupon = ref(false);
+
+const applyCoupon = async () => {
+  if (!couponCode.value || applyingCoupon.value) return;
+  applyingCoupon.value = true;
+  try {
+    await mainStore.applyCoupon(couponCode.value);
+  } finally {
+    applyingCoupon.value = false;
+  }
+};
 
 const submitOrder = async () => {
   sendingOrder.value = true;

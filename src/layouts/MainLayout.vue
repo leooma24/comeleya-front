@@ -68,7 +68,7 @@
             :color="mainStore.viewType === 'Tarjeta' ? 'primary' : 'grey-6'"
             icon="grid_view"
             aria-label="Vista cuadrícula"
-            @click="mainStore.viewType = 'Tarjeta'"
+            @click="mainStore.setViewType('Tarjeta')"
           >
             <q-tooltip>Vista cuadrícula</q-tooltip>
           </q-btn>
@@ -80,7 +80,7 @@
             :color="mainStore.viewType === 'Lista' ? 'primary' : 'grey-6'"
             icon="view_list"
             aria-label="Vista lista"
-            @click="mainStore.viewType = 'Lista'"
+            @click="mainStore.setViewType('Lista')"
           >
             <q-tooltip>Vista lista</q-tooltip>
           </q-btn>

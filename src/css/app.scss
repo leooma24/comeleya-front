@@ -221,18 +221,12 @@ h6 {
   align-items: center;
   gap: var(--space-sm);
   margin: 0;
-  padding: var(--space-lg) 0 var(--space-md);
+  padding: var(--space-md) var(--space-sm);
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: 800;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
-  // Al saltar a una categoría (anclas), deja aire para que el header fijo no la tape
-  scroll-margin-top: 80px;
-
-  @media screen and (max-width: 1023px) {
-    scroll-margin-top: var(--mc-sidebar-total-height, 230px);
-  }
 
   &::before {
     content: "";
@@ -241,6 +235,27 @@ h6 {
     background: var(--q-primary);
     border-radius: var(--radius-full);
     flex-shrink: 0;
+  }
+}
+
+// Pegajoso solo en los títulos de categoría (no en "Recomendados", que vive
+// dentro de su propia tarjeta). Mantiene visible la categoría actual al scrollear.
+.mc-category-heading:not(.mc-featured-heading) {
+  scroll-margin-top: 80px;
+
+  // Pegajoso SOLO en desktop (scroll del documento, header de 56px).
+  // En móvil la barra de tabs fija ya indica la categoría, así que no se pega
+  // para no chocar con ella.
+  @media screen and (min-width: 1024px) {
+    position: sticky;
+    top: 56px;
+    z-index: 5;
+    background: var(--color-header-bg);
+    backdrop-filter: blur(12px);
+  }
+
+  @media screen and (max-width: 1023px) {
+    scroll-margin-top: var(--mc-sidebar-total-height, 230px);
   }
 }
 
@@ -370,7 +385,9 @@ h6 {
 // ============================================
 
 .mc-content {
-  overflow: hidden;
+  // overflow-x: clip recorta el desborde horizontal SIN crear un contenedor de
+  // scroll (a diferencia de overflow:hidden), para que position:sticky funcione.
+  overflow-x: clip;
   z-index: 1;
   margin-left: var(--space-xs);
 

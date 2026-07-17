@@ -25,8 +25,11 @@ export const useMainStore = defineStore("main", {
     messageStore: useMessageStore(),
     search: "",
     tab: 0,
-    // Vista del menú: "Tarjeta" (cuadrícula) o "Lista"
-    viewType: "Tarjeta",
+    // Vista del menú: "Tarjeta" (cuadrícula) o "Lista" (recordada entre visitas)
+    viewType:
+      (typeof localStorage !== "undefined" &&
+        localStorage.getItem("mc-view")) ||
+      "Tarjeta",
     tip: {
       type: "price",
       value: 0,
@@ -431,6 +434,14 @@ export const useMainStore = defineStore("main", {
       }
       if (this.cartStore.isEmpty) {
         this.cartDrawer = false;
+      }
+    },
+    setViewType(value) {
+      this.viewType = value;
+      try {
+        localStorage.setItem("mc-view", value);
+      } catch {
+        // ignore
       }
     },
     setTip(value) {
