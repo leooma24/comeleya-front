@@ -68,9 +68,9 @@ describe("admin-store", () => {
       expect(store.tab).toBe("establecimientos");
     });
 
-    it("sets tab to productos when slug is set", () => {
+    it("sets tab to dashboard when slug is set", () => {
       store.setSlug("test-slug");
-      expect(store.tab).toBe("productos");
+      expect(store.tab).toBe("dashboard");
     });
   });
 
@@ -82,14 +82,14 @@ describe("admin-store", () => {
     });
 
     it("returns false when name is missing", async () => {
-      store.productForm = { photo: "img.jpg", price: 50, description: "Desc" };
+      store.productForm = { photo: "https://cdn.test/img.jpg", price: 50, description: "Desc" };
       const result = await store.saveProduct();
       expect(result).toBe(false);
     });
 
     it("returns false when category is missing", async () => {
       store.productForm = {
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         name: "Test",
         price: 50,
         description: "Desc",
@@ -100,7 +100,7 @@ describe("admin-store", () => {
 
     it("returns false when price is missing", async () => {
       store.productForm = {
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         name: "Test",
         dish_category: { id: 1 },
         description: "Desc",
@@ -111,7 +111,7 @@ describe("admin-store", () => {
 
     it("returns false when description is missing", async () => {
       store.productForm = {
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         name: "Test",
         dish_category: { id: 1 },
         price: 50,
@@ -123,7 +123,7 @@ describe("admin-store", () => {
     it("creates new product when form has no id", async () => {
       store.slug = "test";
       store.productForm = {
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         name: "Tacos",
         dish_category: { id: 1 },
         price: 50,
@@ -144,7 +144,7 @@ describe("admin-store", () => {
       store.products = [{ id: 1, name: "Old" }];
       store.productForm = {
         id: 1,
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         name: "Tacos",
         dish_category: { id: 1 },
         price: 50,
@@ -479,7 +479,7 @@ describe("admin-store", () => {
         {
           id: 1,
           name: "Ebi Spicy",
-          photo: "img.jpg",
+          photo: "https://cdn.test/img.jpg",
           price: 120,
           description: "Roll de camarón",
           dish_category: { id: 1, name: "Rollos" },
@@ -489,7 +489,7 @@ describe("admin-store", () => {
       store.productForm = {
         id: 1,
         name: "Ebi Spicy",
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         price: 120,
         description: "Roll de camarón",
         dish_category: { id: 2, name: "Especiales" },
@@ -500,7 +500,7 @@ describe("admin-store", () => {
           product: {
             id: 1,
             name: "Ebi Spicy",
-            photo: "img.jpg",
+            photo: "https://cdn.test/img.jpg",
             price: 120,
             description: "Roll de camarón",
             dish_category: { id: 2, name: "Especiales" },
@@ -525,7 +525,7 @@ describe("admin-store", () => {
       store.productForm = {
         id: 5,
         name: "Ebi Spicy",
-        photo: "img.jpg",
+        photo: "https://cdn.test/img.jpg",
         price: 100,
         description: "Desc",
         dish_category: { id: 7, name: "Nueva Cat" },

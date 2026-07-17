@@ -389,7 +389,8 @@ describe("main-store", () => {
 
       store.buildWhatsAppUrl();
 
-      expect(store.whatsappUrl).toContain("wa.me/9876543210");
+      // Números de 10 dígitos reciben el prefijo de país 52 (México) para WhatsApp
+      expect(store.whatsappUrl).toContain("wa.me/529876543210");
       expect(store.whatsappUrl).toContain("Omar");
       expect(store.whatsappUrl).toContain("Tacos");
       expect(store.whatsappUrl).toContain("ORD-1");

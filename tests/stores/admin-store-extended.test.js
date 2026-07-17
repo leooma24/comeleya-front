@@ -464,7 +464,8 @@ describe("admin-store - extended coverage", () => {
       api.post.mockRejectedValueOnce(new Error("Upload failed"));
 
       await store.uploadDishImage("fake-image-blob");
-      expect(store.productForm.photo).toBeUndefined();
+      // En error se limpia el preview base64 a "" (para no enviarlo al backend)
+      expect(store.productForm.photo).toBe("");
     });
 
     it("uploadEstablishmentImage posts FormData and sets logo", async () => {
@@ -485,7 +486,8 @@ describe("admin-store - extended coverage", () => {
       api.post.mockRejectedValueOnce(new Error("Upload failed"));
 
       await store.uploadEstablishmentImage("fake-image-blob");
-      expect(store.companyStore.companyForm.logo).toBeUndefined();
+      // En error se limpia el preview base64 a "" (para no enviarlo al backend)
+      expect(store.companyStore.companyForm.logo).toBe("");
     });
   });
 

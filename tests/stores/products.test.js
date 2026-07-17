@@ -172,7 +172,8 @@ describe("products store", () => {
         ],
       };
       store.updatePrice();
-      expect(store.product.totalPrice).toBe(20); // 10 + (2*5)
+      // base 50 + aditivo (1*10 + 2*5 = 20) = 70
+      expect(store.product.totalPrice).toBe(70);
     });
 
     it("handles null qty and price in options", () => {
@@ -186,7 +187,8 @@ describe("products store", () => {
         ],
       };
       store.updatePrice();
-      expect(store.product.totalPrice).toBe(0);
+      // base 50 + aditivo (0) = 50
+      expect(store.product.totalPrice).toBe(50);
     });
   });
 
@@ -291,7 +293,8 @@ describe("products store", () => {
         extras: [{ options: [] }],
       };
       store.updatePrice();
-      expect(store.product.totalPrice).toBe(0);
+      // base 50 + aditivo (0) = 50
+      expect(store.product.totalPrice).toBe(50);
     });
 
     it("updatePrice with multiple extras sums all", () => {
@@ -304,7 +307,8 @@ describe("products store", () => {
         ],
       };
       store.updatePrice();
-      expect(store.product.totalPrice).toBe(40); // 10 + 30
+      // base 50 + aditivo (10 + 30 = 40) = 90
+      expect(store.product.totalPrice).toBe(90);
     });
 
     it("isDisabled with all options at qty 0", () => {
