@@ -1,59 +1,81 @@
 <template>
-  <div v-if="mainStore.orderHistory.length" class="mc-order-history">
-    <div class="mc-order-history__header" @click="expanded = !expanded">
-      <div class="mc-order-history__title">
-        <q-icon name="history" size="18px" color="grey-7" class="q-mr-xs" />
-        Pedidos anteriores
-      </div>
-      <q-icon
-        :name="expanded ? 'expand_less' : 'expand_more'"
-        size="20px"
-        color="grey-6"
-      />
-    </div>
+  <q-drawer
+    v-model="showDrawer"
+    side="right"
+    bordered
+    overlay
+    persistent
+    no-swipe-open
+    :width="$q.screen.lt.sm ? $q.screen.width : 440"
+  >
+    <q-btn
+      flat
+      round
+      icon="close"
+      color="grey-8"
+      size="md"
+      class="mc-drawer-close"
+      @click="showDrawer = false"
+    />
 
-    <div v-show="expanded" class="mc-order-history__list">
-      <div
-        v-for="(order, index) in mainStore.orderHistory"
-        :key="index"
-        class="mc-order-history__item"
-      >
-        <div class="mc-order-history__info">
-          <span class="mc-order-history__code">#{{ order.order_code }}</span>
-          <span class="mc-order-history__date">{{ formatDate(order.savedAt) }}</span>
+    <q-scroll-area style="height: calc(100vh - 32px)">
+      <div class="q-pa-md">
+        <!-- Header -->
+        <div class="mc-drawer-header q-mb-md">
+          <h5 class="mc-drawer-title">Pedidos anteriores</h5>
         </div>
-        <div class="mc-order-history__details">
-          <span class="mc-order-history__products">
-            {{ order.cart.length }} producto{{ order.cart.length > 1 ? 's' : '' }}
-          </span>
-          <span class="mc-order-history__total">${{ order.total }}</span>
-        </div>
-        <div class="mc-order-history__actions">
-          <q-btn
-            flat
-            dense
-            no-caps
-            size="sm"
-            color="primary"
-            icon="replay"
-            label="Repetir"
-            @click="mainStore.reorder(order)"
-          />
-          <q-btn
-            flat
-            dense
-            round
-            size="sm"
-            color="grey-5"
-            icon="close"
-            @click="mainStore.orderStore.removeFromHistory(index)"
+
+        <!-- Lista -->
+        <div v-if="mainStore.orderHistory.length" class="mc-history-list">
+          <div
+            v-for="(order, index) in mainStore.orderHistory"
+            :key="index"
+            class="mc-history-item"
           >
-            <q-tooltip>Eliminar</q-tooltip>
-          </q-btn>
+            <div class="mc-history-item__info">
+              <span class="mc-history-item__code">#{{ order.order_code }}</span>
+              <span class="mc-history-item__date">{{ formatDate(order.savedAt) }}</span>
+            </div>
+            <div class="mc-history-item__details">
+              <span class="mc-history-item__products">
+                {{ order.cart.length }} producto{{ order.cart.length > 1 ? 's' : '' }}
+              </span>
+              <span class="mc-history-item__total">${{ order.total }}</span>
+            </div>
+            <div class="mc-history-item__actions">
+              <q-btn
+                unelevated
+                dense
+                no-caps
+                size="sm"
+                color="primary"
+                icon="replay"
+                label="Repetir"
+                @click="onReorder(order)"
+              />
+              <q-btn
+                flat
+                dense
+                round
+                size="sm"
+                color="grey-6"
+                icon="delete_outline"
+                @click="mainStore.orderStore.removeFromHistory(index)"
+              >
+                <q-tooltip>Eliminar</q-tooltip>
+              </q-btn>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vacío -->
+        <div v-else class="mc-empty-state">
+          <q-icon name="history" size="48px" color="grey-4" />
+          <p>Aún no tienes pedidos anteriores.</p>
         </div>
       </div>
-    </div>
-  </div>
+    </q-scroll-area>
+  </q-drawer>
 </template>
 
 <script setup>
@@ -61,11 +83,15 @@ defineOptions({
   name: "OrderHistory",
 });
 
-import { ref } from "vue";
 import { useMainStore } from "src/stores/main-store";
 
 const mainStore = useMainStore();
-const expanded = ref(false);
+const showDrawer = defineModel({ default: false });
+
+const onReorder = (order) => {
+  mainStore.reorder(order);
+  showDrawer.value = false;
+};
 
 function formatDate(dateStr) {
   const date = new Date(dateStr);
@@ -85,46 +111,28 @@ function formatDate(dateStr) {
 </script>
 
 <style lang="scss" scoped>
-.mc-order-history {
-  background: var(--color-surface);
-  border-radius: var(--radius-md);
-  margin: var(--space-sm);
+.mc-drawer-header {
+  padding-top: var(--space-lg);
+}
+
+.mc-drawer-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.mc-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.mc-history-item {
   border: 1px solid var(--color-border-subtle);
-  overflow: hidden;
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-sm) var(--space-md);
-    cursor: pointer;
-    transition: background var(--transition-fast);
-
-    &:hover {
-      background: var(--color-surface-variant);
-    }
-  }
-
-  &__title {
-    display: flex;
-    align-items: center;
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--color-text-primary);
-  }
-
-  &__list {
-    border-top: 1px solid var(--color-border-subtle);
-  }
-
-  &__item {
-    padding: var(--space-sm) var(--space-md);
-    border-bottom: 1px solid var(--color-border-subtle);
-
-    &:last-child {
-      border-bottom: none;
-    }
-  }
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
 
   &__info {
     display: flex;
@@ -148,7 +156,7 @@ function formatDate(dateStr) {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-xs);
+    margin-bottom: var(--space-sm);
   }
 
   &__products {
@@ -166,6 +174,17 @@ function formatDate(dateStr) {
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+}
+
+.mc-empty-state {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  color: var(--color-text-tertiary);
+
+  p {
+    margin: var(--space-sm) 0 0;
+    font-size: var(--text-sm);
   }
 }
 </style>

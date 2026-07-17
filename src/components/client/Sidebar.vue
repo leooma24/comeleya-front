@@ -150,7 +150,24 @@
     </div>
 
     <!-- Order History -->
-    <order-history />
+    <div class="mc-history-btn-wrapper" v-if="mainStore.orderHistory.length">
+      <button
+        type="button"
+        class="mc-history-btn"
+        @click="orderHistoryDrawer = true"
+      >
+        <q-icon name="history" size="18px" class="q-mr-xs" />
+        <span class="mc-history-btn__label">Pedidos anteriores</span>
+        <q-badge
+          color="primary"
+          rounded
+          class="mc-history-btn__count"
+          :label="mainStore.orderHistory.length"
+        />
+        <q-icon name="chevron_right" size="18px" class="mc-history-btn__chevron" />
+      </button>
+    </div>
+    <order-history v-model="orderHistoryDrawer" />
 
     <!-- Reservation Dialog -->
     <reservation-dialog v-model="reservationDialog" />
@@ -263,6 +280,7 @@ const updateSidebarHeight = () => {
 const reviewDialog = ref(false);
 const reviewsDrawer = ref(false);
 const reservationDialog = ref(false);
+const orderHistoryDrawer = ref(false);
 const reviewData = ref({ avg: 0, total: 0 });
 
 const refreshReviews = async () => {
@@ -358,11 +376,21 @@ function goToCategory(id) {
   overflow: hidden;
 
   &--placeholder {
+    // Sin banner: el cover se ajusta al logo+nombre (no reservar altura vacía)
+    height: auto;
     background: linear-gradient(
       135deg,
       var(--q-primary) 0%,
       color-mix(in srgb, var(--q-primary) 60%, #000 40%) 100%
     );
+
+    .mc-restaurant-cover__scrim {
+      display: none;
+    }
+
+    .mc-restaurant-cover__identity {
+      position: static;
+    }
   }
 
   &__scrim {
@@ -545,6 +573,43 @@ function goToCategory(id) {
 
   @media screen and (min-width: 1024px) {
     justify-content: center;
+  }
+}
+
+.mc-history-btn-wrapper {
+  padding: 0 var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.mc-history-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+
+  &:hover {
+    background: var(--color-surface-variant);
+  }
+
+  &__label {
+    text-align: left;
+  }
+
+  &__count {
+    margin-left: var(--space-xs);
+  }
+
+  &__chevron {
+    margin-left: auto;
+    color: var(--color-text-tertiary);
   }
 }
 

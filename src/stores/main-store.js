@@ -444,11 +444,15 @@ export const useMainStore = defineStore("main", {
       const rawPhone = (this.company.whatsapp || "").replace(/\D/g, "");
       const phoneNumber = rawPhone.length === 10 ? "52" + rawPhone : rawPhone;
       const f = (n) => Number(n || 0).toFixed(2);
+      // Limpia el texto para que las negritas de WhatsApp (*texto*) siempre
+      // apliquen: recorta espacios (un espacio antes del * de cierre rompe el
+      // formato) y quita asteriscos sueltos internos.
+      const b = (text) => String(text ?? "").replace(/\*/g, "").trim();
       const lines = [];
 
       // Header
-      lines.push(`Hola *${this.establishment.name}*`);
-      lines.push(`Soy *${this.data.name}*, quisiera hacer el siguiente pedido:`);
+      lines.push(`Hola *${b(this.establishment.name)}*`);
+      lines.push(`Soy *${b(this.data.name)}*, quisiera hacer el siguiente pedido:`);
       lines.push(``);
 
       // Order number
@@ -458,7 +462,7 @@ export const useMainStore = defineStore("main", {
       // Products
       this.cart.forEach((product) => {
         const total = product.totalPrice * product.qty;
-        lines.push(`*${product.qty}x ${product.name}* — $${f(total)}`);
+        lines.push(`*${product.qty}x ${b(product.name)}* — $${f(total)}`);
 
         product.extras.forEach((extra) => {
           extra.options.forEach((option) => {

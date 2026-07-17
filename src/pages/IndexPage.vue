@@ -162,14 +162,55 @@
                 Recomendados
               </div>
             </div>
-            <div class="mc-featured-carousel">
+            <div class="mc-featured-carousel-wrap">
+              <q-btn
+                v-if="featuredPages > 1"
+                round
+                dense
+                unelevated
+                icon="chevron_left"
+                class="mc-featured-arrow mc-featured-arrow--prev"
+                aria-label="Anterior"
+                @click="prevFeatured"
+              />
               <div
-                class="mc-featured-carousel__item"
-                v-for="item in mainStore.featuredProducts"
-                :key="'featured_' + item.id"
+                ref="featuredCarousel"
+                class="mc-featured-carousel"
+                @scroll="onFeaturedScroll"
+                @pointerenter="pauseFeatured"
+                @pointerleave="resumeFeatured"
               >
-                <CardDish :item="item" />
+                <div
+                  class="mc-featured-carousel__item"
+                  v-for="item in mainStore.featuredProducts"
+                  :key="'featured_' + item.id"
+                >
+                  <CardDish :item="item" />
+                </div>
               </div>
+              <q-btn
+                v-if="featuredPages > 1"
+                round
+                dense
+                unelevated
+                icon="chevron_right"
+                class="mc-featured-arrow mc-featured-arrow--next"
+                aria-label="Siguiente"
+                @click="nextFeatured"
+              />
+            </div>
+            <div class="mc-featured-dots" v-if="featuredPages > 1">
+              <button
+                v-for="n in featuredPages"
+                :key="'fdot_' + n"
+                type="button"
+                :class="[
+                  'mc-featured-dot',
+                  { 'mc-featured-dot--active': featuredPage === n - 1 },
+                ]"
+                :aria-label="'Ir al grupo ' + n"
+                @click="scrollFeaturedTo(n - 1)"
+              />
             </div>
           </div>
 
@@ -215,7 +256,7 @@ defineOptions({
   name: "IndexPage",
 });
 
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import { useMeta } from "quasar";
 import SidebarComponent from "src/components/client/Sidebar.vue";
 import CardDish from "src/components/client/CardDish.vue";
@@ -288,8 +329,88 @@ const onIntersection = (entry) => {
   }
 };
 
+// --- Carrusel de Recomendados: auto-avanza y brinca por página (tarjetas visibles) ---
+const featuredCarousel = ref(null);
+const featuredPage = ref(0);
+const featuredPages = ref(1);
+let featuredTimer = null;
+let featuredPaused = false;
+
+const prefersReducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+// Recalcula cuántas páginas hay (ancho total / ancho visible) y la página actual
+const measureFeatured = () => {
+  const el = featuredCarousel.value;
+  if (!el) return;
+  featuredPages.value = Math.max(1, Math.round(el.scrollWidth / el.clientWidth));
+  featuredPage.value = Math.round(el.scrollLeft / el.clientWidth);
+};
+
+const onFeaturedScroll = () => {
+  const el = featuredCarousel.value;
+  if (el) featuredPage.value = Math.round(el.scrollLeft / el.clientWidth);
+};
+
+// Salta a una página (brinca exactamente el ancho visible), con loop
+const scrollFeaturedTo = (page) => {
+  const el = featuredCarousel.value;
+  if (!el) return;
+  const pages = featuredPages.value;
+  const target = ((page % pages) + pages) % pages;
+  el.scrollTo({ left: target * el.clientWidth, behavior: "smooth" });
+};
+
+const nextFeatured = () => {
+  const el = featuredCarousel.value;
+  if (!el) return;
+  const current = Math.round(el.scrollLeft / el.clientWidth);
+  const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+  scrollFeaturedTo(atEnd ? 0 : current + 1);
+};
+
+const prevFeatured = () => {
+  const el = featuredCarousel.value;
+  if (!el) return;
+  scrollFeaturedTo(Math.round(el.scrollLeft / el.clientWidth) - 1);
+};
+
+const pauseFeatured = () => { featuredPaused = true; };
+const resumeFeatured = () => { featuredPaused = false; };
+
+const stopFeaturedAutoplay = () => {
+  if (featuredTimer) { clearInterval(featuredTimer); featuredTimer = null; }
+};
+
+const startFeaturedAutoplay = () => {
+  stopFeaturedAutoplay();
+  if (prefersReducedMotion()) return;
+  featuredTimer = setInterval(() => {
+    if (!featuredPaused && featuredPages.value > 1) nextFeatured();
+  }, 4500);
+};
+
+watch(
+  () => mainStore.featuredProducts.length,
+  (len) => {
+    if (len) nextTick(() => { measureFeatured(); startFeaturedAutoplay(); });
+    else stopFeaturedAutoplay();
+  }
+);
+
 onMounted(async () => {
+  window.addEventListener("resize", measureFeatured);
   await mainStore.getEstablishment(route.params.slug);
+  // Los destacados pueden venir ya cargados (store persistido), así que el watch
+  // no siempre dispara: inicializamos el carrusel aquí también.
+  if (mainStore.featuredProducts.length) {
+    nextTick(() => { measureFeatured(); startFeaturedAutoplay(); });
+  }
+});
+
+onBeforeUnmount(() => {
+  stopFeaturedAutoplay();
+  window.removeEventListener("resize", measureFeatured);
 });
 </script>
 
@@ -404,6 +525,32 @@ onMounted(async () => {
   align-items: center;
 }
 
+.mc-featured-carousel-wrap {
+  position: relative;
+}
+
+.mc-featured-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-md);
+
+  &--prev {
+    left: 4px;
+  }
+  &--next {
+    right: 4px;
+  }
+
+  // En móvil el swipe es más natural; las flechas estorban
+  @media (max-width: 599px) {
+    display: none;
+  }
+}
+
 .mc-featured-carousel {
   display: flex;
   gap: var(--space-sm);
@@ -412,12 +559,10 @@ onMounted(async () => {
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
 
+  // Sin barra de scroll: se navega con flechas/puntitos (look de slider)
+  scrollbar-width: none;
   &::-webkit-scrollbar {
-    height: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: var(--radius-full);
+    display: none;
   }
 
   &__item {
@@ -429,6 +574,30 @@ onMounted(async () => {
       width: 70vw;
       max-width: 260px;
     }
+  }
+}
+
+.mc-featured-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: var(--space-sm);
+}
+
+.mc-featured-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &--active {
+    width: 20px;
+    background: var(--q-primary);
   }
 }
 
