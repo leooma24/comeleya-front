@@ -246,10 +246,12 @@ export const useMainStore = defineStore("main", {
     async creatingOrder() {
       this.hasError.payment = false;
       if (this.payment.type === "Efectivo") {
+        // Comparar contra el total real (con envío/propina/descuento), no el subtotal
+        const dueAmount = this.totalToPay;
         const entered = this.payment.value;
         if (entered === "" || entered == null) {
-          this.payment.value = this.cartStore.total;
-        } else if (Number(entered) < this.cartStore.total) {
+          this.payment.value = dueAmount;
+        } else if (Number(entered) < dueAmount) {
           this.hasError.payment = true;
           this.messageStore.error("El monto es menor al total a pagar");
           return;
@@ -394,9 +396,14 @@ export const useMainStore = defineStore("main", {
       });
       if (hasErrors) return;
 
+      const wasEditing = this.cartStore.isEditing;
       this.cartStore.addToCart(Object.assign({}, this.productStore.product));
       this.productStore.product = {};
       this.addCartDrawer = false;
+      this.messageStore.cartAdded(
+        wasEditing ? "Producto actualizado" : "Agregado a tu pedido",
+        wasEditing ? null : () => { this.cartDrawer = true; }
+      );
     },
     reorder(historyEntry) {
       if (historyEntry.establishment !== this.companyStore.slug) {
@@ -411,7 +418,15 @@ export const useMainStore = defineStore("main", {
       this.messageStore.success("Pedido cargado al carrito");
     },
     removeProduct(index) {
+      const removed = this.cartStore.cart[index];
+      const snapshot = removed ? JSON.parse(JSON.stringify(removed)) : null;
       this.cartStore.removeProduct(index);
+      if (snapshot) {
+        this.messageStore.cartRemoved(snapshot.name, () => {
+          this.cartStore.restoreProduct(index, snapshot);
+          this.cartDrawer = true;
+        });
+      }
       if (this.cartStore.isEmpty) {
         this.cartDrawer = false;
       }

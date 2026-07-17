@@ -41,6 +41,11 @@ export const useCartStore = defineStore("cart", {
       this.cart.splice(index, 1);
       this.updateTotal();
     },
+    // Reinserta un producto en su posición original (para "Deshacer")
+    restoreProduct(index, product) {
+      this.cart.splice(index, 0, product);
+      this.updateTotal();
+    },
     incrementLine(index) {
       const item = this.cart[index];
       if (!item) return;

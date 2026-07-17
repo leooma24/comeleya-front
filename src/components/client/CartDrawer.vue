@@ -20,6 +20,8 @@
 
     <q-scroll-area style="height: calc(100vh - 100px)">
       <div class="q-pa-md">
+        <checkout-steps :current="1" />
+
         <!-- Header -->
         <div class="mc-drawer-header q-mb-md">
           <h5 class="mc-drawer-title">Tu Pedido</h5>
@@ -45,6 +47,15 @@
             :key="index"
           >
             <div class="mc-cart-item__main">
+              <div class="mc-cart-item__thumb">
+                <img
+                  v-if="product.photo"
+                  :src="product.photo"
+                  :alt="product.name"
+                />
+                <q-icon v-else name="restaurant_menu" size="22px" color="grey-5" />
+              </div>
+
               <div class="mc-cart-item__info">
                 <span class="mc-cart-item__name">{{ product.name }}</span>
               </div>
@@ -53,9 +64,8 @@
                 <q-btn
                   flat
                   round
-                  dense
                   icon="edit"
-                  size="xs"
+                  size="sm"
                   color="grey-7"
                   class="mc-cart-item__action-btn"
                   @click="mainStore.editProduct(index)"
@@ -65,9 +75,8 @@
                 <q-btn
                   flat
                   round
-                  dense
                   icon="delete_outline"
-                  size="xs"
+                  size="sm"
                   color="negative"
                   class="mc-cart-item__action-btn"
                   @click="mainStore.removeProduct(index)"
@@ -167,6 +176,7 @@ defineOptions({
 });
 import { computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
 
 // Total de artículos por unidades (no por líneas)
@@ -253,12 +263,31 @@ const unitCount = computed(() =>
 
   &__main {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  &__thumb {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--color-surface-variant);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
   &__info {
     flex: 1;
+    min-width: 0;
   }
 
   &__name {

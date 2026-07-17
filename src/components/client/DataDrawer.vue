@@ -19,7 +19,8 @@
       @click="mainStore.dataDrawer = false"
     />
 
-    <div class="q-pa-md q-pt-xl">
+    <div ref="formRef" class="q-pa-md q-pt-xl">
+      <checkout-steps :current="2" @back="mainStore.dataDrawer = false" />
       <h5 class="mc-drawer-title q-mb-md">Completa los datos</h5>
 
       <!-- Personal Data -->
@@ -37,9 +38,9 @@
           v-model="mainStore.data.name"
           label="Nombre"
           class="q-mb-sm"
-          :rules="[val => !!val || 'Campo requerido']"
-          lazy-rules
-          hide-bottom-space
+          :error="errors.name"
+          error-message="Escribe tu nombre"
+          @update:model-value="errors.name = false"
         />
         <q-input
           dense
@@ -49,6 +50,9 @@
           label="Teléfono"
           mask="(###) ###-####"
           fill-mask
+          :error="errors.phone"
+          error-message="Escribe un teléfono de 10 dígitos"
+          @update:model-value="errors.phone = false"
         >
           <template v-slot:prepend>
             <q-icon name="phone" />
@@ -121,7 +125,8 @@
           v-model="mainStore.data.zip"
           label="Código Postal"
           class="q-mb-sm"
-          @blur="mainStore.getTowns"
+          :loading="loadingTowns"
+          @blur="loadTowns"
         />
         <q-select
           filled
@@ -131,6 +136,9 @@
           label="Colonia"
           :options="mainStore.data.towns"
           class="q-mb-sm"
+          :error="errors.town"
+          error-message="Elige tu colonia"
+          @update:model-value="errors.town = false"
         />
         <q-input
           filled
@@ -139,6 +147,9 @@
           v-model="mainStore.data.street"
           label="Calle"
           class="q-mb-sm"
+          :error="errors.street"
+          error-message="Escribe la calle"
+          @update:model-value="errors.street = false"
         />
         <div class="row q-gutter-sm">
           <div class="col">
@@ -148,6 +159,9 @@
               rounded
               v-model="mainStore.data.ext_number"
               label="Núm. Exterior"
+              :error="errors.ext"
+              error-message="Falta el número"
+              @update:model-value="errors.ext = false"
             />
           </div>
           <div class="col">
@@ -205,6 +219,9 @@
           color="primary"
           v-model="mainStore.data.table"
           label="Número de Mesa"
+          :error="errors.table"
+          error-message="Escribe el número de mesa"
+          @update:model-value="errors.table = false"
         />
       </div>
     </div>
@@ -239,48 +256,83 @@
 defineOptions({
   name: "DataDrawer",
 });
-import { ref } from "vue";
+import { ref, nextTick } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import CheckoutSteps from "./CheckoutSteps.vue";
 
 const mainStore = useMainStore();
+const formRef = ref(null);
+const loadingTowns = ref(false);
+
+// Errores por campo (mensajes inline en cada input)
+const errors = ref({
+  name: false,
+  phone: false,
+  town: false,
+  street: false,
+  ext: false,
+  table: false,
+});
+
+// Errores por sección (resaltado del bloque completo)
 const personalDataError = ref(false);
 const deliveryDataError = ref(false);
 const addressError = ref(false);
 const personsError = ref(false);
 
-const validateData = () => {
-  personalDataError.value = false;
-  deliveryDataError.value = false;
-  addressError.value = false;
-  personsError.value = false;
+const loadTowns = async () => {
+  if (!mainStore.data.zip) return;
+  loadingTowns.value = true;
+  try {
+    await mainStore.getTowns();
+  } finally {
+    loadingTowns.value = false;
+  }
+};
 
-  if (!mainStore.data.name || mainStore.data.phone === "(___) ___-____" || !mainStore.data.phone) {
-    personalDataError.value = true;
-  }
-  if (!mainStore.data.delivery) {
-    deliveryDataError.value = true;
-  }
+const scrollToFirstError = () => {
+  const el = formRef.value?.querySelector(
+    ".q-field--error, .mc-form-section--error"
+  );
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+};
+
+const validateData = async () => {
+  const phone = mainStore.data.phone || "";
+  const e = {
+    name: !mainStore.data.name,
+    // Con fill-mask un teléfono incompleto conserva guiones bajos
+    phone: !phone || phone.includes("_"),
+    town: false,
+    street: false,
+    ext: false,
+    table: false,
+  };
+
   if (mainStore.data.delivery === "Envio") {
-    if (
-      !mainStore.data.town ||
-      !mainStore.data.street ||
-      !mainStore.data.ext_number
-    ) {
-      addressError.value = true;
-    }
+    e.town = !mainStore.data.town;
+    e.street = !mainStore.data.street;
+    e.ext = !mainStore.data.ext_number;
   }
   if (mainStore.data.delivery === "Reservar") {
-    if (!mainStore.data.table) {
-      personsError.value = true;
-    }
+    e.table = !mainStore.data.table;
   }
-  if (
-    personalDataError.value ||
-    deliveryDataError.value ||
-    addressError.value ||
-    personsError.value
-  )
+  errors.value = e;
+
+  // Resaltado de secciones
+  personalDataError.value = e.name || e.phone;
+  deliveryDataError.value = !mainStore.data.delivery;
+  addressError.value = e.town || e.street || e.ext;
+  personsError.value = e.table;
+
+  const hasError =
+    Object.values(e).some(Boolean) || deliveryDataError.value;
+
+  if (hasError) {
+    await nextTick();
+    scrollToFirstError();
     return;
+  }
 
   mainStore.paymentDrawer = true;
 };

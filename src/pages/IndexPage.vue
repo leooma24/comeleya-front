@@ -217,9 +217,9 @@
           <!-- Category Sections -->
           <div
             v-show="!mainStore.isSearching"
-            class="q-mb-xl"
-            v-for="(record, indexRecord) in mainStore.categories"
-            :key="indexRecord"
+            class="q-mb-xl mc-category-section"
+            v-for="record in mainStore.categories"
+            :key="record.id"
             :id="record.id"
           >
             <div
@@ -508,6 +508,15 @@ onBeforeUnmount(() => {
     padding: 6px 14px;
     border-radius: var(--radius-full);
     box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
+  }
+}
+
+// Deja aire al saltar a una categoría (search o tabs) para que el header/tabs fijos no la tapen
+.mc-category-section {
+  scroll-margin-top: 80px;
+
+  @media screen and (max-width: 1023px) {
+    scroll-margin-top: var(--mc-sidebar-total-height, 230px);
   }
 }
 

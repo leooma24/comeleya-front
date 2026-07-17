@@ -20,6 +20,7 @@
     />
 
     <div class="q-pa-md q-pt-xl">
+      <checkout-steps :current="3" @back="mainStore.paymentDrawer = false" />
       <h5 class="mc-drawer-title q-mb-md">Datos de Pago</h5>
 
       <!-- Tip Section -->
@@ -271,6 +272,7 @@ defineOptions({
 });
 import { ref } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
 const couponCode = ref("");
 const sendingOrder = ref(false);
