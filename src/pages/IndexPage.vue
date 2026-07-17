@@ -126,9 +126,11 @@
             class="q-mb-xl mc-offers-section"
           >
             <div class="col-12">
-              <div class="mc-category-heading mc-offers-heading">
-                <q-icon name="local_offer" size="20px" color="red-6" class="q-mr-xs" />
-                Ofertas del día
+              <div class="mc-offers-heading">
+                <span class="mc-offers-heading__pill">
+                  <q-icon name="local_offer" size="16px" class="q-mr-xs" />
+                  Ofertas del día 🔥
+                </span>
               </div>
             </div>
             <div class="mc-content-products row">
@@ -350,17 +352,35 @@ onMounted(async () => {
 }
 
 .mc-offers-section {
-  background: linear-gradient(135deg, rgba(244, 67, 54, 0.06) 0%, rgba(255, 87, 34, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(255, 87, 34, 0.05) 100%);
   border-radius: var(--radius-lg);
   padding: var(--space-sm);
   margin-left: var(--space-sm);
   margin-right: var(--space-sm);
-  border: 1px solid rgba(244, 67, 54, 0.15);
+  border: 1px solid rgba(244, 67, 54, 0.18);
+  border-left: 4px solid var(--q-primary);
+  box-shadow: 0 4px 16px rgba(244, 67, 54, 0.08);
 }
 
 .mc-offers-heading {
   display: flex;
   align-items: center;
+  padding: var(--space-sm) var(--space-sm) 0;
+  margin-bottom: var(--space-xs);
+
+  &__pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--q-primary);
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-sm);
+    letter-spacing: 0.02em;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 8px rgba(229, 57, 53, 0.3);
+  }
 }
 
 .mc-featured-section {
