@@ -12,21 +12,21 @@
         class="mc-restaurant-cover"
         :class="{ 'mc-restaurant-cover--placeholder': !mainStore.company.banner }"
         :style="mainStore.company.banner ? { backgroundImage: `url(${mainStore.company.banner})` } : null"
-      ></div>
+      >
+        <div class="mc-restaurant-cover__scrim"></div>
+        <div class="mc-restaurant-cover__identity">
+          <q-avatar
+            :size="$q.screen.lt.md ? '54px' : '62px'"
+            class="mc-restaurant-avatar"
+          >
+            <img :src="mainStore.company.logo" />
+          </q-avatar>
+          <h1 class="mc-restaurant-cover__name">{{ mainStore.company.name }}</h1>
+        </div>
+      </div>
 
       <div class="mc-restaurant-info">
-        <q-avatar
-          :size="$q.screen.lt.md ? '64px' : '88px'"
-          class="mc-restaurant-avatar"
-        >
-          <img :src="mainStore.company.logo" />
-        </q-avatar>
-
         <div class="mc-restaurant-details">
-          <h6 class="mc-restaurant-name">
-            {{ mainStore.company.name }}
-          </h6>
-
           <div class="mc-restaurant-meta">
             <q-chip
               :color="mainStore.company.isOpen ? 'positive' : 'negative'"
@@ -348,55 +348,78 @@ function goToCategory(id) {
 }
 
 .mc-restaurant-cover {
+  position: relative;
   // Sangra el padding del contenedor (var(--space-md)) para llegar a los bordes
   margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
-  height: 92px; // móvil: modesto para no comer pantalla (header fijo)
+  height: 132px;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  overflow: hidden;
 
   &--placeholder {
     background: linear-gradient(
       135deg,
       var(--q-primary) 0%,
-      color-mix(in srgb, var(--q-primary) 65%, #000 35%) 100%
+      color-mix(in srgb, var(--q-primary) 60%, #000 40%) 100%
     );
   }
 
-  @media screen and (min-width: 1024px) {
-    height: 110px;
+  &__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.05) 0%,
+      rgba(0, 0, 0, 0.15) 45%,
+      rgba(0, 0, 0, 0.62) 100%
+    );
   }
-}
 
-.mc-restaurant-info {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-xs) var(--space-md) var(--space-sm);
-
-  @media screen and (min-width: 1024px) {
-    flex-direction: column;
+  &__identity {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
     align-items: center;
-    text-align: center;
     gap: var(--space-sm);
+    padding: var(--space-md);
+  }
+
+  &__name {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+    margin: 0;
+    letter-spacing: -0.01em;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
 .mc-restaurant-avatar {
-  border: 3px solid var(--color-surface);
+  border: 3px solid #fff;
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
-  background: var(--color-surface);
-  margin-top: -40px; // solo el logo se sobrepone a la portada; el nombre queda debajo (legible)
+  background: #fff;
 }
 
-.mc-restaurant-name {
-  font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.25;
-  color: var(--color-text-primary);
+.mc-restaurant-info {
+  padding: var(--space-sm) var(--space-md);
+
+  @media screen and (min-width: 1024px) {
+    text-align: center;
+  }
+}
+
+.mc-restaurant-details {
+  width: 100%;
 }
 
 .mc-restaurant-details {
