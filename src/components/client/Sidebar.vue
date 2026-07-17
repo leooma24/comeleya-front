@@ -370,10 +370,9 @@ function goToCategory(id) {
 
 .mc-restaurant-info {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-md);
-  padding: 0 var(--space-md) var(--space-sm);
-  margin-top: -36px; // superpone el logo sobre la portada
+  padding: var(--space-xs) var(--space-md) var(--space-sm);
 
   @media screen and (min-width: 1024px) {
     flex-direction: column;
@@ -388,6 +387,7 @@ function goToCategory(id) {
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
   background: var(--color-surface);
+  margin-top: -40px; // solo el logo se sobrepone a la portada; el nombre queda debajo (legible)
 }
 
 .mc-restaurant-name {
