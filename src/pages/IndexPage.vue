@@ -61,15 +61,19 @@
             <div
               v-for="n in 6"
               :key="'skeleton_' + n"
-              class="q-pa-sm col-12 col-sm-6 col-lg-4"
+              :class="['q-pa-sm col-12', productColClass]"
             >
               <q-card flat class="mc-skeleton-card">
-                <q-skeleton height="180px" square animation="wave" />
+                <q-skeleton :ratio="4 / 3" square animation="wave" />
                 <q-card-section>
-                  <q-skeleton type="text" width="70%" animation="wave" />
-                  <q-skeleton type="text" class="q-mt-sm" animation="wave" />
-                  <q-skeleton type="text" width="40%" class="q-mt-sm" animation="wave" />
+                  <q-skeleton type="text" width="75%" animation="wave" />
+                  <q-skeleton type="text" width="90%" class="q-mt-sm" animation="wave" />
+                  <q-skeleton type="text" width="55%" class="q-mt-sm" animation="wave" />
                 </q-card-section>
+                <div class="mc-skeleton-card__footer">
+                  <q-skeleton type="QBtn" width="28px" height="28px" animation="wave" />
+                  <q-skeleton type="text" width="60px" animation="wave" />
+                </div>
               </q-card>
             </div>
           </div>

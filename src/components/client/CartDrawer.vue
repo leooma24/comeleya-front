@@ -30,8 +30,11 @@
 
         <!-- Empty State -->
         <div v-if="!mainStore.cart.length" class="mc-empty-cart">
-          <q-icon name="shopping_bag" size="48px" color="grey-4" />
+          <div class="mc-empty-cart__icon">
+            <q-icon name="shopping_bag" size="40px" />
+          </div>
           <p class="mc-empty-cart__text">Tu carrito está vacío</p>
+          <p class="mc-empty-cart__hint">Agrega platillos del menú para empezar tu pedido 🍽️</p>
         </div>
 
         <!-- Cart Items -->
@@ -199,13 +202,35 @@ const unitCount = computed(() =>
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-2xl) 0;
-  gap: var(--space-md);
+  padding: var(--space-2xl) var(--space-lg);
+  gap: var(--space-sm);
+  text-align: center;
+
+  &__icon {
+    width: 76px;
+    height: 76px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-soft, #ffe5e3);
+    color: var(--q-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-xs);
+  }
 
   &__text {
-    color: var(--color-text-tertiary);
+    color: var(--color-text-primary);
     font-size: var(--text-base);
+    font-weight: 600;
     margin: 0;
+  }
+
+  &__hint {
+    color: var(--color-text-tertiary);
+    font-size: var(--text-sm);
+    margin: 0;
+    max-width: 240px;
+    line-height: 1.4;
   }
 }
 
