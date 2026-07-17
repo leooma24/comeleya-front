@@ -7,15 +7,16 @@
     style="background: var(--color-surface-variant)"
   >
     <div ref="establishmentRef" class="mc-sidebar-establishment" v-if="!mainStore.isExternal">
-      <img
-        v-if="mainStore.company.banner"
-        :src="mainStore.company.banner"
-        class="mc-restaurant-banner"
-        alt="Banner"
-      />
+      <!-- Portada / hero -->
+      <div
+        class="mc-restaurant-cover"
+        :class="{ 'mc-restaurant-cover--placeholder': !mainStore.company.banner }"
+        :style="mainStore.company.banner ? { backgroundImage: `url(${mainStore.company.banner})` } : null"
+      ></div>
+
       <div class="mc-restaurant-info">
         <q-avatar
-          :size="$q.screen.lt.md ? '56px' : '72px'"
+          :size="$q.screen.lt.md ? '64px' : '88px'"
           class="mc-restaurant-avatar"
         >
           <img :src="mainStore.company.logo" />
@@ -311,30 +312,55 @@ function goToCategory(id) {
 </script>
 
 <style lang="scss" scoped>
+.mc-restaurant-cover {
+  // Sangra el padding del contenedor (var(--space-md)) para llegar a los bordes
+  margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
+  height: 130px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  &--placeholder {
+    background: linear-gradient(
+      135deg,
+      var(--q-primary) 0%,
+      color-mix(in srgb, var(--q-primary) 65%, #000 35%) 100%
+    );
+  }
+
+  @media screen and (min-width: 1024px) {
+    height: 110px;
+  }
+}
+
 .mc-restaurant-info {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-md);
-  padding: var(--space-sm) 0;
+  padding: 0 var(--space-md) var(--space-sm);
+  margin-top: -36px; // superpone el logo sobre la portada
 
   @media screen and (min-width: 1024px) {
     flex-direction: column;
+    align-items: center;
     text-align: center;
+    gap: var(--space-sm);
   }
 }
 
 .mc-restaurant-avatar {
-  border: 2px solid var(--color-border);
+  border: 3px solid var(--color-surface);
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
 }
 
 .mc-restaurant-name {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 700;
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.25;
   color: var(--color-text-primary);
 }
 
@@ -507,9 +533,4 @@ function goToCategory(id) {
   font-weight: 500;
 }
 
-.mc-restaurant-banner {
-  width: 100%;
-  max-height: 120px;
-  object-fit: cover;
-}
 </style>
