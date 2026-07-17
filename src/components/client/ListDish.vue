@@ -29,15 +29,6 @@
         <div v-else class="dish-card__image dish-card__no-image full-height">
           <q-icon name="restaurant_menu" size="28px" />
         </div>
-
-        <!-- Badge de precio flotante en móvil -->
-        <div class="dish-card__price-badge lt-md" :class="{ 'dish-card__price-badge--offer': hasSpecialPrice }">
-          <template v-if="hasSpecialPrice">
-            <span class="dish-card__old-price">${{ item.price }}</span>
-            <span>${{ item.special_price }}</span>
-          </template>
-          <span v-else>${{ item.price }}</span>
-        </div>
       </div>
 
       <!-- Contenido -->
@@ -52,8 +43,8 @@
           </p>
         </div>
 
-        <!-- Precio y compartir - visible en desktop -->
-        <div class="dish-card__footer gt-sm">
+        <!-- Precio + acción (consistente en móvil y desktop) -->
+        <div class="dish-card__footer">
           <span class="dish-card__price-text">
             <template v-if="hasSpecialPrice">
               <span class="dish-card__old-price">${{ item.price }}</span>
@@ -61,17 +52,21 @@
             </template>
             <template v-else>${{ item.price }}</template>
           </span>
-          <q-btn
-            flat
-            dense
-            round
-            size="xs"
-            icon="share"
-            color="grey-5"
-            @click.stop="shareProduct(item)"
-          >
-            <q-tooltip>Compartir</q-tooltip>
-          </q-btn>
+          <div class="dish-card__footer-actions">
+            <q-btn
+              flat
+              dense
+              round
+              size="xs"
+              icon="share"
+              color="grey-5"
+              @click.stop="shareProduct(item)"
+            >
+              <q-tooltip>Compartir</q-tooltip>
+            </q-btn>
+            <span v-if="item.is_sold_out" class="dish-card__unavailable">No disponible</span>
+            <q-icon v-else name="arrow_forward" size="18px" class="dish-card__go" />
+          </div>
         </div>
       </q-card-section>
     </div>
@@ -240,24 +235,20 @@ const shareProduct = (item) => {
     font-size: var(--text-lg);
   }
 
-  &__price-badge {
-    position: absolute;
-    bottom: var(--space-sm);
-    right: var(--space-sm);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: var(--space-xs) 10px;
-    border-radius: var(--radius-full);
-    box-shadow: var(--shadow-sm);
-    font-size: var(--text-sm);
-    font-weight: 700;
-    color: var(--q-primary);
-    font-variant-numeric: tabular-nums;
+  &__footer-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
 
-    &--offer {
-      background: rgba(244, 67, 54, 0.95);
-      color: white;
-    }
+  &__go {
+    color: var(--q-primary);
+  }
+
+  &__unavailable {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-text-tertiary);
   }
 }
 </style>
