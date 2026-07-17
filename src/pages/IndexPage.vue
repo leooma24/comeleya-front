@@ -291,7 +291,10 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .mc-page-bg {
-  background: var(--color-surface-variant);
+  background:
+    radial-gradient(1200px 400px at 100% 0%, rgba(229, 57, 53, 0.04), transparent 60%),
+    radial-gradient(900px 300px at 0% 0%, rgba(255, 109, 0, 0.03), transparent 55%),
+    var(--color-surface-variant);
   min-height: 100vh;
 }
 

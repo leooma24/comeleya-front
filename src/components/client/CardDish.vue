@@ -146,6 +146,17 @@ const shareProduct = (item) => {
 </script>
 
 <style lang="scss" scoped>
+@keyframes mcCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .dish-card {
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -155,6 +166,11 @@ const shareProduct = (item) => {
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
+  animation: mcCardIn 0.35s ease both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   &:hover {
     transform: translateY(-3px);
