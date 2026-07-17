@@ -69,7 +69,7 @@
             <div
               v-if="reviewData.total > 0"
               class="mc-rating-badge cursor-pointer"
-              @click="reviewDialog = true"
+              @click="reviewsDrawer = true"
             >
               <q-icon name="star" size="14px" color="amber-8" />
               <span class="mc-rating-badge__score">{{ reviewData.avg.toFixed(1) }}</span>
@@ -85,9 +85,9 @@
               size="sm"
               color="grey-7"
               class="mc-hours-btn"
-              @click="reviewDialog = true"
+              @click="reviewsDrawer = true"
             >
-              <q-tooltip>Dejar reseña</q-tooltip>
+              <q-tooltip>Reseñas</q-tooltip>
             </q-btn>
           </div>
           <div
@@ -186,7 +186,8 @@
     </div>
 
     <!-- Review Dialog -->
-    <review-dialog v-model="reviewDialog" />
+    <review-dialog v-model="reviewDialog" @submitted="refreshReviews" />
+    <reviews-drawer v-model="reviewsDrawer" @add="reviewDialog = true" />
 
     <!-- Hours Dialog -->
     <q-dialog v-model="dialog" backdrop-filter="blur(8px)">
@@ -239,6 +240,7 @@ import { useMainStore } from "src/stores/main-store";
 import { useQuasar } from "quasar";
 import OrderHistory from "./OrderHistory.vue";
 import ReviewDialog from "./ReviewDialog.vue";
+import ReviewsDrawer from "./ReviewsDrawer.vue";
 import ReservationDialog from "./ReservationDialog.vue";
 import LoyaltyBanner from "./LoyaltyBanner.vue";
 
@@ -256,8 +258,18 @@ const updateSidebarHeight = () => {
   });
 };
 const reviewDialog = ref(false);
+const reviewsDrawer = ref(false);
 const reservationDialog = ref(false);
 const reviewData = ref({ avg: 0, total: 0 });
+
+const refreshReviews = async () => {
+  try {
+    const { data } = await api.get(`/establishment/${mainStore.companyStore.slug}/reviews`);
+    reviewData.value = { avg: data.avg_rating || 0, total: data.total_reviews || 0 };
+  } catch {
+    // silently fail
+  }
+};
 
 const hasReservations = computed(() => {
   const features = mainStore.company?.features ?? [];
@@ -271,12 +283,7 @@ watch(() => mainStore.company?.name, () => {
 onMounted(async () => {
   setTimeout(updateSidebarHeight, 200);
   window.addEventListener('resize', updateSidebarHeight);
-  try {
-    const { data } = await api.get(`/establishment/${mainStore.companyStore.slug}/reviews`);
-    reviewData.value = { avg: data.avg_rating, total: data.total_reviews };
-  } catch {
-    // silently fail
-  }
+  await refreshReviews();
 });
 
 
