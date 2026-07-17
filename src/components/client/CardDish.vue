@@ -8,9 +8,12 @@
   >
     <!-- Imagen con overlay de precio -->
     <div class="dish-card__image-wrapper">
-      <!-- Etiqueta AGOTADO -->
-      <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
+      <!-- Etiquetas -->
+      <div v-if="item.is_sold_out" class="dish-card__badge dish-card__badge--sold-out">
         AGOTADO
+      </div>
+      <div v-else-if="isNew" class="dish-card__badge dish-card__badge--new">
+        NUEVO
       </div>
       <q-img
         v-if="item.photo"
@@ -112,6 +115,15 @@ const hasSpecialPrice = computed(() => {
   return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
 });
 
+// "Nuevo" = creado en los últimos 14 días
+const isNew = computed(() => {
+  if (!props.item.created_at) return false;
+  const created = new Date(props.item.created_at);
+  if (isNaN(created)) return false;
+  const days = (Date.now() - created.getTime()) / 86400000;
+  return days <= 14;
+});
+
 import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
 
@@ -192,12 +204,11 @@ const shareProduct = (item) => {
     overflow: hidden;
   }
 
-  &__sold-out-badge {
+  &__badge {
     position: absolute;
     top: var(--space-sm);
     left: var(--space-sm);
     z-index: 2;
-    background: var(--q-negative, #D32F2F);
     color: #fff;
     font-size: var(--text-xs);
     font-weight: 800;
@@ -205,6 +216,14 @@ const shareProduct = (item) => {
     padding: 4px 10px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
+
+    &--sold-out {
+      background: var(--q-negative, #D32F2F);
+    }
+
+    &--new {
+      background: var(--q-positive, #43A047);
+    }
   }
 
   &__image {
@@ -257,9 +276,9 @@ const shareProduct = (item) => {
   }
 
   &__title {
-    font-family: var(--font-body);
+    font-family: var(--font-display);
     font-size: var(--text-base);
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.3;
     color: var(--color-text-primary);
     margin: 0 0 var(--space-xs) 0;

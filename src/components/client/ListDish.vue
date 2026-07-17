@@ -9,9 +9,12 @@
     <div class="row no-wrap full-height">
       <!-- Imagen -->
       <div class="col-4 relative-position">
-        <!-- Etiqueta AGOTADO -->
+        <!-- Etiquetas -->
         <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
           AGOTADO
+        </div>
+        <div v-else-if="isNew" class="dish-card__sold-out-badge dish-card__new-badge">
+          NUEVO
         </div>
         <q-img
           v-if="item.photo"
@@ -91,6 +94,13 @@ const hasSpecialPrice = computed(() => {
   return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
 });
 
+const isNew = computed(() => {
+  if (!props.item.created_at) return false;
+  const created = new Date(props.item.created_at);
+  if (isNaN(created)) return false;
+  return (Date.now() - created.getTime()) / 86400000 <= 14;
+});
+
 import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
 
@@ -164,6 +174,10 @@ const shareProduct = (item) => {
     padding: 3px 8px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
+  }
+
+  &__new-badge {
+    background: var(--q-positive, #43A047);
   }
 
   &__image {
