@@ -145,7 +145,7 @@
             </div>
           </div>
 
-          <!-- Featured Section -->
+          <!-- Featured Section (carrusel horizontal) -->
           <div
             v-if="mainStore.featuredProducts.length && !mainStore.isSearching"
             class="q-mb-xl mc-featured-section"
@@ -153,19 +153,16 @@
             <div class="col-12">
               <div class="mc-category-heading mc-featured-heading">
                 <q-icon name="star" size="20px" color="amber-8" class="q-mr-xs" />
-                Destacados
+                Recomendados
               </div>
             </div>
-            <div class="mc-content-products row">
+            <div class="mc-featured-carousel">
               <div
-                :class="['q-pa-sm col-12', productColClass]"
+                class="mc-featured-carousel__item"
                 v-for="item in mainStore.featuredProducts"
                 :key="'featured_' + item.id"
               >
-                <component
-                  :is="type === 'Tarjeta' ? CardDish : ListDish"
-                  :item="item"
-                />
+                <CardDish :item="item" />
               </div>
             </div>
           </div>
@@ -378,6 +375,34 @@ onMounted(async () => {
 .mc-featured-heading {
   display: flex;
   align-items: center;
+}
+
+.mc-featured-carousel {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--radius-full);
+  }
+
+  &__item {
+    flex: 0 0 auto;
+    width: 220px;
+    scroll-snap-align: start;
+
+    @media (max-width: 599px) {
+      width: 70vw;
+      max-width: 260px;
+    }
+  }
 }
 
 .mc-empty-search {
