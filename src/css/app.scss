@@ -394,17 +394,22 @@ h6 {
 
 .mc-cart-bar {
   padding: var(--space-md) var(--space-lg);
-  background: var(--q-primary);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    135deg,
+    var(--q-primary) 0%,
+    color-mix(in srgb, var(--q-primary) 82%, #000 18%) 100%
+  );
   color: white;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: var(--shadow-cart);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.18);
   cursor: pointer;
   transition: var(--transition-normal);
   user-select: none;
 
   &:hover {
     filter: brightness(1.08);
-    box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.24);
   }
 
   &:active {

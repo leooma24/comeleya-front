@@ -170,12 +170,15 @@
         <div class="mc-cart-bar-left">
           <q-icon name="shopping_cart" size="24px" />
           <q-badge color="white" text-color="primary" rounded>
-            {{ mainStore.cart.length }}
+            {{ cartUnits }}
           </q-badge>
         </div>
 
         <div class="column items-center">
-          <span class="mc-total-price">${{ mainStore.total }}</span>
+          <span
+            class="mc-total-price"
+            :key="mainStore.total"
+          >${{ Number(mainStore.total).toFixed(2) }}</span>
         </div>
 
         <div class="mc-cart-bar-right">
@@ -276,6 +279,11 @@ const hasReservations = computed(() => {
   return features.some((f) => (f.name === "reservations" || f.slug === "reservations") && f.value === "1");
 });
 
+// Unidades totales en el carrito (suma de cantidades)
+const cartUnits = computed(() =>
+  mainStore.cart.reduce((acc, item) => acc + (item.qty || 0), 0)
+);
+
 watch(() => mainStore.company?.name, () => {
   setTimeout(updateSidebarHeight, 100);
 });
@@ -319,6 +327,26 @@ function goToCategory(id) {
 </script>
 
 <style lang="scss" scoped>
+@keyframes mcTotalPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.14); }
+  100% { transform: scale(1); }
+}
+
+.mc-total-price {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  animation: mcTotalPulse 0.35s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 .mc-restaurant-cover {
   // Sangra el padding del contenedor (var(--space-md)) para llegar a los bordes
   margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) 0;
