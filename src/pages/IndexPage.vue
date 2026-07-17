@@ -206,7 +206,7 @@ import { useMainStore } from "src/stores/main-store";
 
 const mainStore = useMainStore();
 const route = useRoute();
-const type = ref("Lista");
+const type = ref("Tarjeta");
 
 // Clases de columna para la cuadrícula de productos (una sola fuente de verdad).
 // Vista Tarjeta: máx 4 por fila en pantallas anchas (antes eran 6, muy chicas).
