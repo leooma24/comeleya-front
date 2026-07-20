@@ -163,14 +163,8 @@ const toggleTheme = () => {
 };
 onMounted(() => {
   try {
-    const saved = localStorage.getItem("mc-theme");
-    // Primera visita: respeta la preferencia del sistema
-    if (saved === null) {
-      isDark.value =
-        window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-    } else {
-      isDark.value = saved === "dark";
-    }
+    // Default siempre claro; solo oscuro si el usuario lo activó manualmente antes
+    isDark.value = localStorage.getItem("mc-theme") === "dark";
   } catch {
     isDark.value = false;
   }
