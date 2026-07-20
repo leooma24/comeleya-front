@@ -200,7 +200,7 @@
               class="mc-category-heading"
               v-if="mainStore.countByCategory(record.id)"
               :data-id="record.id"
-              v-intersection="onIntersection"
+              v-intersection="scrollSpyOpts"
             >
               {{ record.name }}
             </h2>
@@ -229,7 +229,7 @@ defineOptions({
 });
 
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
-import { useMeta } from "quasar";
+import { useMeta, useQuasar } from "quasar";
 import SidebarComponent from "src/components/client/Sidebar.vue";
 import CardDish from "src/components/client/CardDish.vue";
 import ListDish from "src/components/client/ListDish.vue";
@@ -238,6 +238,7 @@ import { useMainStore } from "src/stores/main-store";
 
 const mainStore = useMainStore();
 const route = useRoute();
+const $q = useQuasar();
 
 // Clases de columna para la cuadrícula de productos (una sola fuente de verdad).
 // Vista Tarjeta: máx 4 por fila en pantallas anchas (antes eran 6, muy chicas).
@@ -299,6 +300,20 @@ const onIntersection = (entry) => {
     mainStore.tab = parseInt(entry.target.dataset.id);
   }
 };
+
+// Scroll-spy: marca como activa la categoría cuya cabecera está justo debajo del
+// header/tabs fijos (banda de detección arriba), no la que apenas asoma abajo.
+const scrollSpyOpts = computed(() => {
+  const topOffset = mainStore.isExternal
+    ? 64
+    : $q.screen.width <= 1023
+      ? 240
+      : 72;
+  return {
+    handler: onIntersection,
+    cfg: { rootMargin: `-${topOffset}px 0px -60% 0px`, threshold: 0 },
+  };
+});
 
 // --- Carrusel de Recomendados: auto-avanza y brinca por página (tarjetas visibles) ---
 const featuredCarousel = ref(null);

@@ -125,7 +125,7 @@
       style="background: var(--color-surface)"
     >
       <q-tab
-        v-for="category in mainStore.categories"
+        v-for="category in visibleCategories"
         :key="category.id"
         :name="category.id"
         @click="goToCategory(category.id)"
@@ -312,6 +312,11 @@ const cartUnits = computed(() =>
 // Productos por categoría (para el contador en los tabs del sidebar)
 const categoryCount = (id) =>
   mainStore.productStore.items.filter((p) => p.dish_category_id === id).length;
+
+// Solo categorías con productos (evita tabs que no llevan a nada)
+const visibleCategories = computed(() =>
+  mainStore.categories.filter((c) => categoryCount(c.id) > 0)
+);
 
 watch(() => mainStore.company?.name, () => {
   setTimeout(updateSidebarHeight, 100);

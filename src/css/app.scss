@@ -259,6 +259,17 @@ h6 {
   }
 }
 
+// Embebido (iframe): los tabs van pegados arriba (56px), así que aquí el nombre
+// de categoría SÍ se pega justo debajo, en móvil y desktop.
+.mc-content-external .mc-category-heading:not(.mc-featured-heading) {
+  position: sticky;
+  top: 53px;
+  z-index: 5;
+  background: var(--color-header-bg);
+  backdrop-filter: blur(12px);
+  scroll-margin-top: 64px;
+}
+
 .mc-bb {
   border-left: var(--space-xs) solid var(--q-primary);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
@@ -336,6 +347,7 @@ h6 {
       box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent);
     }
 
+    // Sin flechas: se navega arrastrando los tabs (más limpio)
     .q-tabs__arrow {
       display: none !important;
     }
