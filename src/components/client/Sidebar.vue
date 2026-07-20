@@ -348,7 +348,12 @@ function openMap() {
 function goToCategory(id) {
   const section = document.getElementById(id);
   if (section) {
-    const yOffset = $q.screen.width <= 1024 ? -230 : -60;
+    // Embebido: solo los tabs fijos (~56px). Normal: header + tabs fijos en móvil.
+    const yOffset = mainStore.isExternal
+      ? -70
+      : $q.screen.width <= 1024
+        ? -230
+        : -60;
     const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
   }
