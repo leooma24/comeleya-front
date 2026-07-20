@@ -275,9 +275,7 @@ const printOrder = () => {
     deliveryInfo = `<div><strong>Mesa:</strong> ${mainStore.data.table}</div>`;
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-  printWindow.document.write(`
+  const html = `
     <html><head><title>Pedido #${mainStore.orderStore.orderCode}</title>
     <style>${ticketStyles}</style></head><body>
       <div class="header">
@@ -311,15 +309,79 @@ const printOrder = () => {
         <span>¡Gracias por su pedido!</span>
       </div>
     </body></html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-  printWindow.close();
+  `;
+
+  // Imprime dentro de un iframe oculto. window.open queda bloqueado en móvil y en
+  // navegadores in-app (WhatsApp/Instagram), por eso antes "no pasaba nada".
+  const prev = document.getElementById("mc-print-frame");
+  if (prev) prev.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "mc-print-frame";
+  Object.assign(iframe.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+  });
+  document.body.appendChild(iframe);
+
+  let printed = false;
+  const triggerPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch {
+      mainStore.messageStore.error(
+        "Este navegador no permite imprimir. Abre el menú en Safari o Chrome."
+      );
+    }
+  };
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.onload = () => setTimeout(triggerPrint, 200);
+  // Respaldo por si onload no dispara en algunos navegadores
+  setTimeout(triggerPrint, 700);
 };
 
-const shareReceipt = () => {
+// Copia texto con varios respaldos (Clipboard API o execCommand)
+const copyText = async (text) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // sigue al respaldo
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    Object.assign(ta.style, { position: "fixed", top: "0", left: "0", opacity: "0" });
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+};
+
+const shareReceipt = async () => {
+  const f = (n) => Number(n || 0).toFixed(2);
   const items = mainStore.cart
-    .map((p) => `${p.qty}x ${p.name} - $${(p.totalPrice * p.qty).toFixed(2)}`)
+    .map((p) => `${p.qty}x ${p.name} - $${f(p.totalPrice * p.qty)}`)
     .join("\n");
 
   const lines = [
@@ -328,20 +390,31 @@ const shareReceipt = () => {
     ``,
     items,
     ``,
-    `Subtotal: $${mainStore.total.toFixed(2)}`,
+    `Subtotal: $${f(mainStore.total)}`,
   ];
-  if (mainStore.deliveryCharge > 0) lines.push(`Envío: $${mainStore.deliveryCharge.toFixed(2)}`);
-  if (mainStore.getTip > 0) lines.push(`Propina: $${mainStore.getTip.toFixed(2)}`);
-  if (mainStore.coupon.applied) lines.push(`Cupón (${mainStore.coupon.code}): -$${mainStore.coupon.discount.toFixed(2)}`);
-  lines.push(`Total: $${mainStore.totalToPay.toFixed(2)}`);
+  if (mainStore.deliveryCharge > 0) lines.push(`Envío: $${f(mainStore.deliveryCharge)}`);
+  if (mainStore.getTip > 0) lines.push(`Propina: $${f(mainStore.getTip)}`);
+  if (mainStore.coupon.applied) lines.push(`Cupón (${mainStore.coupon.code}): -$${f(mainStore.coupon.discount)}`);
+  lines.push(`Total: $${f(mainStore.totalToPay)}`);
   const text = lines.join("\n");
 
-  if (navigator.share) {
-    navigator.share({ title: `Pedido #${mainStore.orderStore.orderCode}`, text });
-  } else {
-    navigator.clipboard.writeText(text);
-    mainStore.messageStore.success("Resumen copiado al portapapeles");
+  // Compartir nativo si existe (se llama de forma síncrona dentro del gesto)
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: `Pedido #${mainStore.orderStore.orderCode}`,
+        text,
+      });
+      return;
+    }
+  } catch (e) {
+    if (e?.name === "AbortError") return; // el usuario canceló
+    // cualquier otro error: cae al respaldo de copiar
   }
+
+  const ok = await copyText(text);
+  if (ok) mainStore.messageStore.success("Resumen copiado al portapapeles");
+  else mainStore.messageStore.error("No se pudo compartir en este navegador");
 };
 </script>
 
