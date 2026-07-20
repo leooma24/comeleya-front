@@ -200,7 +200,6 @@
               class="mc-category-heading"
               v-if="mainStore.countByCategory(record.id)"
               :data-id="record.id"
-              v-intersection="scrollSpyOpts"
             >
               {{ record.name }}
             </h2>
@@ -295,25 +294,35 @@ const metaData = computed(() => {
 });
 useMeta(metaData);
 
-const onIntersection = (entry) => {
-  if (entry.isIntersecting === true) {
-    mainStore.tab = parseInt(entry.target.dataset.id);
+// Scroll-spy basado en scroll real (más robusto que IntersectionObserver dentro de
+// un iframe): en cada scroll, la categoría activa es la última cuyo encabezado ya
+// pasó la línea de fijado (justo debajo del header/tabs).
+let spyRaf = false;
+const updateActiveCategory = () => {
+  const threshold = mainStore.isExternal
+    ? 60
+    : $q.screen.width <= 1023
+      ? 245
+      : 75;
+  const headings = document.querySelectorAll(".mc-category-heading[data-id]");
+  if (!headings.length) return;
+  // Por defecto la primera categoría (cuando aún no pasa ninguna por la línea)
+  let id = headings[0].dataset.id;
+  headings.forEach((h) => {
+    if (h.getBoundingClientRect().top <= threshold) id = h.dataset.id;
+  });
+  if (mainStore.tab !== parseInt(id)) {
+    mainStore.tab = parseInt(id);
   }
 };
-
-// Scroll-spy: marca como activa la categoría cuya cabecera está pegada arriba.
-// La banda de detección va en PORCENTAJES del viewport (no en px con screen.height):
-// dentro del iframe la altura de pantalla no coincide con el viewport real y la banda
-// quedaba vacía -> el observador nunca disparaba y el tab no cambiaba.
-const scrollSpyOpts = computed(() => {
-  // Header/tabs fijos chicos (embebido ~53px, desktop ~56px) => banda arriba (8%-22%).
-  // Móvil normal: la barra de tabs fija va más abajo (~33%) => banda 33%-48%.
-  const cfg =
-    mainStore.isExternal || $q.screen.width > 1023
-      ? { rootMargin: "-8% 0px -78% 0px" }
-      : { rootMargin: "-33% 0px -52% 0px" };
-  return { handler: onIntersection, cfg: { ...cfg, threshold: 0 } };
-});
+const onScrollSpy = () => {
+  if (spyRaf) return;
+  spyRaf = true;
+  requestAnimationFrame(() => {
+    spyRaf = false;
+    updateActiveCategory();
+  });
+};
 
 // --- Carrusel de Recomendados: auto-avanza y brinca por página (tarjetas visibles) ---
 const featuredCarousel = ref(null);
@@ -386,17 +395,25 @@ watch(
 
 onMounted(async () => {
   window.addEventListener("resize", measureFeatured);
+  // Capture: atrapa el scroll venga del window o de cualquier contenedor interno.
+  // touchmove: red de seguridad en móvil/iframe (dispara al arrastrar el dedo aunque
+  // los eventos 'scroll' no lleguen bien dentro del iframe).
+  window.addEventListener("scroll", onScrollSpy, { capture: true, passive: true });
+  window.addEventListener("touchmove", onScrollSpy, { passive: true });
   await mainStore.getEstablishment(route.params.slug);
   // Los destacados pueden venir ya cargados (store persistido), así que el watch
   // no siempre dispara: inicializamos el carrusel aquí también.
   if (mainStore.featuredProducts.length) {
     nextTick(() => { measureFeatured(); startFeaturedAutoplay(); });
   }
+  nextTick(updateActiveCategory);
 });
 
 onBeforeUnmount(() => {
   stopFeaturedAutoplay();
   window.removeEventListener("resize", measureFeatured);
+  window.removeEventListener("scroll", onScrollSpy, { capture: true });
+  window.removeEventListener("touchmove", onScrollSpy);
 });
 </script>
 
