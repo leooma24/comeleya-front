@@ -301,17 +301,21 @@ const onIntersection = (entry) => {
   }
 };
 
-// Scroll-spy: marca como activa la categoría cuya cabecera está justo debajo del
-// header/tabs fijos (banda de detección arriba), no la que apenas asoma abajo.
+// Scroll-spy: marca como activa la categoría cuya cabecera está pegada arriba.
+// Banda de detección delgada (~64px) justo en la línea donde se fija el encabezado,
+// para que el tab cambie EXACTAMENTE cuando cambia el nombre pegado (ni antes ni después).
 const scrollSpyOpts = computed(() => {
-  const topOffset = mainStore.isExternal
-    ? 64
+  // Punto donde se "pega" el encabezado según el modo
+  const pinTop = mainStore.isExternal
+    ? 53
     : $q.screen.width <= 1023
-      ? 240
-      : 72;
+      ? 230
+      : 56;
+  const band = 64;
+  const bottom = Math.max(0, ($q.screen.height || 800) - pinTop - band);
   return {
     handler: onIntersection,
-    cfg: { rootMargin: `-${topOffset}px 0px -60% 0px`, threshold: 0 },
+    cfg: { rootMargin: `-${pinTop}px 0px -${bottom}px 0px`, threshold: 0 },
   };
 });
 
