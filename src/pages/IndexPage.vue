@@ -302,21 +302,17 @@ const onIntersection = (entry) => {
 };
 
 // Scroll-spy: marca como activa la categoría cuya cabecera está pegada arriba.
-// Banda de detección delgada (~64px) justo en la línea donde se fija el encabezado,
-// para que el tab cambie EXACTAMENTE cuando cambia el nombre pegado (ni antes ni después).
+// La banda de detección va en PORCENTAJES del viewport (no en px con screen.height):
+// dentro del iframe la altura de pantalla no coincide con el viewport real y la banda
+// quedaba vacía -> el observador nunca disparaba y el tab no cambiaba.
 const scrollSpyOpts = computed(() => {
-  // Punto donde se "pega" el encabezado según el modo
-  const pinTop = mainStore.isExternal
-    ? 53
-    : $q.screen.width <= 1023
-      ? 230
-      : 56;
-  const band = 64;
-  const bottom = Math.max(0, ($q.screen.height || 800) - pinTop - band);
-  return {
-    handler: onIntersection,
-    cfg: { rootMargin: `-${pinTop}px 0px -${bottom}px 0px`, threshold: 0 },
-  };
+  // Header/tabs fijos chicos (embebido ~53px, desktop ~56px) => banda arriba (8%-22%).
+  // Móvil normal: la barra de tabs fija va más abajo (~33%) => banda 33%-48%.
+  const cfg =
+    mainStore.isExternal || $q.screen.width > 1023
+      ? { rootMargin: "-8% 0px -78% 0px" }
+      : { rootMargin: "-33% 0px -52% 0px" };
+  return { handler: onIntersection, cfg: { ...cfg, threshold: 0 } };
 });
 
 // --- Carrusel de Recomendados: auto-avanza y brinca por página (tarjetas visibles) ---
