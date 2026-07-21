@@ -141,6 +141,7 @@
         v-if="adminStore.user.isAuthenticated && adminStore.isEstablishment"
       >
         <div class="mc-nav-row">
+         <div class="mc-nav-inner">
           <!-- Accesos directos (más usados) -->
           <button
             v-for="item in leadingTabs"
@@ -195,6 +196,7 @@
             <q-icon :name="item.icon" size="18px" />
             <span>{{ item.label }}</span>
           </button>
+         </div>
         </div>
       </div>
 
@@ -480,8 +482,6 @@ const logout = () => {
 
   .mc-nav-row {
     display: flex;
-    align-items: stretch;
-    gap: 2px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -489,6 +489,14 @@ const logout = () => {
     &::-webkit-scrollbar {
       display: none;
     }
+  }
+
+  // Se centra cuando cabe; cuando desborda, los márgenes colapsan y scrollea desde el inicio.
+  .mc-nav-inner {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0 auto;
   }
 }
 
