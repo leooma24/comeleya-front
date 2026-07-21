@@ -23,7 +23,7 @@ export const useAdminStore = defineStore({
     addressDrawer: false,
     establishmentCategoryFormDrawer: false,
     establishmentCategories: [],
-    establishmentTypesFormDrawer: false,
+    establishmentTypeFormDrawer: false,
     establishmentTypesForm: {},
     establishmentTypes: [],
     packages: [],
@@ -161,42 +161,31 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al obtener los paquetes");
       }
     },
-    savePackage() {
-
-      if (this.packageForm.id) {
-        api
-          .put(
+    async savePackage() {
+      if (this.loading) return; // evita doble envío
+      this.loading = true;
+      try {
+        if (this.packageForm.id) {
+          const { data } = await api.put(
             `/admin/packages/${this.packageForm.id}/update`,
             this.packageForm
-          )
-          .then(({ data }) => {
-            this.packages = this.packages.map((p) => {
-              if (p.id === data.package.id) {
-                return data.package;
-              }
-              return p;
-            });
-            this.messageStore.success("Paquete actualizado");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al actualizar el paquete");
-          })
-          .finally(() => {
-            this.packageFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/packages`, this.packageForm)
-          .then(({ data }) => {
-            this.packages.push(data.package);
-            this.messageStore.success("Paquete guardado");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al guardar el paquete");
-          })
-          .finally(() => {
-            this.packageFormDrawer = false;
-          });
+          );
+          this.packages = this.packages.map((p) =>
+            p.id === data.package.id ? data.package : p
+          );
+          this.messageStore.success("Paquete actualizado");
+        } else {
+          const { data } = await api.post(`/admin/packages`, this.packageForm);
+          this.packages.push(data.package);
+          this.messageStore.success("Paquete guardado");
+        }
+        this.packageFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar el paquete"
+        );
+      } finally {
+        this.loading = false;
       }
     },
     async deletePackage(row) {
@@ -234,46 +223,34 @@ export const useAdminStore = defineStore({
           );
         });
     },
-    saveEstablishType() {
-
-      if (this.establishmentTypesForm.id) {
-        api
-          .put(
+    async saveEstablishType() {
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        if (this.establishmentTypesForm.id) {
+          const { data } = await api.put(
             `/admin/establishment/types/${this.establishmentTypesForm.id}`,
             this.establishmentTypesForm
-          )
-          .then(({ data }) => {
-            this.establishmentTypes = this.establishmentTypes.map((type) => {
-              if (type.id === data.type.id) {
-                return data.type;
-              }
-              return type;
-            });
-            this.messageStore.success("Tipo de establecimiento actualizado");
-          })
-          .catch((error) => {
-            this.messageStore.error(
-              "Error al actualizar el tipo de establecimiento"
-            );
-          })
-          .finally(() => {
-            this.establishmentTypeFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/establishment/types`, this.establishmentTypesForm)
-          .then(({ data }) => {
-            this.establishmentTypes.push(data.type);
-            this.messageStore.success("Tipo de establecimiento guardado");
-          })
-          .catch((error) => {
-            this.messageStore.error(
-              "Error al guardar el tipo de establecimiento"
-            );
-          })
-          .finally(() => {
-            this.establishmentTypeFormDrawer = false;
-          });
+          );
+          this.establishmentTypes = this.establishmentTypes.map((type) =>
+            type.id === data.type.id ? data.type : type
+          );
+          this.messageStore.success("Tipo de establecimiento actualizado");
+        } else {
+          const { data } = await api.post(
+            `/admin/establishment/types`,
+            this.establishmentTypesForm
+          );
+          this.establishmentTypes.push(data.type);
+          this.messageStore.success("Tipo de establecimiento guardado");
+        }
+        this.establishmentTypeFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar el tipo de establecimiento"
+        );
+      } finally {
+        this.loading = false;
       }
     },
     getEstablishmentTypes() {
@@ -324,44 +301,34 @@ export const useAdminStore = defineStore({
       this.categoryForm = Object.assign({}, category);
       this.establishmentCategoryFormDrawer = true;
     },
-    saveEstablishCategory() {
-
-      if (this.categoryForm.id) {
-        api
-          .put(
+    async saveEstablishCategory() {
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        if (this.categoryForm.id) {
+          const { data } = await api.put(
             `/admin/establishment/categories/${this.categoryForm.id}`,
             this.categoryForm
-          )
-          .then(({ data }) => {
-            this.establishmentCategories = this.establishmentCategories.map(
-              (category) => {
-                if (category.id === data.category.id) {
-                  return data.category;
-                }
-                return category;
-              }
-            );
-            this.messageStore.success("Categoría actualizada");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al actualizar la categoría");
-          })
-          .finally(() => {
-            this.establishmentCategoryFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/establishment/categories`, this.categoryForm)
-          .then(({ data }) => {
-            this.establishmentCategories.push(data.category);
-            this.messageStore.success("Categoría guardada");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al guardar la categoría");
-          })
-          .finally(() => {
-            this.establishmentCategoryFormDrawer = false;
-          });
+          );
+          this.establishmentCategories = this.establishmentCategories.map(
+            (category) => (category.id === data.category.id ? data.category : category)
+          );
+          this.messageStore.success("Categoría actualizada");
+        } else {
+          const { data } = await api.post(
+            `/admin/establishment/categories`,
+            this.categoryForm
+          );
+          this.establishmentCategories.push(data.category);
+          this.messageStore.success("Categoría guardada");
+        }
+        this.establishmentCategoryFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar la categoría"
+        );
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -879,6 +846,8 @@ export const useAdminStore = defineStore({
       }
     },
     async saveCategory() {
+      if (this.loading) return; // evita doble envío y activa el loading del botón
+      this.loading = true;
       if (this.categoryForm.id) {
         try {
           const { data } = await api.put(
@@ -1066,7 +1035,10 @@ export const useAdminStore = defineStore({
       }
     },
     async improveImage() {
-
+      if (!this.productForm.id) {
+        this.messageStore.error("Guarda el producto antes de mejorar su imagen");
+        return false;
+      }
       try {
         this.loading = true;
         const { data } = await api.post(
@@ -1074,8 +1046,10 @@ export const useAdminStore = defineStore({
         );
         this.messageStore.success("Imagen mejorada");
         this.productForm.photo = data.image;
+        return true;
       } catch (error) {
-        this.messageStore.error("Error al eliminar la opción");
+        this.messageStore.error("Error al mejorar la imagen");
+        return false;
       } finally {
         this.loading = false;
       }

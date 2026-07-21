@@ -23,7 +23,7 @@
         </div>
       </q-img>
       <q-btn
-        v-if="imgUsage.limit > 0"
+        v-if="imgUsage.limit > 0 && adminStore.productForm.id && displayedPhoto"
         round
         :color="imgUsage.remaining > 0 ? 'primary' : 'grey-5'"
         icon="auto_fix_high"
@@ -168,10 +168,12 @@ const triggerFileInput = () => {
 };
 
 const triggerImproveImage = async () => {
-  await adminStore.improveImage();
-  // Update usage after improvement
-  imgUsage.used++;
-  imgUsage.remaining = Math.max(0, imgUsage.limit - imgUsage.used);
+  const ok = await adminStore.improveImage();
+  // Solo descontar el cupo si la mejora tuvo éxito
+  if (ok) {
+    imgUsage.used++;
+    imgUsage.remaining = Math.max(0, imgUsage.limit - imgUsage.used);
+  }
 };
 
 const onFileSelected = (event) => {
