@@ -233,6 +233,7 @@ defineOptions({
 import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
+import { useOrderAlerts } from "src/composables/useOrderAlerts";
 import Dashboard from "src/components/admin/Dashboard.vue";
 import Products from "src/components/admin/Products.vue";
 import Categories from "src/components/admin/Categories.vue";
@@ -296,6 +297,10 @@ adminStore.getQr();
 if (route.path === "/admin") {
   isAdmin.value = true;
 }
+
+// Alerta global de pedidos nuevos (suena en cualquier pestaña). Solo aplica al
+// panel de un establecimiento (no en el super-admin, donde no hay slug).
+useOrderAlerts(() => slug);
 
 const addCategory = () => {
   adminStore.tab = "categorias";

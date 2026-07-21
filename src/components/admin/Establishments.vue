@@ -367,7 +367,9 @@ const openAssignPlan = async (est) => {
     try {
       const { data } = await api.get("/admin/packages");
       packageOptions.value = (data.packages || []).map(p => ({ label: `${p.name} ($${p.monthly_price}/mes)`, value: p.id }));
-    } catch (e) {}
+    } catch (e) {
+      adminStore.messageStore.error("No se pudieron cargar los paquetes");
+    }
   }
 };
 

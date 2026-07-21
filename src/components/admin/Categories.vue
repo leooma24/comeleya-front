@@ -52,6 +52,7 @@
           handle=".drag-handle"
           filter=".q-btn"
           :preventOnFilter="false"
+          :disabled="!canReorder"
         >
           <tr
             v-for="(element, index) in filteredCategories"
@@ -60,6 +61,7 @@
           >
             <td>
               <q-icon
+                v-if="canReorder"
                 name="drag_indicator"
                 class="drag-handle cursor-pointer"
                 color="grey-5"
@@ -175,6 +177,9 @@ const filteredCategories = computed(() => {
     c.name?.toLowerCase().includes(search)
   );
 });
+
+// Reordenar solo es seguro sin búsqueda (evita corromper el orden real)
+const canReorder = computed(() => !filter.value);
 
 const totalPages = computed(() =>
   Math.ceil(filteredCategories.value.length / rowsPerPage.value)

@@ -160,7 +160,8 @@
             color="negative"
             label="Cancelar"
             size="sm"
-            @click="adminStore.cancelOrder(order)"
+            :disable="isBusy(order.id)"
+            @click="doCancel(order)"
           />
           <q-btn
             flat
@@ -184,7 +185,9 @@
             icon="restaurant"
             size="sm"
             class="mc-order-action-btn"
-            @click="adminStore.startOrder(order)"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
+            @click="doStart(order)"
           />
           <q-btn
             v-if="order.status.id == 2"
@@ -196,6 +199,8 @@
             dense
             size="sm"
             class="mc-order-action-btn"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
             @click="handleSendOrder(order)"
           />
           <q-btn
@@ -219,7 +224,9 @@
             dense
             size="sm"
             class="mc-order-action-btn"
-            @click="adminStore.deliverOrder(order)"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
+            @click="doDeliver(order)"
           />
         </div>
       </div>
@@ -304,7 +311,7 @@
 defineOptions({
   name: "OrdersComponent",
 });
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 
 const props = defineProps({
   status: {
@@ -316,9 +323,41 @@ const props = defineProps({
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useHelperStore } from "src/stores/helper";
+import { useConfirmDialog } from "src/composables/useConfirmDialog";
 
 const helperStore = useHelperStore();
 const adminStore = useAdminStore();
+const { confirm } = useConfirmDialog();
+
+// Bloqueo anti-doble-clic por pedido: mientras se procesa una acción de un
+// pedido, sus botones quedan en loading/deshabilitados.
+const busyOrders = ref(new Set());
+const isBusy = (id) => busyOrders.value.has(id);
+const runOrderAction = async (order, fn, errMsg) => {
+  if (busyOrders.value.has(order.id)) return; // ya en proceso
+  busyOrders.value = new Set(busyOrders.value).add(order.id);
+  try {
+    await fn();
+  } catch (e) {
+    adminStore.messageStore.error(
+      e?.response?.data?.message ?? errMsg ?? "No se pudo actualizar el pedido"
+    );
+  } finally {
+    const s = new Set(busyOrders.value);
+    s.delete(order.id);
+    busyOrders.value = s;
+  }
+};
+
+const doStart = (order) => runOrderAction(order, () => adminStore.startOrder(order));
+const doDeliver = (order) => runOrderAction(order, () => adminStore.deliverOrder(order));
+const doCancel = (order) => {
+  confirm(
+    "Cancelar pedido",
+    `¿Seguro que quieres cancelar el pedido #${order.order_code ?? order.id}? Esta acción no se puede deshacer.`,
+    () => runOrderAction(order, () => adminStore.cancelOrder(order))
+  );
+};
 
 // Driver assignment
 const driverDialog = ref(false);
@@ -348,7 +387,7 @@ const handleSendOrder = async (order) => {
       loadingDrivers.value = false;
     }
   } else {
-    adminStore.sendOrder(order);
+    runOrderAction(order, () => adminStore.sendOrder(order));
   }
 };
 
@@ -509,53 +548,6 @@ const currentPage = ref(1);
 const rowsPerPage = ref(12);
 const rowsPerPageOptions = [6, 12, 24, 48];
 
-// Notification sound using Web Audio API
-let audioCtx = null;
-const playNotificationSound = () => {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = 880;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-    osc.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime + 0.5);
-    // Second beep
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.connect(gain2);
-    gain2.connect(audioCtx.destination);
-    osc2.frequency.value = 1100;
-    osc2.type = "sine";
-    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime + 0.2);
-    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
-    osc2.start(audioCtx.currentTime + 0.2);
-    osc2.stop(audioCtx.currentTime + 0.7);
-  } catch (e) {
-    // Audio not supported
-  }
-};
-
-const sendBrowserNotification = (count) => {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    new Notification("Nuevo pedido", {
-      body: `Tienes ${count} nuevo${count > 1 ? "s" : ""} pedido${count > 1 ? "s" : ""} pendiente${count > 1 ? "s" : ""}`,
-      icon: "/icons/favicon-128x128.png",
-    });
-  }
-};
-
-onMounted(() => {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
-});
-
 const statusColors = {
   1: "warning",
   2: "info",
@@ -608,11 +600,9 @@ watch(() => adminStore.orderTab, () => {
 const longPolling = async () => {
   if (!pollingActive.value) return;
   try {
-    const newCount = await adminStore.getMoreOrders(props.status);
-    if (newCount > 0) {
-      playNotificationSound();
-      sendBrowserNotification(newCount);
-    }
+    // Mantiene actualizada la lista visible del tab. La alerta sonora/notificación
+    // de pedidos nuevos es global (useOrderAlerts en AdminPage), no depende del tab.
+    await adminStore.getMoreOrders(props.status);
     setTimeout(longPolling, 10000);
   } catch (e) {
     setTimeout(longPolling, 10000);

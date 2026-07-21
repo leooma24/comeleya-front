@@ -99,11 +99,16 @@ const daysLeft = (sub) => {
 };
 const daysColor = (d) => d <= 0 ? "negative" : d <= 7 ? "warning" : d <= 15 ? "orange" : "positive";
 
+const loadError = ref(false);
+
 const loadOverview = async () => {
   try {
     const { data } = await api.get("/admin/super/overview");
     overview.value = data;
-  } catch (e) {}
+  } catch (e) {
+    loadError.value = true;
+    adminStore.messageStore.error("No se pudo cargar el resumen de suscripciones");
+  }
 };
 
 const loadHealth = async () => {
@@ -114,7 +119,10 @@ const loadHealth = async () => {
     const seen = new Set();
     subscriptions.value = subscriptions.value.filter((s) => { if (seen.has(s.id)) return false; seen.add(s.id); return true; });
     counts.value = data.counts;
-  } catch (e) {}
+  } catch (e) {
+    loadError.value = true;
+    adminStore.messageStore.error("No se pudo cargar la salud de suscripciones");
+  }
 };
 
 const sendReminder = async (sub) => {

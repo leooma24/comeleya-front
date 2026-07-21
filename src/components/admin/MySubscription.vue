@@ -117,7 +117,9 @@ const loadData = async () => {
     ]);
     subscription.value = subRes.data.subscription;
     payments.value = payRes.data.payments || [];
-  } catch (e) {}
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo cargar la información de tu plan");
+  }
 };
 
 const confirmCancel = () => {

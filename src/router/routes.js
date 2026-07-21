@@ -59,7 +59,7 @@ const routes = [
       {
         path: "",
         component: () => import("pages/AdminPage.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, role: "super_admin" },
       },
       {
         path: "iniciar-sesion",

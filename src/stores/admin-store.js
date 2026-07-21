@@ -757,8 +757,14 @@ export const useAdminStore = defineStore({
         this.messageStore.error("La categoría es obligatoria");
         return false;
       }
-      if (!this.productForm.price) {
-        this.messageStore.error("El precio es obligatorio");
+      // Precio: 0 es válido (productos de cortesía). Solo se rechaza vacío o negativo.
+      if (
+        this.productForm.price === "" ||
+        this.productForm.price === null ||
+        this.productForm.price === undefined ||
+        Number(this.productForm.price) < 0
+      ) {
+        this.messageStore.error("El precio es obligatorio (0 o mayor)");
         return false;
       }
       if (!this.productForm.description) {

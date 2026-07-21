@@ -96,6 +96,7 @@
           handle=".drag-handle"
           filter=".q-btn"
           :preventOnFilter="false"
+          :disabled="!canReorder"
         >
           <tr
             v-for="(element, index) in filteredProducts"
@@ -104,6 +105,7 @@
           >
             <td>
               <q-icon
+                v-if="canReorder"
                 name="drag_indicator"
                 class="drag-handle cursor-pointer"
                 color="grey-5"
@@ -403,6 +405,12 @@ const filteredProducts = computed(() => {
 
   return list;
 });
+
+// Reordenar solo es seguro cuando la lista renderizada == el array completo.
+// Con búsqueda o filtro activos, arrastrar corrompería el orden real.
+const canReorder = computed(
+  () => !filter.value && statusFilter.value === "all"
+);
 
 const totalPages = computed(() =>
   Math.ceil(filteredProducts.value.length / rowsPerPage.value)
