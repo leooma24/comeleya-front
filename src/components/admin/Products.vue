@@ -22,6 +22,20 @@
           </template>
         </q-input>
 
+        <q-select
+          filled
+          dense
+          rounded
+          v-model="categoryFilter"
+          :options="categoryOptions"
+          emit-value
+          map-options
+          options-dense
+          label="Categoría"
+          class="mc-category-filter"
+          style="min-width: 160px"
+        />
+
         <div class="mc-view-toggle">
           <q-btn
             flat
@@ -362,20 +376,36 @@ const currentPage = ref(1);
 const rowsPerPage = ref(10);
 const rowsPerPageOptions = [5, 10, 15, 20, 50];
 
+const categoryFilter = ref(null); // id de categoría o null (todas)
+
 const statusFilters = [
   { value: "all", label: "Todos", icon: "apps" },
   { value: "featured", label: "Destacados", icon: "star" },
   { value: "offer", label: "En oferta", icon: "local_offer" },
   { value: "sold_out", label: "Agotados", icon: "remove_shopping_cart" },
   { value: "available", label: "Disponibles", icon: "shopping_cart_checkout" },
+  { value: "active", label: "Activos", icon: "visibility" },
+  { value: "inactive", label: "Inactivos", icon: "visibility_off" },
 ];
 
-watch([filter, statusFilter], () => {
+const categoryOptions = computed(() => [
+  { label: "Todas las categorías", value: null },
+  ...(adminStore.categories || []).map((c) => ({ label: c.name, value: c.id })),
+]);
+
+watch([filter, statusFilter, categoryFilter], () => {
   currentPage.value = 1;
 });
 
 const filteredProducts = computed(() => {
   let list = adminStore.products;
+
+  // Filtro por categoría
+  if (categoryFilter.value != null) {
+    list = list.filter(
+      (p) => (p.dish_category?.id ?? p.dish_category_id) === categoryFilter.value
+    );
+  }
 
   // Filtro por estado
   switch (statusFilter.value) {
@@ -390,6 +420,12 @@ const filteredProducts = computed(() => {
       break;
     case "available":
       list = list.filter((p) => !p.is_sold_out);
+      break;
+    case "active":
+      list = list.filter((p) => p.status === "Activo");
+      break;
+    case "inactive":
+      list = list.filter((p) => p.status === "Inactivo");
       break;
   }
 
@@ -409,7 +445,10 @@ const filteredProducts = computed(() => {
 // Reordenar solo es seguro cuando la lista renderizada == el array completo.
 // Con búsqueda o filtro activos, arrastrar corrompería el orden real.
 const canReorder = computed(
-  () => !filter.value && statusFilter.value === "all"
+  () =>
+    !filter.value &&
+    statusFilter.value === "all" &&
+    categoryFilter.value == null
 );
 
 const totalPages = computed(() =>
