@@ -164,7 +164,7 @@
           <q-tab name="tema" icon="palette" label="Tema" />
           <q-tab name="seo" icon="travel_explore" label="SEO" />
           <q-tab name="facebook" icon="fab fa-facebook" label="Facebook" />
-          <q-tab name="resenas" icon="star" label="Resenas" />
+          <q-tab name="resenas" icon="star" label="Reseñas" />
           <q-tab name="analiticas" icon="analytics" label="Analíticas" />
           <q-tab name="mi_plan" icon="card_membership" label="Mi plan" />
         </q-tabs>

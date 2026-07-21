@@ -13,7 +13,7 @@
             <q-icon name="card_membership" size="20px" color="primary" />
           </div>
           <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'dia' : 'dias' }} restantes</strong>
+            <strong>{{ planName }} — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'día' : 'días' }} restantes</strong>
             <span>Tu plan vence el {{ new Date(adminStore.company?.active_subscription?.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
           </div>
         </div>
@@ -27,7 +27,7 @@
             <q-icon name="hourglass_top" size="20px" color="orange" />
           </div>
           <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft === 1 ? 'Vence manana' : `Vence en ${trialDaysLeft} dias` }}</strong>
+            <strong>{{ planName }} — {{ trialDaysLeft === 1 ? 'Vence mañana' : `Vence en ${trialDaysLeft} días` }}</strong>
             <span>Renueva tu plan para no perder acceso a las funciones premium.</span>
           </div>
           <q-btn
