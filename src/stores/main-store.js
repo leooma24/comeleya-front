@@ -112,7 +112,9 @@ export const useMainStore = defineStore("main", {
       return this.tip.value;
     },
     totalToPay() {
-      return this.total + this.tip.value + this.deliveryCharge - this.coupon.discount;
+      // El descuento del cupón se guarda como monto absoluto al aplicarlo; si el
+      // carrito baja después, el total no debe volverse negativo.
+      return Math.max(0, this.total + this.tip.value + this.deliveryCharge - this.coupon.discount);
     },
     cart() {
       return this.cartStore.cart;

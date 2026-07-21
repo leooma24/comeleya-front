@@ -246,14 +246,18 @@ const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
 
 const printOrder = () => {
   const f = (n) => Number(n || 0).toFixed(2);
+  // Escapa HTML: los nombres de producto/establecimiento vienen del backend y
+  // podrían contener markup; sin escapar se ejecutaría como HTML en el iframe.
+  const esc = (s) =>
+    String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const items = mainStore.cart
     .map((p) => {
-      let html = `<div class="item"><span>${p.qty}x ${p.name}</span><span>$${f(p.totalPrice * p.qty)}</span></div>`;
+      let html = `<div class="item"><span>${p.qty}x ${esc(p.name)}</span><span>$${f(p.totalPrice * p.qty)}</span></div>`;
       p.extras.forEach((extra) => {
         extra.options.forEach((option) => {
           if (option.qty > 0) {
             const optTotal = option.price * option.qty * p.qty;
-            let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${option.name}` : option.name;
+            let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${esc(option.name)}` : esc(option.name);
             if (optTotal > 0) text += ` $${f(optTotal)}`;
             html += `<div class="extra">↳ ${text}</div>`;
           }
@@ -267,19 +271,19 @@ const printOrder = () => {
   let deliveryInfo = "";
   if (delivery === "Envio") {
     const addr = [mainStore.data.street, mainStore.data.ext_number ? `#${mainStore.data.ext_number}` : "", mainStore.data.town, mainStore.data.zip].filter(Boolean).join(", ");
-    deliveryInfo = `<div><strong>Dirección:</strong> ${addr}</div>`;
-    if (mainStore.data.references) deliveryInfo += `<div><strong>Referencia:</strong> ${mainStore.data.references}</div>`;
+    deliveryInfo = `<div><strong>Dirección:</strong> ${esc(addr)}</div>`;
+    if (mainStore.data.references) deliveryInfo += `<div><strong>Referencia:</strong> ${esc(mainStore.data.references)}</div>`;
   } else if (delivery === "Recoger") {
     deliveryInfo = `<div><strong>Paso a recoger</strong></div>`;
   } else {
-    deliveryInfo = `<div><strong>Mesa:</strong> ${mainStore.data.table}</div>`;
+    deliveryInfo = `<div><strong>Mesa:</strong> ${esc(mainStore.data.table)}</div>`;
   }
 
   const html = `
     <html><head><title>Pedido #${mainStore.orderStore.orderCode}</title>
     <style>${ticketStyles}</style></head><body>
       <div class="header">
-        <strong>${mainStore.establishment.name}</strong>
+        <strong>${esc(mainStore.establishment.name)}</strong>
         <span>${new Date().toLocaleString()}</span>
       </div>
       <div class="order">Orden #${mainStore.orderStore.orderCode}</div>
@@ -290,22 +294,22 @@ const printOrder = () => {
       <div class="row"><span>Subtotal:</span><span>$${f(mainStore.total)}</span></div>
       ${mainStore.deliveryCharge > 0 ? `<div class="row"><span>Envío:</span><span>$${f(mainStore.deliveryCharge)}</span></div>` : ""}
       ${mainStore.getTip > 0 ? `<div class="row"><span>Propina:</span><span>$${f(mainStore.getTip)}</span></div>` : ""}
-      ${mainStore.coupon.applied ? `<div class="row"><span>Cupón (${mainStore.coupon.code}):</span><span>-$${f(mainStore.coupon.discount)}</span></div>` : ""}
+      ${mainStore.coupon.applied ? `<div class="row"><span>Cupón (${esc(mainStore.coupon.code)}):</span><span>-$${f(mainStore.coupon.discount)}</span></div>` : ""}
       <div class="row total"><span>TOTAL:</span><span>$${f(mainStore.totalToPay)}</span></div>
       ${SEP}
       <div class="section-title">Pago</div>
-      <div class="row"><span>${mainStore.payment.type}</span></div>
+      <div class="row"><span>${esc(mainStore.payment.type)}</span></div>
       ${SEP}
       <div class="section-title">Cliente</div>
       <div class="info">
-        <div><strong>Nombre:</strong> ${mainStore.data.name}</div>
-        <div><strong>Tel:</strong> ${mainStore.data.phone}</div>
+        <div><strong>Nombre:</strong> ${esc(mainStore.data.name)}</div>
+        <div><strong>Tel:</strong> ${esc(mainStore.data.phone)}</div>
         ${deliveryInfo}
       </div>
-      ${mainStore.data.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${mainStore.data.comments}</div></div>` : ""}
+      ${mainStore.data.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(mainStore.data.comments)}</div></div>` : ""}
       ${SEP}
       <div class="footer">
-        <span>${mainStore.establishment.name}</span>
+        <span>${esc(mainStore.establishment.name)}</span>
         <span>¡Gracias por su pedido!</span>
       </div>
     </body></html>
