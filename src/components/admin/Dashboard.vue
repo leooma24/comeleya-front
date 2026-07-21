@@ -73,6 +73,7 @@
         </div>
         <div class="row q-gutter-sm items-center">
           <q-btn unelevated no-caps color="red" icon="local_fire_department" label="Oferta flash" size="sm" @click="showFlashOffer = true" />
+          <q-btn outline no-caps color="primary" icon="code" label="Insertar en web" size="sm" @click="showEmbed = true" class="gt-xs" />
           <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir" size="sm" @click="shareMenuWa" class="gt-xs" />
           <q-btn-toggle
             v-model="period"
@@ -290,6 +291,35 @@
       </q-card>
     </q-dialog>
 
+    <!-- EMBED / IFRAME DIALOG -->
+    <q-dialog v-model="showEmbed">
+      <q-card style="min-width: 360px; max-width: 520px; border-radius: 16px">
+        <q-card-section>
+          <div class="row items-center q-gutter-sm">
+            <q-icon name="code" size="24px" color="primary" />
+            <span style="font-size: 18px; font-weight: 700">Insertar en tu web</span>
+          </div>
+          <p class="text-caption text-grey-6 q-mt-sm">
+            Copia el código y pégalo como HTML en tu sitio (Wix, WordPress, etc.) para mostrar tu menú dentro de tu página.
+          </p>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-input :model-value="embedUrl" readonly filled dense label="Enlace del menú" class="q-mb-md">
+            <template v-slot:append>
+              <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(embedUrl, 'Enlace copiado')">
+                <q-tooltip>Copiar enlace</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+          <q-input :model-value="embedCode" readonly filled type="textarea" autogrow label="Código para insertar (iframe)" />
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cerrar" v-close-popup />
+          <q-btn unelevated no-caps color="primary" icon="content_copy" label="Copiar código" @click="copyText(embedCode, 'Código copiado')" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- DISH TEMPLATES DIALOG -->
     <q-dialog v-model="showTemplates" maximized>
       <q-card style="max-width: 600px; margin: auto; border-radius: 16px">
@@ -350,6 +380,33 @@ const customerSearch = ref("");
 const showFlashOffer = ref(false);
 const flashForm = ref({ dish_id: null, special_price: null, hours: 4 });
 const flashLoading = ref(false);
+
+// --- Insertar en web (iframe) ---
+const showEmbed = ref(false);
+const embedUrl = computed(() => `${window.location.origin}/${adminStore.slug}?isExternal=true`);
+const embedCode = computed(
+  () => `<iframe src="${embedUrl.value}" width="100%" height="100%" frameborder="0"></iframe>`
+);
+const copyText = async (text, okMsg) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    adminStore.messageStore.success(okMsg || "Copiado");
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo copiar. Copia el texto manualmente.");
+  }
+};
 
 const stats = ref({
   orders: { today: 0, week: 0, month: 0 },
