@@ -15,18 +15,45 @@
       <!-- Config section -->
       <div class="mc-loyalty-config">
         <h4 class="mc-section-title">Configuración de puntos</h4>
+
+        <!-- Earn mode selector -->
+        <div class="q-mb-md">
+          <div class="text-caption text-grey-6 q-mb-xs">¿Cómo ganan puntos tus clientes?</div>
+          <q-btn-toggle
+            v-model="config.earn_mode"
+            no-caps rounded unelevated
+            toggle-color="primary"
+            color="grey-3"
+            text-color="grey-8"
+            :options="[
+              { label: 'Por monto gastado', value: 'per_amount' },
+              { label: 'Por pedido', value: 'per_order' },
+            ]"
+          />
+        </div>
+
+        <!-- Per amount -->
+        <div v-if="config.earn_mode === 'per_amount'" class="row items-center q-gutter-sm q-mb-md">
+          <span class="text-body2">Gana</span>
+          <q-input filled dense rounded v-model.number="config.points_per_amount" type="number" min="0" style="width: 90px" />
+          <span class="text-body2">punto(s) por cada</span>
+          <q-input filled dense rounded v-model.number="config.amount_step" type="number" min="1" prefix="$" style="width: 110px" />
+          <span class="text-body2">gastados</span>
+        </div>
+
+        <!-- Per order -->
+        <div v-else class="row items-center q-gutter-sm q-mb-md">
+          <span class="text-body2">Gana</span>
+          <q-input filled dense rounded v-model.number="config.points_per_order" type="number" min="0" style="width: 90px" />
+          <span class="text-body2">punto(s) por cada pedido</span>
+        </div>
+
+        <!-- Redeem config (común a ambos modos) -->
         <div class="row q-gutter-md q-mb-md">
           <q-input
             filled dense rounded
-            v-model.number="config.points_per_order"
-            type="number"
-            label="Puntos por pedido"
-            class="col"
-          />
-          <q-input
-            filled dense rounded
             v-model.number="config.points_value"
-            type="number"
+            type="number" min="0"
             label="Valor por punto ($)"
             class="col"
             hint="Cuánto vale cada punto al canjear"
@@ -34,11 +61,12 @@
           <q-input
             filled dense rounded
             v-model.number="config.min_points_redeem"
-            type="number"
+            type="number" min="1"
             label="Mínimo para canjear"
             class="col"
           />
         </div>
+
         <q-btn unelevated no-caps color="primary" label="Guardar configuración" @click="saveConfig" :loading="savingConfig" size="sm" />
       </div>
 
@@ -123,7 +151,14 @@ import { useAdminStore } from "src/stores/admin-store";
 const adminStore = useAdminStore();
 const loading = ref(true);
 const customers = ref([]);
-const config = ref({ points_per_order: 10, points_value: 1, min_points_redeem: 50 });
+const config = ref({
+  earn_mode: "per_amount",
+  points_per_amount: 1,
+  amount_step: 10,
+  points_per_order: 10,
+  points_value: 1,
+  min_points_redeem: 50,
+});
 const savingConfig = ref(false);
 const searchPhone = ref("");
 const searching = ref(false);
@@ -150,9 +185,12 @@ const lookupCustomer = async () => {
     const { data } = await api.get(`/admin/${adminStore.slug}/loyalty/lookup`, { params: { phone: searchPhone.value } });
     customerPoints.value = data.loyalty;
     redeemAmount.value = 0;
+    if (!data.loyalty) {
+      adminStore.messageStore.success("Ese cliente aún no tiene puntos");
+    }
   } catch (e) {
     customerPoints.value = null;
-    adminStore.messageStore.error("Cliente no encontrado");
+    adminStore.messageStore.error("Error al buscar cliente");
   } finally {
     searching.value = false;
   }
@@ -190,9 +228,9 @@ onMounted(async () => {
   try {
     const [customersRes, configRes] = await Promise.all([
       api.get(`/admin/${adminStore.slug}/loyalty`),
-      api.get(`/${adminStore.slug}/loyalty/config`),
+      api.get(`/establishment/${adminStore.slug}/loyalty/config`),
     ]);
-    customers.value = customersRes.data.customers;
+    customers.value = customersRes.data.customers || [];
     if (configRes.data.config) {
       Object.assign(config.value, configRes.data.config);
     }
