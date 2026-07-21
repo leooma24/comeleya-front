@@ -68,6 +68,7 @@
     <div class="mc-orders-grid" v-if="filteredOrders.length">
       <div
         class="mc-order-card"
+        :class="{ 'mc-order-card--overdue': isOverdue(order) }"
         v-for="order in paginatedOrders"
         :key="order.id"
       >
@@ -78,10 +79,16 @@
             <span class="mc-order-time">
               {{ helperStore.formatDate(order.created_at, "HH:mm") }}
             </span>
+            <span
+              class="mc-order-ago"
+              :class="{ 'mc-order-ago--overdue': isOverdue(order) }"
+            >
+              · {{ agoText(order.created_at) }}
+            </span>
           </div>
           <q-chip
             dense
-            :color="getStatusColor(order.status.id)"
+            :color="isOverdue(order) ? 'negative' : getStatusColor(order.status.id)"
             text-color="white"
             size="sm"
           >
@@ -359,6 +366,27 @@ const doCancel = (order) => {
   );
 };
 
+// Cronómetro: "hace X min" + resaltado de pedidos atrasados (SLA)
+const nowTs = ref(Date.now());
+const nowTimer = setInterval(() => {
+  nowTs.value = Date.now();
+}, 30000);
+const minutesSince = (created) => {
+  if (!created) return 0;
+  return Math.floor((nowTs.value - new Date(created).getTime()) / 60000);
+};
+const agoText = (created) => {
+  const m = minutesSince(created);
+  if (m < 1) return "recién";
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.floor(m / 60);
+  return `hace ${h} h`;
+};
+// Atrasado: pendiente (1) o en preparación (2) por 15+ minutos
+const isOverdue = (order) =>
+  (order.status?.id === 1 || order.status?.id === 2) &&
+  minutesSince(order.created_at) >= 15;
+
 // Driver assignment
 const driverDialog = ref(false);
 const sendingOrder = ref(null);
@@ -473,15 +501,26 @@ const ticketStyles = `
 `;
 const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
 
+// Escapa datos provistos por el cliente para no romper el ticket ni inyectar HTML
+const esc = (s) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+
 const printOrder = (order) => {
   const f = (n) => Number(n || 0).toFixed(2);
   const items = (order.items || [])
     .map((item) => {
-      const name = item.dish?.name ?? "Producto";
+      const name = esc(item.dish?.name ?? "Producto");
       let html = `<div class="item"><span>${item.quantity}x ${name}</span></div>`;
       (item.extras || []).forEach((extra) => {
         (extra.options || []).forEach((o) => {
-          let text = o.quantity > 1 ? `${o.quantity * item.quantity}x ${o.name}` : o.name;
+          const optName = esc(o.name);
+          let text = o.quantity > 1 ? `${o.quantity * item.quantity}x ${optName}` : optName;
           if (o.price > 0) text += ` $${f(o.price * o.quantity * item.quantity)}`;
           html += `<div class="extra">↳ ${text}</div>`;
         });
@@ -498,23 +537,21 @@ const printOrder = (order) => {
 
   let deliveryInfo = "";
   if (order.delivery === "Envio") {
-    deliveryInfo = order.delivery_address ? `<div><strong>Dirección:</strong> ${order.delivery_address}</div>` : "";
-    if (order.delivery_references) deliveryInfo += `<div><strong>Referencia:</strong> ${order.delivery_references}</div>`;
+    deliveryInfo = order.delivery_address ? `<div><strong>Dirección:</strong> ${esc(order.delivery_address)}</div>` : "";
+    if (order.delivery_references) deliveryInfo += `<div><strong>Referencia:</strong> ${esc(order.delivery_references)}</div>`;
   } else if (order.delivery === "Recoger") {
     deliveryInfo = `<div><strong>Paso a recoger</strong></div>`;
   } else if (order.table) {
-    deliveryInfo = `<div><strong>Mesa:</strong> ${order.table}</div>`;
+    deliveryInfo = `<div><strong>Mesa:</strong> ${esc(order.table)}</div>`;
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <html><head><title>Pedido #${order.order_code}</title>
+  const html = `
+    <html><head><title>Pedido #${esc(order.order_code)}</title>
     <style>${ticketStyles}</style></head><body>
       <div class="header">
-        <span>${date}</span>
+        <span>${esc(date)}</span>
       </div>
-      <div class="order">Orden #${order.order_code}</div>
+      <div class="order">Orden #${esc(order.order_code)}</div>
       ${SEP}
       <div class="section-title">Productos</div>
       ${items}
@@ -523,23 +560,56 @@ const printOrder = (order) => {
       ${tip > 0 ? `<div class="row"><span>Propina:</span><span>$${f(tip)}</span></div>` : ""}
       <div class="row total"><span>TOTAL:</span><span>$${f(order.total)}</span></div>
       ${SEP}
-      ${payment ? `<div class="section-title">Pago</div><div class="row"><span>${payment}</span></div>${SEP}` : ""}
+      ${payment ? `<div class="section-title">Pago</div><div class="row"><span>${esc(payment)}</span></div>${SEP}` : ""}
       <div class="section-title">Cliente</div>
       <div class="info">
-        <div><strong>Nombre:</strong> ${order.customer_name}</div>
-        <div><strong>Tel:</strong> ${order.phone || ""}</div>
+        <div><strong>Nombre:</strong> ${esc(order.customer_name)}</div>
+        <div><strong>Tel:</strong> ${esc(order.phone || "")}</div>
         ${deliveryInfo}
       </div>
-      ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${order.comments}</div></div>` : ""}
+      ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(order.comments)}</div></div>` : ""}
       ${SEP}
       <div class="footer">
         <span>¡Gracias por su compra!</span>
       </div>
     </body></html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-  printWindow.close();
+  `;
+
+  // Imprime en un iframe oculto: window.open queda bloqueado en móvil/in-app.
+  const prev = document.getElementById("mc-admin-print-frame");
+  if (prev) prev.remove();
+  const iframe = document.createElement("iframe");
+  iframe.id = "mc-admin-print-frame";
+  Object.assign(iframe.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+  });
+  document.body.appendChild(iframe);
+
+  let printed = false;
+  const triggerPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch {
+      adminStore.messageStore.error(
+        "Este navegador no permite imprimir. Ábrelo en Chrome o conecta una impresora."
+      );
+    }
+  };
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  iframe.onload = () => setTimeout(triggerPrint, 200);
+  setTimeout(triggerPrint, 700);
 };
 
 const pollingActive = ref(true);
@@ -613,6 +683,7 @@ setTimeout(longPolling, 10000);
 
 onUnmounted(() => {
   pollingActive.value = false;
+  clearInterval(nowTimer);
 });
 
 adminStore.getOrders(props.status);
@@ -640,6 +711,11 @@ adminStore.getOrders(props.status);
   padding: var(--space-lg);
 }
 
+@keyframes mcOverduePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.18); }
+}
+
 .mc-order-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -649,6 +725,20 @@ adminStore.getOrders(props.status);
 
   &:hover {
     box-shadow: var(--shadow-md);
+  }
+
+  // Pedido atrasado (SLA): borde rojo + latido sutil para que salte a la vista
+  &--overdue {
+    border-color: var(--q-negative, #d32f2f);
+    animation: mcOverduePulse 2s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+
+    .mc-order-card__header {
+      background: color-mix(in srgb, var(--q-negative, #d32f2f) 8%, transparent);
+    }
   }
 
   &__header {
@@ -687,6 +777,17 @@ adminStore.getOrders(props.status);
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   margin-left: var(--space-sm);
+}
+
+.mc-order-ago {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
+
+  &--overdue {
+    color: var(--q-negative, #d32f2f);
+    font-weight: 700;
+  }
 }
 
 .mc-order-info-row {

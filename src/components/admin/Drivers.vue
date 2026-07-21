@@ -55,7 +55,9 @@
           <div class="mc-driver-card__actions">
             <q-btn flat dense no-caps size="sm" icon="edit" label="Editar" color="primary" @click="openForm(driver)" />
             <q-btn flat dense no-caps size="sm" :icon="driver.status === 'available' ? 'pause' : 'play_arrow'" :label="driver.status === 'available' ? 'Desactivar' : 'Activar'" :color="driver.status === 'available' ? 'warning' : 'positive'" @click="toggleActive(driver)" />
-            <q-btn flat dense round size="sm" icon="delete" color="negative" @click="deleteDriver(driver)" />
+            <q-btn flat dense round size="sm" icon="delete" color="negative" aria-label="Eliminar repartidor" @click="askDeleteDriver(driver)">
+              <q-tooltip>Eliminar repartidor</q-tooltip>
+            </q-btn>
           </div>
         </div>
       </div>
@@ -98,8 +100,10 @@ defineOptions({ name: "DriversComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useConfirmDialog } from "src/composables/useConfirmDialog";
 
 const adminStore = useAdminStore();
+const { confirmDelete } = useConfirmDialog();
 const drivers = ref([]);
 const loading = ref(true);
 const showForm = ref(false);
@@ -163,6 +167,17 @@ const deleteDriver = async (driver) => {
   } catch (e) {
     adminStore.messageStore.error("Error al eliminar repartidor");
   }
+};
+
+// No permitir borrar a un repartidor con entrega en curso; confirmar siempre
+const askDeleteDriver = (driver) => {
+  if (driver.active_delivery) {
+    adminStore.messageStore.error(
+      "No puedes eliminar un repartidor con una entrega en curso."
+    );
+    return;
+  }
+  confirmDelete(`al repartidor ${driver.name}`, () => deleteDriver(driver));
 };
 
 onMounted(async () => {
