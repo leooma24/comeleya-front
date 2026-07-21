@@ -272,6 +272,17 @@ h6 {
   scroll-margin-top: 64px;
 }
 
+// Escritorio embebido: el contenido arranca justo bajo los tabs fijos (~53px) para
+// que el primer elemento (aviso de horario / Recomendados) no quede tapado. En
+// móvil el contenido ya despeja los tabs, así que no se toca.
+// Se usa .mc-content.mc-content-external (doble clase) para ganarle a la regla
+// .mc-content{padding-top:0} de escritorio, que si no lo anula.
+@media screen and (min-width: 1024px) {
+  .mc-content.mc-content-external {
+    padding-top: 52px;
+  }
+}
+
 .mc-bb {
   border-left: var(--space-xs) solid var(--q-primary);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
