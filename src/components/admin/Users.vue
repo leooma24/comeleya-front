@@ -36,6 +36,7 @@
 
     <q-table
       flat
+      :grid="$q.screen.lt.md"
       :rows="adminStore.users"
       :columns="columns"
       row-key="name"
@@ -201,9 +202,11 @@ defineOptions({
 import { ref } from "vue";
 
 import { useAdminStore } from "src/stores/admin-store";
+import { useQuasar } from "quasar";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./users/FormDrawer.vue";
 const adminStore = useAdminStore();
+const $q = useQuasar();
 const { confirmDelete } = useConfirmDialog();
 
 const filter = ref("");

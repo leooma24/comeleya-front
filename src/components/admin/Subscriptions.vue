@@ -48,7 +48,7 @@
     </div>
 
     <!-- Subscription Table -->
-    <q-table flat :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
+    <q-table flat :grid="$q.screen.lt.md" :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
       rows-per-page-label="Por pagina:" class="mc-inner-table q-px-md"
     >
       <template v-slot:body="props">
@@ -84,8 +84,10 @@ defineOptions({ name: "SubscriptionsComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useQuasar } from "quasar";
 
 const adminStore = useAdminStore();
+const $q = useQuasar();
 const overview = ref({ mrr: 0, active_clients: 0, churn_rate: 0, pipeline_count: 0 });
 const subscriptions = ref([]);
 const counts = ref({});
