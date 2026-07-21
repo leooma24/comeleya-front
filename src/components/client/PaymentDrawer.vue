@@ -215,9 +215,9 @@
           />
         </div>
 
-        <!-- MercadoPago Online -->
+        <!-- MercadoPago Online (feature 15 = online_payments; el 10 es Comedor) -->
         <div
-          v-if="mainStore.hasService(10)"
+          v-if="mainStore.hasService(15)"
           :class="[
             'mc-payment-option',
             mainStore.payment.type === 'MercadoPago' ? 'mc-payment-option--active' : ''

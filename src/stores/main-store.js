@@ -101,7 +101,7 @@ export const useMainStore = defineStore("main", {
       return this.companyStore.companyAddress;
     },
     bussinessMap() {
-      return this.companyStore.company.coordinates;
+      return this.companyStore.company.coordinates ?? "";
     },
     deliveryCharge() {
       return this.data.delivery !== "Envio"

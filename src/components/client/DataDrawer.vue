@@ -338,8 +338,9 @@ const validateData = async () => {
 };
 
 const getMapDirection = () => {
-  const coordinates = mainStore.bussinessMap.replace(/\s/g, "");
-  const url = `https://www.google.com/maps/search/?api=1&query=${coordinates}`;
+  const coordinates = (mainStore.bussinessMap || "").replace(/\s/g, "");
+  if (!coordinates) return; // Sin coordenadas configuradas: no abrir un mapa vacío
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`;
   window.open(url, "_blank");
 };
 </script>

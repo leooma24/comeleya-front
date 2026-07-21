@@ -26,7 +26,9 @@ export default boot(({ app, router }) => {
       if (response.data?.message === "Unauthenticated.") {
         userStore.logout();
         redirectToLogin(router);
-        return;
+        // Rechaza para que los callers no reciban `undefined` y truenen al
+        // desestructurar `const { data } = await api.get(...)`.
+        return Promise.reject(new Error("Unauthenticated"));
       }
       return response;
     },
@@ -37,7 +39,6 @@ export default boot(({ app, router }) => {
       if (error.response?.status === 401) {
         userStore.logout();
         redirectToLogin(router);
-        return;
       }
       return Promise.reject(error);
     }
