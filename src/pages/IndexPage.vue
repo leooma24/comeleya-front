@@ -393,6 +393,39 @@ watch(
   }
 );
 
+// Deep-link a una categoría vía ?cat=<id|nombre> (ej. ?cat=12 o ?cat=bebidas).
+// Pensado para incrustar el iframe apuntando directo a una categoría desde otra web.
+const scrollToDeepLinkCategory = async () => {
+  const raw = route.query.cat ?? route.query.categoria ?? route.query.category;
+  if (raw === undefined || raw === null || raw === "") return;
+  const cats = mainStore.categories || [];
+  if (!cats.length) return;
+
+  const val = String(raw).toLowerCase().trim();
+  let target = null;
+  if (/^\d+$/.test(val)) {
+    target = cats.find((c) => String(c.id) === val);
+  }
+  if (!target) {
+    const needle = val.replace(/-/g, " ").replace(/\s+/g, " ").trim();
+    target =
+      cats.find((c) => (c.name || "").toLowerCase().trim() === needle) ||
+      cats.find((c) => (c.name || "").toLowerCase().includes(needle));
+  }
+  if (!target) return;
+
+  mainStore.tab = target.id;
+  await nextTick();
+  // Espera a que las secciones/productos rendericen para medir bien la posición.
+  setTimeout(() => {
+    const section = document.getElementById(String(target.id));
+    if (!section) return;
+    const yOffset = mainStore.isExternal ? -70 : $q.screen.width <= 1024 ? -230 : -60;
+    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, 500);
+};
+
 onMounted(async () => {
   window.addEventListener("resize", measureFeatured);
   // Capture: atrapa el scroll venga del window o de cualquier contenedor interno.
@@ -407,6 +440,7 @@ onMounted(async () => {
     nextTick(() => { measureFeatured(); startFeaturedAutoplay(); });
   }
   nextTick(updateActiveCategory);
+  scrollToDeepLinkCategory();
 });
 
 onBeforeUnmount(() => {
