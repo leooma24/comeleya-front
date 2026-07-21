@@ -100,9 +100,9 @@
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">{{ stats.orders[period] }}</span>
               <span class="mc-stat-card__label">Pedidos</span>
-              <span v-if="stats.comparison && period === 'month'" :class="['mc-stat-card__change', stats.comparison.orders_change >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
-                <q-icon :name="stats.comparison.orders_change >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
-                {{ Math.abs(stats.comparison.orders_change) }}% vs mes anterior
+              <span v-if="ordersChange !== null" :class="['mc-stat-card__change', ordersChange >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
+                <q-icon :name="ordersChange >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(ordersChange) }}% {{ comparisonLabel }}
               </span>
             </div>
           </div>
@@ -113,9 +113,9 @@
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">${{ formatNumber(stats.revenue[period]) }}</span>
               <span class="mc-stat-card__label">Ingresos</span>
-              <span v-if="stats.comparison && period === 'month'" :class="['mc-stat-card__change', stats.comparison.revenue_change >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
-                <q-icon :name="stats.comparison.revenue_change >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
-                {{ Math.abs(stats.comparison.revenue_change) }}% vs mes anterior
+              <span v-if="revenueChange !== null" :class="['mc-stat-card__change', revenueChange >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
+                <q-icon :name="revenueChange >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(revenueChange) }}% {{ comparisonLabel }}
               </span>
             </div>
           </div>
@@ -161,6 +161,28 @@
               <span class="mc-chart-bar__label">{{ day.label }}</span>
             </div>
           </div>
+        </div>
+
+        <!-- Peak hours -->
+        <div class="mc-chart-section" v-if="peakTotal > 0">
+          <h4 class="mc-chart-title">Horas pico - ultimos 30 dias</h4>
+          <div class="mc-hours-chart">
+            <div
+              class="mc-hour-bar-wrapper"
+              v-for="h in stats.peakHours"
+              :key="h.hour"
+              :class="{ 'mc-hour-bar-wrapper--peak': h.hour === peakHour }"
+            >
+              <div class="mc-hour-bar" :style="{ height: getHourHeight(h.count) + '%' }">
+                <q-tooltip v-if="h.count">{{ h.count }} pedidos ~ {{ formatHour(h.hour) }}</q-tooltip>
+              </div>
+              <span v-if="h.hour % 3 === 0" class="mc-hour-bar__label">{{ formatHour(h.hour) }}</span>
+            </div>
+          </div>
+          <p v-if="peakHour !== null" class="mc-hours-hint">
+            <q-icon name="bolt" size="14px" color="amber-8" />
+            Tu hora mas fuerte es alrededor de las <strong>{{ formatHour(peakHour) }}</strong>. Ten personal y stock listos.
+          </p>
         </div>
 
         <!-- Top Products -->
@@ -335,6 +357,7 @@ const stats = ref({
   avgTicket: { today: 0, week: 0, month: 0 },
   topProducts: [],
   chart: [],
+  peakHours: [],
   reviews: null,
 });
 
@@ -342,6 +365,37 @@ const formatNumber = (num) => Number(num || 0).toLocaleString("es-MX", { minimum
 const getBarHeight = (count) => {
   const max = Math.max(...(stats.value.chart || []).map((d) => d.count), 1);
   return Math.max((count / max) * 100, 4);
+};
+
+// --- COMPARATIVAS por periodo (hoy vs ayer / semana vs semana pasada / mes vs mes pasado) ---
+const comparisonLabel = computed(
+  () => ({ today: "vs ayer", week: "vs semana anterior", month: "vs mes anterior" })[period.value]
+);
+const ordersChange = computed(() => {
+  const c = stats.value.comparison || {};
+  return (period.value === "today" ? c.orders_change_today : period.value === "week" ? c.orders_change_week : c.orders_change) ?? null;
+});
+const revenueChange = computed(() => {
+  const c = stats.value.comparison || {};
+  return (period.value === "today" ? c.revenue_change_today : period.value === "week" ? c.revenue_change_week : c.revenue_change) ?? null;
+});
+
+// --- HORAS PICO (últimos 30 días) ---
+const peakTotal = computed(() => (stats.value.peakHours || []).reduce((s, h) => s + h.count, 0));
+const peakHour = computed(() => {
+  const hrs = stats.value.peakHours || [];
+  if (!hrs.length) return null;
+  const top = hrs.reduce((a, b) => (b.count > a.count ? b : a), hrs[0]);
+  return top.count > 0 ? top.hour : null;
+});
+const getHourHeight = (count) => {
+  const max = Math.max(...(stats.value.peakHours || []).map((h) => h.count), 1);
+  return Math.max((count / max) * 100, 3);
+};
+const formatHour = (h) => {
+  const suffix = h < 12 ? "am" : "pm";
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}${suffix}`;
 };
 
 // --- WIZARD ---
@@ -697,6 +751,14 @@ onMounted(async () => {
 .mc-chart-bar { width: 100%; max-width: 48px; background: var(--q-primary); border-radius: var(--radius-sm) var(--radius-sm) 0 0; transition: height 0.5s ease; min-height: 4px; opacity: 0.85; &:hover { opacity: 1; } }
 .mc-chart-bar__value { font-size: var(--text-xs); font-weight: 600; color: var(--color-text-primary); }
 .mc-chart-bar__label { font-size: var(--text-xs); color: var(--color-text-tertiary); white-space: nowrap; text-transform: capitalize; }
+
+// Peak hours
+.mc-hours-chart { display: flex; align-items: flex-end; gap: 3px; height: 130px; padding: var(--space-md) 0 22px; }
+.mc-hour-bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; position: relative; }
+.mc-hour-bar { width: 100%; max-width: 22px; background: var(--q-info); border-radius: 3px 3px 0 0; min-height: 3px; opacity: 0.55; transition: opacity var(--transition-fast); &:hover { opacity: 1; } }
+.mc-hour-bar-wrapper--peak .mc-hour-bar { background: var(--q-primary); opacity: 1; }
+.mc-hour-bar__label { position: absolute; bottom: -20px; font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; }
+.mc-hours-hint { font-size: var(--text-xs); color: var(--color-text-secondary); margin: var(--space-sm) 0 0; display: flex; align-items: center; gap: 4px; }
 
 // Top products
 .mc-top-products { padding: 0 var(--space-lg) var(--space-lg); }

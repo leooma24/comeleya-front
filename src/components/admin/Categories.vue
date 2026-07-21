@@ -53,6 +53,8 @@
           filter=".q-btn"
           :preventOnFilter="false"
           :disabled="!canReorder"
+          :force-fallback="true"
+          :fallback-tolerance="4"
         >
           <tr
             v-for="(element, index) in filteredCategories"
