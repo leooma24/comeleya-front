@@ -39,7 +39,7 @@
     <div class="q-px-md q-pb-sm" v-if="counts.expiring_7 || counts.expired">
       <q-banner v-if="counts.expired" rounded class="bg-red-1 text-negative q-mb-sm">
         <template v-slot:avatar><q-icon name="error" color="negative" /></template>
-        {{ counts.expired }} suscripcion(es) vencida(s)
+        {{ counts.expired }} suscripción(es) vencida(s)
       </q-banner>
       <q-banner v-if="counts.expiring_7" rounded class="bg-orange-1 text-warning q-mb-sm">
         <template v-slot:avatar><q-icon name="warning" color="warning" /></template>
@@ -49,7 +49,7 @@
 
     <!-- Subscription Table -->
     <q-table flat :grid="$q.screen.lt.md" :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
-      rows-per-page-label="Por pagina:" class="mc-inner-table q-px-md"
+      rows-per-page-label="Por página:" class="mc-inner-table q-px-md"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
@@ -65,7 +65,7 @@
           </q-td>
           <q-td key="days_left" :props="props">
             <q-chip dense size="sm" :color="daysColor(daysLeft(props.row))" text-color="white">
-              {{ daysLeft(props.row) > 0 ? daysLeft(props.row) + ' dias' : 'Vencida' }}
+              {{ daysLeft(props.row) > 0 ? daysLeft(props.row) + ' días' : 'Vencida' }}
             </q-chip>
           </q-td>
           <q-td key="actions" :props="props">
@@ -146,7 +146,7 @@ const columns = [
   { name: "package", label: "Paquete", align: "left" },
   { name: "type", label: "Tipo", align: "center" },
   { name: "end_date", label: "Vence", align: "center", sortable: true },
-  { name: "days_left", label: "Dias restantes", align: "center", sortable: true },
+  { name: "days_left", label: "Días restantes", align: "center", sortable: true },
   { name: "actions", label: "", align: "right" },
 ];
 </script>

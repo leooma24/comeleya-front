@@ -19,7 +19,7 @@
                 {{ subscription.status === 'active' ? 'Activo' : subscription.status }}
               </q-chip>
               <q-chip v-if="subscription.mp_preapproval_id" dense color="blue-1" text-color="blue-9" size="sm">
-                Cobro automatico
+                Cobro automático
               </q-chip>
               <q-chip v-else dense color="orange-1" text-color="orange-9" size="sm">
                 Plan temporal
@@ -28,7 +28,7 @@
             <div class="text-right">
               <div class="text-h5 text-primary" style="font-weight: 800">
                 {{ subscription.days_remaining }}
-                <span class="text-caption text-grey-6">dias restantes</span>
+                <span class="text-caption text-grey-6">días restantes</span>
               </div>
               <div class="text-caption text-grey-6">
                 Vence: {{ formatDate(subscription.end_date) }}
@@ -46,7 +46,7 @@
             <q-btn
               v-if="subscription.mp_preapproval_id"
               outline no-caps color="negative" icon="cancel"
-              label="Cancelar suscripcion" @click="confirmCancel"
+              label="Cancelar suscripción" @click="confirmCancel"
             />
           </div>
         </div>
@@ -66,7 +66,7 @@
       <div v-if="payments.length" class="q-mt-xl">
         <h6 class="text-weight-bold q-mb-md">Historial de pagos</h6>
         <q-table flat :rows="payments" :columns="paymentColumns" row-key="id"
-          no-data-label="Sin pagos registrados" rows-per-page-label="Por pagina:"
+          no-data-label="Sin pagos registrados" rows-per-page-label="Por página:"
           :pagination="{ rowsPerPage: 5 }" class="mc-inner-table">
           <template v-slot:body-cell-mp_status="props">
             <q-td :props="props">
@@ -124,12 +124,12 @@ const loadData = async () => {
 
 const confirmCancel = () => {
   confirm(
-    "Cancelar suscripcion",
-    "Se cancelara el cobro automatico. Seguiras teniendo acceso hasta la fecha de vencimiento.",
+    "Cancelar suscripción",
+    "Se cancelará el cobro automático. Seguirás teniendo acceso hasta la fecha de vencimiento.",
     async () => {
       try {
         await api.post(`/admin/${adminStore.slug}/subscription/cancel`);
-        adminStore.messageStore.success("Suscripcion cancelada");
+        adminStore.messageStore.success("Suscripción cancelada");
         loadData();
       } catch (e) {
         adminStore.messageStore.error(e.response?.data?.message || "Error al cancelar");

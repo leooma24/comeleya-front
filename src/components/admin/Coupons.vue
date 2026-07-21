@@ -47,7 +47,7 @@
 
           <div class="mc-coupon-card__meta">
             <span v-if="coupon.min_order > 0">
-              <q-icon name="shopping_cart" size="14px" /> Min: ${{ coupon.min_order }}
+              <q-icon name="shopping_cart" size="14px" /> Mín: ${{ coupon.min_order }}
             </span>
             <span v-if="coupon.max_uses">
               <q-icon name="people" size="14px" /> {{ coupon.used_count }}/{{ coupon.max_uses }} usos

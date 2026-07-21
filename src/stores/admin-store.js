@@ -60,6 +60,7 @@ export const useAdminStore = defineStore({
     prospectDrawer: false,
     activeProspect: null,
     activityDrawer: false,
+    activityPrefill: null,
   }),
   getters: {
     // Add your getters here
@@ -426,7 +427,7 @@ export const useAdminStore = defineStore({
         this.addressForm.state = data.d_estado;
         this.addressForm.country = "México";
       } catch (error) {
-        this.messageStore.error("No se encontraron colonias para ese codigo postal");
+        this.messageStore.error("No se encontraron colonias para ese código postal");
       }
     },
     clearDrawers() {

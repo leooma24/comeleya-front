@@ -236,7 +236,7 @@
       <q-card-section>
         <q-select v-model="planForm.package_id" :options="packageOptions" emit-value map-options filled dense label="Paquete" class="q-mb-md" />
         <q-select v-model="planForm.type" :options="[{label:'Mensual',value:'monthly'},{label:'Anual',value:'yearly'}]" emit-value map-options filled dense label="Tipo" class="q-mb-md" />
-        <q-input v-model.number="planForm.duration_days" type="number" filled dense label="Duracion (dias)" hint="15 = prueba, 30 = mensual, 365 = anual" />
+        <q-input v-model.number="planForm.duration_days" type="number" filled dense label="Duración (días)" hint="15 = prueba, 30 = mensual, 365 = anual" />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat no-caps label="Cancelar" v-close-popup />

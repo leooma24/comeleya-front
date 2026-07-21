@@ -94,7 +94,7 @@
         <div class="col-12 col-md-6">
           <q-card flat bordered class="mc-goal-card">
             <q-card-section>
-              <div class="text-subtitle2 text-weight-bold q-mb-md">Pronostico e Inteligencia</div>
+              <div class="text-subtitle2 text-weight-bold q-mb-md">Pronóstico e Inteligencia</div>
 
               <div class="mc-forecast-row">
                 <q-icon name="trending_up" size="20px" color="teal" />
@@ -116,7 +116,7 @@
               <div class="text-caption text-weight-bold q-mb-xs">Conversiones por fuente</div>
               <div v-for="src in crm.by_source" :key="src.source" class="row items-center q-mb-xs">
                 <q-chip dense size="sm" :color="sourceColor(src.source)" class="q-mr-sm">{{ src.source }}</q-chip>
-                <span class="text-caption text-weight-bold">{{ src.count }} {{ src.count === 1 ? 'conversion' : 'conversiones' }}</span>
+                <span class="text-caption text-weight-bold">{{ src.count }} {{ src.count === 1 ? 'conversión' : 'conversiones' }}</span>
               </div>
               <div v-if="!crm.by_source?.length" class="text-caption text-grey-5">Sin conversiones este mes</div>
             </q-card-section>

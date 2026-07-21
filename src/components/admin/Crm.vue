@@ -155,7 +155,7 @@
 
     <!-- List View -->
     <q-table v-else-if="view === 'list'" flat :rows="filteredProspects" :columns="columns" row-key="id"
-      no-data-label="Sin prospectos" rows-per-page-label="Por pagina:" class="mc-inner-table"
+      no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table"
     >
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="openActivities(props.row)">
@@ -238,7 +238,7 @@
         </q-card-section>
         <q-card-section>
           <q-select v-model="convertForm.package_id" :options="packageOptions" emit-value map-options filled dense label="Paquete" class="q-mb-md" />
-          <q-select v-model="convertForm.type" :options="[{label:'Mensual',value:'monthly'},{label:'Anual',value:'yearly'}]" emit-value map-options filled dense label="Tipo de suscripcion" />
+          <q-select v-model="convertForm.type" :options="[{label:'Mensual',value:'monthly'},{label:'Anual',value:'yearly'}]" emit-value map-options filled dense label="Tipo de suscripción" />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" v-close-popup />
@@ -250,7 +250,7 @@
     <q-dialog v-model="showLossDialog">
       <q-card style="min-width: 360px; border-radius: 16px">
         <q-card-section>
-          <div class="text-h6">Razon de perdida</div>
+          <div class="text-h6">Razón de pérdida</div>
           <div class="text-caption text-grey-6">{{ losingProspect?.business_name || losingProspect?.name }}</div>
         </q-card-section>
         <q-card-section>
@@ -258,7 +258,7 @@
             v-model="lossReason"
             filled
             dense
-            label="Selecciona una razon"
+            label="Selecciona una razón"
             :options="lossReasons"
             class="q-mb-md"
           />
@@ -267,7 +267,7 @@
             v-model="lossReasonCustom"
             filled
             dense
-            label="Especifica la razon"
+            label="Especifica la razón"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -425,7 +425,7 @@ const moveProspect = async (p, newStatus) => {
 
 const confirmLoss = async () => {
   const reason = lossReason.value === "Otra razon" ? lossReasonCustom.value : lossReason.value;
-  if (!reason) return adminStore.messageStore.error("Selecciona una razon");
+  if (!reason) return adminStore.messageStore.error("Selecciona una razón");
 
   const p = losingProspect.value;
   try {
@@ -454,36 +454,36 @@ const loginUrl = "https://comeleya.com/admin/iniciar-sesion";
 
 const whatsappMessages = {
   pedidos_sin_pago: (n, email, url) => buildWaMsg([
-    `Hola ${n}, ya tienes tu menu digital en ComeleYa! Tu usuario actual es: ${email}`,
+    `Hola ${n}, ya tienes tu menú digital en ComeleYa! Tu usuario actual es: ${email}`,
     "",
-    "Vimos que ya recibes pedidos, nos gustaria ayudarte a hacer crecer tu negocio.",
-    `Inicia Sesion con tu cuenta en ${loginUrl}`,
+    "Vimos que ya recibes pedidos, nos gustaría ayudarte a hacer crecer tu negocio.",
+    `Inicia Sesión con tu cuenta en ${loginUrl}`,
     "",
-    `Si deseas ver tu cuenta actual en linea visita: ${url}`,
+    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
   ]),
   menu_sin_pedidos: (n, email, url) => buildWaMsg([
-    `Hola ${n}, ya tienes tu menu digital en ComeleYa! Tu usuario actual es: ${email}`,
+    `Hola ${n}, ya tienes tu menú digital en ComeleYa! Tu usuario actual es: ${email}`,
     "",
     "Necesitas ayuda para empezar a recibir pedidos?",
-    `Inicia Sesion con tu cuenta en ${loginUrl}`,
+    `Inicia Sesión con tu cuenta en ${loginUrl}`,
     "",
-    `Si deseas ver tu cuenta actual en linea visita: ${url}`,
+    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
   ]),
   sin_configurar: (n, email, url) => buildWaMsg([
     `Hola ${n}, creaste tu cuenta en ComeleYa! Tu usuario actual es: ${email}`,
     "",
-    "Aun no has configurado tu menu, te podemos ayudar a configurarlo en menos de 15 minutos.",
-    `Inicia Sesion con tu cuenta en ${loginUrl}`,
+    "Aún no has configurado tu menú, te podemos ayudar a configurarlo en menos de 15 minutos.",
+    `Inicia Sesión con tu cuenta en ${loginUrl}`,
     "",
-    `Si deseas ver tu cuenta actual en linea visita: ${url}`,
+    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
   ]),
   inactivo: (n, email, url) => buildWaMsg([
     `Hola ${n}, hace tiempo que no te vemos en ComeleYa! Tu usuario actual es: ${email}`,
     "",
-    "Te gustaria retomar? Tenemos una oferta especial para ti.",
-    `Inicia Sesion con tu cuenta en ${loginUrl}`,
+    "Te gustaría retomar? Tenemos una oferta especial para ti.",
+    `Inicia Sesión con tu cuenta en ${loginUrl}`,
     "",
-    `Si deseas ver tu cuenta actual en linea visita: ${url}`,
+    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
   ]),
 };
 
@@ -541,10 +541,13 @@ const sendQuickEmail = async (p) => {
 };
 
 const scheduleCall = (p) => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(10, 0, 0, 0);
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  t.setHours(10, 0, 0, 0);
+  const pad = (n) => String(n).padStart(2, "0");
+  const localDT = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}`;
   adminStore.activeProspect = p;
+  adminStore.activityPrefill = { type: "llamada", scheduled_at: localDT };
   adminStore.activityDrawer = true;
 };
 
@@ -586,14 +589,14 @@ onMounted(() => {
 
 const columns = [
   { name: "business_name", label: "Negocio", align: "left", field: "business_name", sortable: true },
-  { name: "phone", label: "Telefono", align: "left", field: "phone" },
+  { name: "phone", label: "Teléfono", align: "left", field: "phone" },
   { name: "email", label: "Email", align: "left", field: "email" },
   { name: "deal_value", label: "Valor", align: "right", field: "deal_value", sortable: true },
   { name: "source", label: "Fuente", align: "center", field: "source", sortable: true },
   { name: "tags", label: "Tags", align: "left", field: "tags" },
   { name: "status", label: "Etapa", align: "center", field: "status", sortable: true },
-  { name: "last_activity", label: "Ultima actividad", align: "center", field: (r) => r.activities?.[0]?.created_at, sortable: true },
-  { name: "next_contact_at", label: "Prox. contacto", align: "center", field: "next_contact_at", sortable: true },
+  { name: "last_activity", label: "Última actividad", align: "center", field: (r) => r.activities?.[0]?.created_at, sortable: true },
+  { name: "next_contact_at", label: "Próx. contacto", align: "center", field: "next_contact_at", sortable: true },
   { name: "actions", label: "Acciones", align: "right" },
 ];
 </script>

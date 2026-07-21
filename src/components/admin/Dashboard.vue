@@ -134,7 +134,7 @@
             </div>
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">{{ stats.reviews.avg || '—' }}</span>
-              <span class="mc-stat-card__label">{{ stats.reviews.total }} resenas</span>
+              <span class="mc-stat-card__label">{{ stats.reviews.total }} reseñas</span>
             </div>
           </div>
         </div>
@@ -153,7 +153,7 @@
 
         <!-- Chart -->
         <div class="mc-chart-section">
-          <h4 class="mc-chart-title">Pedidos - Ultimos 7 dias</h4>
+          <h4 class="mc-chart-title">Pedidos - Últimos 7 días</h4>
           <div class="mc-chart">
             <div class="mc-chart-bar-wrapper" v-for="(day, index) in stats.chart" :key="index">
               <span class="mc-chart-bar__value">{{ day.count }}</span>
@@ -165,7 +165,7 @@
 
         <!-- Peak hours -->
         <div class="mc-chart-section" v-if="peakTotal > 0">
-          <h4 class="mc-chart-title">Horas pico - ultimos 30 dias</h4>
+          <h4 class="mc-chart-title">Horas pico - últimos 30 días</h4>
           <div class="mc-hours-chart">
             <div
               class="mc-hour-bar-wrapper"
@@ -181,7 +181,7 @@
           </div>
           <p v-if="peakHour !== null" class="mc-hours-hint">
             <q-icon name="bolt" size="14px" color="amber-8" />
-            Tu hora mas fuerte es alrededor de las <strong>{{ formatHour(peakHour) }}</strong>. Ten personal y stock listos.
+            Tu hora más fuerte es alrededor de las <strong>{{ formatHour(peakHour) }}</strong>. Ten personal y stock listos.
           </p>
         </div>
 
@@ -222,12 +222,12 @@
           Tus clientes ({{ stats.customers.length }})
         </div>
         <div class="row q-gutter-sm">
-          <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir menu" size="sm" @click="shareMenuWa" />
+          <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir menú" size="sm" @click="shareMenuWa" />
         </div>
       </div>
 
       <q-table flat :rows="stats.customers" :columns="customerColumns" row-key="phone"
-        :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por pagina:" class="mc-inner-table"
+        :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por página:" class="mc-inner-table"
         :filter="customerSearch"
       >
         <template v-slot:top-left>
@@ -280,7 +280,7 @@
           <q-select
             v-model="flashForm.hours"
             :options="[{ label: '2 horas', value: 2 }, { label: '4 horas', value: 4 }, { label: '8 horas', value: 8 }, { label: '24 horas', value: 24 }, { label: '48 horas', value: 48 }]"
-            emit-value map-options filled dense label="Duracion"
+            emit-value map-options filled dense label="Duración"
           />
         </q-card-section>
         <q-card-actions align="right">
@@ -301,7 +301,7 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <p class="text-grey-6 text-caption q-mb-md">Selecciona los platillos que quieras agregar. Puedes editarlos despues.</p>
+          <p class="text-grey-6 text-caption q-mb-md">Selecciona los platillos que quieras agregar. Puedes editarlos después.</p>
 
           <q-list>
             <q-item v-for="tpl in dishTemplates" :key="tpl.name" tag="label" v-ripple>
@@ -405,7 +405,7 @@ const wizardSteps = computed(() => {
     {
       key: "logo",
       title: "Sube tu logo",
-      desc: "Tu logo aparecera en tu menu digital y QR",
+      desc: "Tu logo aparecerá en tu menú digital y QR",
       done: !!c.logo,
       btnLabel: "Subir",
       btnIcon: "image",
@@ -414,7 +414,7 @@ const wizardSteps = computed(() => {
     {
       key: "hours",
       title: "Configura tu horario",
-      desc: "Tus clientes sabran cuando estas abierto",
+      desc: "Tus clientes sabrán cuándo estás abierto",
       done: c.hours?.length > 0,
       btnLabel: "Configurar",
       btnIcon: "schedule",
@@ -422,8 +422,8 @@ const wizardSteps = computed(() => {
     },
     {
       key: "categories",
-      title: "Agrega una categoria",
-      desc: "Organiza tu menu por tipo de platillo",
+      title: "Agrega una categoría",
+      desc: "Organiza tu menú por tipo de platillo",
       done: adminStore.categories?.length > 0,
       btnLabel: "Agregar",
       btnIcon: "category",
@@ -432,7 +432,7 @@ const wizardSteps = computed(() => {
     {
       key: "products",
       title: "Agrega tu primer platillo",
-      desc: "Sube fotos, precios y descripcion",
+      desc: "Sube fotos, precios y descripción",
       done: adminStore.products?.length > 0,
       btnLabel: "Agregar",
       btnIcon: "restaurant_menu",
@@ -440,7 +440,7 @@ const wizardSteps = computed(() => {
     },
     {
       key: "address",
-      title: "Agrega tu direccion",
+      title: "Agrega tu dirección",
       desc: "Para que tus clientes te encuentren",
       done: !!c.address,
       btnLabel: "Agregar",
@@ -470,7 +470,7 @@ const optimizations = computed(() => {
       icon: "photo_camera",
       color: "orange",
       title: `${productsNoPhoto} platillos sin foto`,
-      desc: "Los platillos con foto se venden hasta 3x mas",
+      desc: "Los platillos con foto se venden hasta 3x más",
       btnLabel: "Ir a productos",
       action: () => { adminStore.tab = "productos"; },
     });
@@ -495,8 +495,8 @@ const optimizations = computed(() => {
       icon: "confirmation_number",
       color: "purple",
       title: "Sin cupones activos",
-      desc: "Crea un cupon de descuento para atraer nuevos clientes",
-      btnLabel: "Crear cupon",
+      desc: "Crea un cupón de descuento para atraer nuevos clientes",
+      btnLabel: "Crear cupón",
       action: () => { adminStore.tab = "cupones"; },
     });
   }
@@ -518,12 +518,12 @@ const optimizations = computed(() => {
 
 // --- TIPS ---
 const allTips = [
-  { title: "Comparte tu menu en redes sociales", desc: "Comparte el link de tu menu en Instagram, Facebook y WhatsApp para atraer mas clientes.", btnLabel: "Ver menu", action: () => window.open(`/${adminStore.slug}`, "_blank") },
-  { title: "Imprime tu QR en tu local", desc: "Coloca tu codigo QR en mesas, mostrador y entrada para que tus clientes lo escaneen.", btnLabel: "Ver QR", action: () => adminStore.setProfileDrawer(true) },
-  { title: "Responde las resenas de tus clientes", desc: "Los clientes valoran la atencion. Responder resenas aumenta la confianza.", btnLabel: "Ver resenas", action: () => { adminStore.tab = "resenas"; } },
+  { title: "Comparte tu menú en redes sociales", desc: "Comparte el link de tu menú en Instagram, Facebook y WhatsApp para atraer más clientes.", btnLabel: "Ver menú", action: () => window.open(`/${adminStore.slug}`, "_blank") },
+  { title: "Imprime tu QR en tu local", desc: "Coloca tu código QR en mesas, mostrador y entrada para que tus clientes lo escaneen.", btnLabel: "Ver QR", action: () => adminStore.setProfileDrawer(true) },
+  { title: "Responde las reseñas de tus clientes", desc: "Los clientes valoran la atención. Responder reseñas aumenta la confianza.", btnLabel: "Ver reseñas", action: () => { adminStore.tab = "resenas"; } },
   { title: "Actualiza tus precios regularmente", desc: "Mantener precios actualizados evita confusiones y mejora la experiencia.", btnLabel: null, action: null },
-  { title: "Usa fotos reales de tus platillos", desc: "Las fotos reales generan mas confianza que imagenes genericas. Usa buena iluminacion.", btnLabel: null, action: null },
-  { title: "Ofrece promociones en dias lentos", desc: "Si un dia tiene pocos pedidos, crea un cupon especial para ese dia.", btnLabel: "Crear cupon", action: () => { adminStore.tab = "cupones"; } },
+  { title: "Usa fotos reales de tus platillos", desc: "Las fotos reales generan más confianza que imágenes genéricas. Usa buena iluminación.", btnLabel: null, action: null },
+  { title: "Ofrece promociones en días lentos", desc: "Si un día tiene pocos pedidos, crea un cupón especial para ese día.", btnLabel: "Crear cupón", action: () => { adminStore.tab = "cupones"; } },
 ];
 
 const currentTip = computed(() => {
@@ -534,35 +534,35 @@ const currentTip = computed(() => {
 // --- DISH TEMPLATES ---
 const restaurantTemplates = {
   pizza: [
-    { name: "Hawaiana", description: "Jamon y pina con queso mozzarella", price: 129 },
+    { name: "Hawaiana", description: "Jamón y piña con queso mozzarella", price: 129 },
     { name: "Pepperoni", description: "Pepperoni con extra queso", price: 129 },
-    { name: "Mexicana", description: "Chorizo, jalapeno y tomate", price: 139 },
+    { name: "Mexicana", description: "Chorizo, jalapeño y tomate", price: 139 },
     { name: "Margarita", description: "Tomate fresco, albahaca y mozzarella", price: 119 },
   ],
   hamburguesas: [
-    { name: "Clasica", description: "Carne de res, lechuga, tomate, cebolla y queso amarillo", price: 89 },
+    { name: "Clásica", description: "Carne de res, lechuga, tomate, cebolla y queso amarillo", price: 89 },
     { name: "BBQ Bacon", description: "Carne de res, tocino, queso cheddar y salsa BBQ", price: 109 },
     { name: "Doble Queso", description: "Doble carne, doble queso amarillo", price: 119 },
     { name: "Pollo Crispy", description: "Pechuga empanizada, mayonesa y lechuga", price: 99 },
   ],
   tacos: [
-    { name: "Tacos al Pastor", description: "Con pina, cilantro y cebolla", price: 18 },
+    { name: "Tacos al Pastor", description: "Con piña, cilantro y cebolla", price: 18 },
     { name: "Tacos de Bistec", description: "Bistec asado con guacamole", price: 22 },
     { name: "Tacos de Suadero", description: "Suadero con salsa verde", price: 18 },
     { name: "Quesadilla", description: "Tortilla de harina con queso fundido", price: 35 },
   ],
   sushi: [
     { name: "California Roll", description: "Surimi, aguacate y pepino", price: 89 },
-    { name: "Philadelphia Roll", description: "Salmon, queso crema y aguacate", price: 109 },
-    { name: "Tempura Roll", description: "Camaron empanizado con aguacate", price: 119 },
-    { name: "Spicy Tuna", description: "Atun picante con chile serrano", price: 129 },
+    { name: "Philadelphia Roll", description: "Salmón, queso crema y aguacate", price: 109 },
+    { name: "Tempura Roll", description: "Camarón empanizado con aguacate", price: 119 },
+    { name: "Spicy Tuna", description: "Atún picante con chile serrano", price: 129 },
   ],
   general: [
-    { name: "Entrada del dia", description: "Pregunta por nuestra entrada especial", price: 59 },
-    { name: "Plato fuerte", description: "Platillo principal con guarnicion", price: 129 },
+    { name: "Entrada del día", description: "Pregunta por nuestra entrada especial", price: 59 },
+    { name: "Plato fuerte", description: "Platillo principal con guarnición", price: 129 },
     { name: "Ensalada de la casa", description: "Mezcla de lechugas con aderezo", price: 69 },
-    { name: "Postre del dia", description: "Pregunta por nuestro postre", price: 49 },
-    { name: "Agua fresca", description: "Agua de fruta del dia (1L)", price: 35 },
+    { name: "Postre del día", description: "Pregunta por nuestro postre", price: 49 },
+    { name: "Agua fresca", description: "Agua de fruta del día (1L)", price: 35 },
     { name: "Refresco", description: "Coca-Cola, Sprite, Fanta", price: 25 },
   ],
 };
@@ -582,7 +582,7 @@ const addSelectedTemplates = async () => {
 
   const categoryId = adminStore.categories[0]?.id;
   if (!categoryId) {
-    adminStore.messageStore.error("Agrega una categoria primero");
+    adminStore.messageStore.error("Agrega una categoría primero");
     addingTemplates.value = false;
     return;
   }
@@ -613,9 +613,9 @@ const addSelectedTemplates = async () => {
 
 // --- SUGGESTION ACTIONS ---
 const actionLabel = (action) => ({
-  share: "Compartir menu",
+  share: "Compartir menú",
   products: "Ir a productos",
-  coupons: "Crear cupon",
+  coupons: "Crear cupón",
   loyalty: "Ver lealtad",
   customers: "Ver clientes",
 })[action] || "Ver";
@@ -641,10 +641,10 @@ const timeAgo = (d) => {
 
 const customerColumns = [
   { name: "customer_name", label: "Cliente", align: "left", field: "customer_name", sortable: true },
-  { name: "phone", label: "Telefono", align: "left", field: "phone" },
+  { name: "phone", label: "Teléfono", align: "left", field: "phone" },
   { name: "order_count", label: "Pedidos", align: "center", field: "order_count", sortable: true },
   { name: "total_spent", label: "Total gastado", align: "right", field: "total_spent", sortable: true },
-  { name: "last_order", label: "Ultimo pedido", align: "center", field: "last_order_at", sortable: true },
+  { name: "last_order", label: "Último pedido", align: "center", field: "last_order_at", sortable: true },
   { name: "actions", label: "", align: "right" },
 ];
 
@@ -653,14 +653,14 @@ const sendWaToCustomer = (customer) => {
   const phone = customer.phone.replace(/\D/g, "");
   const normalized = phone.length === 10 ? "52" + phone : phone;
   const msg = encodeURIComponent(
-    `Hola ${customer.customer_name}! Gracias por ser cliente de ${name}. Tenemos promociones especiales para ti. Visita nuestro menu: https://comeleya.com/${adminStore.slug}`
+    `Hola ${customer.customer_name}! Gracias por ser cliente de ${name}. Tenemos promociones especiales para ti. Visita nuestro menú: https://comeleya.com/${adminStore.slug}`
   );
   window.open(`https://wa.me/${normalized}?text=${msg}`, "_blank");
 };
 
 const shareMenuWa = () => {
   const name = adminStore.company?.name || "mi restaurante";
-  const msg = encodeURIComponent(`Mira el menu de ${name}: https://comeleya.com/${adminStore.slug}`);
+  const msg = encodeURIComponent(`Mira el menú de ${name}: https://comeleya.com/${adminStore.slug}`);
   window.open(`https://wa.me/?text=${msg}`, "_blank");
 };
 

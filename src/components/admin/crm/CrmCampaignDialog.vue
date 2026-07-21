@@ -2,7 +2,7 @@
   <q-dialog v-model="show" persistent>
     <q-card style="min-width: 450px; max-width: 600px;">
       <q-card-section>
-        <div class="text-h6">Enviar campana de email</div>
+        <div class="text-h6">Enviar campaña de email</div>
       </q-card-section>
 
       <q-card-section>
@@ -15,7 +15,7 @@
         </q-card>
 
         <div v-if="segment" class="text-caption text-grey-6">
-          Se enviara a prospectos con email en el segmento seleccionado (excluyendo cerrados).
+          Se enviará a prospectos con email en el segmento seleccionado (excluyendo cerrados).
         </div>
       </q-card-section>
 
@@ -28,7 +28,7 @@
 
       <q-card-actions align="right">
         <q-btn flat no-caps label="Cerrar" v-close-popup />
-        <q-btn unelevated no-caps color="primary" icon="send" label="Enviar campana" @click="send"
+        <q-btn unelevated no-caps color="primary" icon="send" label="Enviar campaña" @click="send"
           :loading="sending" :disable="!segment || !templateKey" />
       </q-card-actions>
     </q-card>
@@ -56,23 +56,23 @@ const result = ref(null);
 
 const segmentOptions = [
   { label: "Pedidos sin pago (calientes)", value: "pedidos_sin_pago" },
-  { label: "Menu sin pedidos", value: "menu_sin_pedidos" },
+  { label: "Menú sin pedidos", value: "menu_sin_pedidos" },
   { label: "Sin configurar", value: "sin_configurar" },
   { label: "Inactivo", value: "inactivo" },
 ];
 
 const templateOptions = [
-  { label: "Ya tienes tu menu, necesitas ayuda?", value: "menu_help" },
-  { label: "Tus clientes estan ordenando, hora de crecer", value: "orders_growing" },
-  { label: "Todavia interesado? 30 dias gratis", value: "reactivation" },
-  { label: "Tu menu digital te espera", value: "welcome_back" },
+  { label: "Ya tienes tu menú, necesitas ayuda?", value: "menu_help" },
+  { label: "Tus clientes están ordenando, hora de crecer", value: "orders_growing" },
+  { label: "Todavía interesado? 30 días gratis", value: "reactivation" },
+  { label: "Tu menú digital te espera", value: "welcome_back" },
 ];
 
 const previews = {
-  menu_help: { subject: "Ya tienes tu menu, necesitas ayuda?", preview: "Vimos que ya configuraste tu menu digital. El siguiente paso es compartirlo con tus clientes..." },
-  orders_growing: { subject: "Tus clientes estan ordenando, hora de crecer!", preview: "Tus clientes ya usan tu menu y hacen pedidos. Es momento de activar pagos en linea, lealtad..." },
-  reactivation: { subject: "Todavia interesado? Te ofrecemos 30 dias gratis", preview: "Hace un tiempo creaste tu cuenta. Te ofrecemos 30 dias gratis del plan Premium..." },
-  welcome_back: { subject: "Tu menu digital te espera", preview: "Creaste tu cuenta pero no has configurado tu menu. En 15 minutos puedes tenerlo listo..." },
+  menu_help: { subject: "Ya tienes tu menú, necesitas ayuda?", preview: "Vimos que ya configuraste tu menú digital. El siguiente paso es compartirlo con tus clientes..." },
+  orders_growing: { subject: "Tus clientes están ordenando, hora de crecer!", preview: "Tus clientes ya usan tu menú y hacen pedidos. Es momento de activar pagos en línea, lealtad..." },
+  reactivation: { subject: "Todavía interesado? Te ofrecemos 30 días gratis", preview: "Hace un tiempo creaste tu cuenta. Te ofrecemos 30 días gratis del plan Premium..." },
+  welcome_back: { subject: "Tu menú digital te espera", preview: "Creaste tu cuenta pero no has configurado tu menú. En 15 minutos puedes tenerlo listo..." },
 };
 
 import { computed } from "vue";
@@ -86,7 +86,7 @@ const send = async () => {
     result.value = data;
     adminStore.messageStore.success(`Enviados: ${data.sent}, Fallidos: ${data.failed}`);
   } catch (e) {
-    adminStore.messageStore.error("Error al enviar campana");
+    adminStore.messageStore.error("Error al enviar campaña");
   } finally { sending.value = false; }
 };
 </script>

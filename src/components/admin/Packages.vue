@@ -42,7 +42,7 @@
       row-key="name"
       :filter="filter"
       no-data-label="No se encontraron paquetes"
-      rows-per-page-label="Registros por pagina:"
+      rows-per-page-label="Registros por página:"
       v-model:pagination="pagination"
       :rows-per-page-options="[5, 10, 15, 20]"
       class="mc-inner-table"

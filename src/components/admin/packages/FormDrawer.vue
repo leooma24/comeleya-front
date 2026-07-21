@@ -17,7 +17,7 @@
     <q-input
       v-model="adminStore.packageForm.description"
       type="textarea"
-      label="Descripcion"
+      label="Descripción"
       filled
       dense
       autogrow
@@ -57,14 +57,14 @@
     />
 
     <q-separator class="q-mb-md" />
-    <div class="text-subtitle2 text-weight-bold q-mb-sm">Limites</div>
+    <div class="text-subtitle2 text-weight-bold q-mb-sm">Límites</div>
 
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-4">
         <q-input
           v-model.number="adminStore.packageForm.max_products"
           type="number"
-          label="Max. productos"
+          label="Máx. productos"
           filled
           dense
           hint="0 = Ilimitado"
@@ -75,7 +75,7 @@
         <q-input
           v-model.number="adminStore.packageForm.max_categories"
           type="number"
-          label="Max. categorias"
+          label="Máx. categorías"
           filled
           dense
           hint="0 = Ilimitado"
@@ -86,7 +86,7 @@
         <q-input
           v-model.number="adminStore.packageForm.max_orders_per_month"
           type="number"
-          label="Max. pedidos/mes"
+          label="Máx. pedidos/mes"
           filled
           dense
           hint="0 = Ilimitado"
@@ -136,15 +136,15 @@ import BaseFormDrawer from "../BaseFormDrawer.vue";
 const adminStore = useAdminStore();
 
 const features = [
-  { field: "has_analytics", label: "Analiticas" },
+  { field: "has_analytics", label: "Analíticas" },
   { field: "has_loyalty", label: "Programa de lealtad" },
   { field: "has_reservations", label: "Reservaciones" },
   { field: "has_drivers", label: "Repartidores" },
-  { field: "has_online_payments", label: "Pagos en linea" },
+  { field: "has_online_payments", label: "Pagos en línea" },
   { field: "has_notifications", label: "Notificaciones (email/WhatsApp)" },
-  { field: "has_ticket_printing", label: "Impresion de tickets" },
+  { field: "has_ticket_printing", label: "Impresión de tickets" },
   { field: "has_seo", label: "SEO avanzado" },
-  { field: "has_theme_customization", label: "Personalizacion de tema" },
+  { field: "has_theme_customization", label: "Personalización de tema" },
   { field: "has_google_business", label: "Google Business" },
 ];
 </script>
