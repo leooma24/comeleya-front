@@ -786,6 +786,19 @@ h6 {
   min-width: 640px;
   border-collapse: collapse;
 
+  // Evita el arrastre nativo del navegador (cursor de "no permitido" y fila
+  // difuminada). El reordenamiento real se hace solo desde .drag-handle vía JS.
+  td,
+  .q-btn,
+  img,
+  .mc-text-price,
+  .q-chip {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    user-drag: none;
+  }
+
   thead {
     tr {
       border-bottom: 2px solid var(--color-border);
