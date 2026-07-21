@@ -799,6 +799,24 @@ h6 {
     user-drag: none;
   }
 
+  // vue-draggable-next vuelca el atributo `disabled` en el <tbody> cuando el
+  // reorden esta bloqueado (p. ej. al filtrar). Quasar entonces pinta TODO como
+  // deshabilitado (opacity .6 + cursor not-allowed). Neutralizamos ese efecto:
+  // bloquear el reorden NO debe apagar ni bloquear los botones de accion.
+  tbody[disabled] {
+    opacity: 1 !important;
+    cursor: default !important;
+
+    * {
+      cursor: default !important;
+    }
+
+    .q-btn,
+    .drag-handle {
+      cursor: pointer !important;
+    }
+  }
+
   thead {
     tr {
       border-bottom: 2px solid var(--color-border);

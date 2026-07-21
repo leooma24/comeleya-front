@@ -160,7 +160,7 @@
               <q-btn
                 flat size="sm" dense round
                 :icon="element.is_featured ? 'star' : 'star_border'"
-                :color="element.is_featured ? 'amber-8' : 'grey-5'"
+                :color="element.is_featured ? 'amber-8' : 'grey-7'"
                 @click="adminStore.toggleFeatured(element)"
               >
                 <q-tooltip>{{ element.is_featured ? 'Quitar destacado' : 'Destacar' }}</q-tooltip>
@@ -168,7 +168,7 @@
               <q-btn
                 flat size="sm" dense round
                 icon="local_offer"
-                :color="element.special_price ? 'red-6' : 'grey-5'"
+                :color="element.special_price ? 'red-6' : 'grey-7'"
                 @click="openOfferDialog(element)"
               >
                 <q-tooltip>{{ element.special_price ? 'Editar oferta' : 'Crear oferta' }}</q-tooltip>
@@ -176,7 +176,7 @@
               <q-btn
                 flat size="sm" dense round
                 :icon="element.is_sold_out ? 'remove_shopping_cart' : 'shopping_cart_checkout'"
-                :color="element.is_sold_out ? 'negative' : 'grey-5'"
+                :color="element.is_sold_out ? 'negative' : 'grey-7'"
                 @click="adminStore.toggleSoldOut(element)"
               >
                 <q-tooltip>{{ element.is_sold_out ? 'Marcar disponible' : 'Marcar agotado' }}</q-tooltip>
