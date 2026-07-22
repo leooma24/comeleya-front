@@ -357,6 +357,15 @@ export const useMainStore = defineStore("main", {
       this.productStore.seeProduct(seeProducto);
       this.addCartDrawer = true;
     },
+    // Abre el detalle de un platillo por id (usado por el link compartido ?dish=<id>).
+    seeProductById(id) {
+      const prod = (this.productStore.items || []).find(
+        (p) => String(p.id) === String(id)
+      );
+      if (prod) {
+        this.seeProduct(JSON.parse(JSON.stringify(prod)));
+      }
+    },
     editProduct(product) {
       const productCart = this.cartStore.editProduct(product);
       this.productStore.editProduct(productCart);

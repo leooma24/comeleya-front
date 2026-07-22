@@ -441,6 +441,10 @@ onMounted(async () => {
   }
   nextTick(updateActiveCategory);
   scrollToDeepLinkCategory();
+  // Link compartido a un platillo (?dish=<id>): abre su detalle al entrar.
+  if (route.query.dish) {
+    setTimeout(() => mainStore.seeProductById(route.query.dish), 500);
+  }
 });
 
 onBeforeUnmount(() => {

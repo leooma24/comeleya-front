@@ -29,7 +29,10 @@ export function useDish(item) {
 
   const shareProduct = () => {
     const i = item.value;
-    const url = window.location.href;
+    // Link directo al platillo (?dish=<id>): así WhatsApp/Facebook muestran la foto
+    // y los datos del platillo en la vista previa (los genera metadata.php en el server).
+    const slug = window.location.pathname.split("/").filter(Boolean)[0] || "";
+    const url = `${window.location.origin}/${slug}?dish=${i.id}`;
     const text = `${i.name} - $${i.price} en ${mainStore.company.name}`;
 
     if (navigator.share) {

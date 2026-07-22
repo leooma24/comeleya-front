@@ -1,25 +1,62 @@
 <?php
-$path = 'https://app.comeleya.com/api/establishment/';
-$uri = explode('/', $_SERVER['REQUEST_URI']);
-$company = $uri[1];
-$data = json_decode(file_get_contents($path . $company), true);
-$title = !empty($data['logo']) ? $data['name'] : 'ComeleYa';
-$logo = !empty($data['logo']) ? $data['logo'] : 'https://v2.comeleya.com/logo.png';
+// Metadatos Open Graph para vistas previas (WhatsApp/Facebook, que NO ejecutan JS).
+// - Sin ?dish  -> datos del restaurante (logo + nombre).
+// - Con ?dish=<id> -> datos del platillo (foto + nombre + precio + descripción),
+//   para que al compartir un producto salga la imagen y la info del platillo.
 
+$host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'comeleya.com';
+$path = 'https://app.comeleya.com/api/establishment/';
+
+$uri = explode('/', $_SERVER['REQUEST_URI']);
+$company = isset($uri[1]) ? explode('?', $uri[1])[0] : '';
+
+$data = @json_decode(@file_get_contents($path . rawurlencode($company)), true);
+
+$restName = !empty($data['name']) ? $data['name'] : 'ComeleYa';
+$logo = !empty($data['logo']) ? $data['logo'] : 'https://comeleya.com/logo.png';
+
+// ¿Se compartió un platillo específico?
+$dishId = isset($_GET['dish']) ? $_GET['dish'] : null;
+$dish = null;
+if ($dishId && !empty($data['dishes']) && is_array($data['dishes'])) {
+    foreach ($data['dishes'] as $d) {
+        if (isset($d['id']) && (string) $d['id'] === (string) $dishId) {
+            $dish = $d;
+            break;
+        }
+    }
+}
+
+if ($dish) {
+    $p = (float) ($dish['price'] ?? 0);
+    $priceStr = $p == floor($p) ? number_format($p, 0) : number_format($p, 2);
+    // Formato: "Negocio - Platillo · $precio"
+    $title = $restName . ' - ' . $dish['name'] . ($priceStr !== '' ? ' · $' . $priceStr : '');
+    $desc = !empty($dish['description']) ? $dish['description'] : ('Pídelo en ' . $restName);
+    $image = !empty($dish['photo']) ? $dish['photo'] : $logo;
+    $ogUrl = 'https://' . $host . '/' . rawurlencode($company) . '?dish=' . rawurlencode($dishId);
+    $ogType = 'product';
+} else {
+    $title = !empty($data['logo']) ? $restName : 'ComeleYa';
+    $desc = 'Menú Digital, Carta Digital, QR, Plataforma para restaurantes, Restaurantes, Platillos en línea, Carta en línea';
+    $image = $logo;
+    $ogUrl = 'https://' . $host . '/' . rawurlencode($company);
+    $ogType = 'website';
+}
+
+$e = function ($s) {
+    return htmlspecialchars($s === null ? '' : $s, ENT_QUOTES, 'UTF-8');
+};
 
 echo '
-<meta property="og:title" content="' . $title . '" />
-<meta
-  property="og:description"
-  content="Menú Digital, Carta Digital, QR, Plataforma para restaurantes, Restaurantes, Platillos en línea, Carta en línea"
-/>
-<meta property="og:image" content="' . $logo . '" />
-<meta property="og:image:width" content="500" />
-<meta property="og:image:height" content="500" />
-<meta property="og:url" content="https://v2.comeleya.com/' . $company . '" />
-<meta property="og:type" content="website" />
+<meta property="og:title" content="' . $e($title) . '" />
+<meta property="og:description" content="' . $e($desc) . '" />
+<meta property="og:image" content="' . $e($image) . '" />
+<meta property="og:url" content="' . $e($ogUrl) . '" />
+<meta property="og:type" content="' . $e($ogType) . '" />
+<meta property="og:site_name" content="' . $e($restName) . '" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="' . $e($title) . '" />
+<meta name="twitter:description" content="' . $e($desc) . '" />
+<meta name="twitter:image" content="' . $e($image) . '" />
 ';
-
-//print_r($data);
-
-
