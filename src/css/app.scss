@@ -421,6 +421,11 @@ h6 {
   // overflow-x: clip recorta el desborde horizontal SIN crear un contenedor de
   // scroll (a diferencia de overflow:hidden), para que position:sticky funcione.
   overflow-x: clip;
+  // position: relative activa el z-index:1 (antes era static y NO tenía efecto),
+  // creando un contexto de apilamiento por DEBAJO del sidebar (z:2) y los tabs (z:3).
+  // Así las etiquetas "NUEVO"/"AGOTADO" (z:2 dentro de las tarjetas) ya no se pintan
+  // sobre el header/menú fijos al hacer scroll en móvil.
+  position: relative;
   z-index: 1;
   margin-left: var(--space-xs);
 
