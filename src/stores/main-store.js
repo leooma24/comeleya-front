@@ -25,6 +25,9 @@ export const useMainStore = defineStore("main", {
     messageStore: useMessageStore(),
     search: "",
     tab: 0,
+    // true cuando la carga del establecimiento falló tras reintentar (para mostrar
+    // un estado de "reintentar" en vez de skeletons pegados).
+    loadError: false,
     // Vista del menú: "Tarjeta" (cuadrícula) o "Lista" (recordada entre visitas)
     viewType:
       (typeof localStorage !== "undefined" &&
@@ -303,12 +306,18 @@ export const useMainStore = defineStore("main", {
     },
     async getEstablishment(slug) {
       this.setSlug(slug);
+      this.loadError = false;
 
       let establisment;
       try {
         establisment = await this.getEstablishmentFromApi(slug);
       } catch (error) {
-        this.messageStore.error("Error al cargar el establecimiento");
+        this.loadError = true;
+        // Solo mostramos el toast si es un 404 real (negocio inexistente); para
+        // fallos de red el estado de "Reintentar" en pantalla es más claro.
+        if (error?.response?.status === 404) {
+          this.messageStore.error("Restaurante no encontrado");
+        }
         this.productStore.clear();
         return false;
       }
@@ -333,9 +342,20 @@ export const useMainStore = defineStore("main", {
       this.companyStore.setCompany(establisment);
       return true;
     },
-    async getEstablishmentFromApi(slug) {
-      const { data } = await api.get(`/establishment/${slug}`);
-      return data;
+    async getEstablishmentFromApi(slug, retries = 2) {
+      try {
+        const { data } = await api.get(`/establishment/${slug}`);
+        return data;
+      } catch (error) {
+        // Reintenta ante fallos transitorios (red móvil/5G, timeouts). No reintenta
+        // en 404 (negocio inexistente): no tiene caso.
+        const status = error?.response?.status;
+        if (retries > 0 && status !== 404) {
+          await new Promise((resolve) => setTimeout(resolve, 900));
+          return this.getEstablishmentFromApi(slug, retries - 1);
+        }
+        throw error;
+      }
     },
     async getProducts() {
       await this.productStore.getProducts();

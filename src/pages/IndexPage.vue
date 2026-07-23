@@ -27,9 +27,28 @@
             </div>
           </div>
 
+          <!-- Estado de error de carga (con reintento) -->
+          <div
+            v-if="mainStore.loadError && !mainStore.categories.length"
+            class="mc-load-error"
+          >
+            <q-icon name="wifi_off" size="52px" color="grey-5" />
+            <p class="mc-load-error__title">No pudimos cargar el menú</p>
+            <p class="mc-load-error__desc">Revisa tu conexión e inténtalo de nuevo.</p>
+            <q-btn
+              unelevated
+              no-caps
+              color="primary"
+              icon="refresh"
+              label="Reintentar"
+              :loading="retrying"
+              @click="retryLoad"
+            />
+          </div>
+
           <!-- Skeleton Loading -->
           <div
-            v-if="!mainStore.categories.length"
+            v-else-if="!mainStore.categories.length"
             class="mc-content-products row"
           >
             <div
@@ -426,6 +445,22 @@ const scrollToDeepLinkCategory = async () => {
   }, 500);
 };
 
+const retrying = ref(false);
+const retryLoad = async () => {
+  retrying.value = true;
+  try {
+    const ok = await mainStore.getEstablishment(route.params.slug);
+    if (ok) {
+      nextTick(() => {
+        updateActiveCategory();
+        scrollToDeepLinkCategory();
+      });
+    }
+  } finally {
+    retrying.value = false;
+  }
+};
+
 onMounted(async () => {
   window.addEventListener("resize", measureFeatured);
   // Capture: atrapa el scroll venga del window o de cualquier contenedor interno.
@@ -462,6 +497,30 @@ onBeforeUnmount(() => {
     radial-gradient(900px 300px at 0% 0%, rgba(255, 109, 0, 0.03), transparent 55%),
     var(--color-surface-variant);
   min-height: 100vh;
+}
+
+.mc-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-xs);
+  padding: 48px var(--space-md);
+  min-height: 300px;
+
+  &__title {
+    font-size: var(--text-lg, 18px);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: var(--space-sm) 0 0;
+  }
+
+  &__desc {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-sm);
+  }
 }
 
 .mc-closed-banner {
