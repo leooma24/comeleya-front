@@ -161,6 +161,8 @@ const toggleTheme = () => {
     // ignore
   }
 };
+let heightObserver = null;
+let heightInterval = null;
 onMounted(() => {
   try {
     // Default siempre claro; solo oscuro si el usuario lo activó manualmente antes
@@ -170,11 +172,36 @@ onMounted(() => {
   }
   $q.dark.set(isDark.value);
   window.addEventListener("scroll", onScroll, { passive: true });
+
+  // Auto-alto del iframe: cuando el menú va embebido, publica su alto al sitio
+  // contenedor para que ajuste el <iframe> y no haya scroll doble.
+  if (mainStore.router.currentRoute.value.query.isExternal && window.parent !== window) {
+    const postHeight = () => {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      window.parent.postMessage({ type: "comeleya:height", height: h }, "*");
+    };
+    postHeight();
+    try {
+      heightObserver = new ResizeObserver(() => postHeight());
+      heightObserver.observe(document.body);
+    } catch {
+      // ResizeObserver no disponible: red de seguridad por intervalo (abajo)
+    }
+    window.addEventListener("load", postHeight);
+    // Refuerzo los primeros segundos mientras cargan imágenes/datos.
+    let ticks = 0;
+    heightInterval = setInterval(() => {
+      postHeight();
+      if (++ticks > 15) clearInterval(heightInterval);
+    }, 800);
+  }
 });
 onUnmounted(() => {
   // Al salir del menú (p. ej. al admin) volvemos a claro
   $q.dark.set(false);
   window.removeEventListener("scroll", onScroll);
+  if (heightObserver) heightObserver.disconnect();
+  if (heightInterval) clearInterval(heightInterval);
 });
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
   showSearch.value = false;

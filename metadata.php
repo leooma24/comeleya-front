@@ -60,3 +60,39 @@ echo '
 <meta name="twitter:description" content="' . $e($desc) . '" />
 <meta name="twitter:image" content="' . $e($image) . '" />
 ';
+
+// --- JSON-LD (datos estructurados para Google) ---
+if ($dish) {
+    $jsonLd = [
+        '@context' => 'https://schema.org/',
+        '@type' => 'Product',
+        'name' => $dish['name'],
+        'image' => $image,
+        'description' => $desc,
+        'brand' => ['@type' => 'Brand', 'name' => $restName],
+        'offers' => [
+            '@type' => 'Offer',
+            'price' => number_format((float) ($dish['price'] ?? 0), 2, '.', ''),
+            'priceCurrency' => 'MXN',
+            'availability' => empty($dish['is_sold_out'])
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
+            'url' => $ogUrl,
+        ],
+    ];
+} else {
+    $jsonLd = [
+        '@context' => 'https://schema.org/',
+        '@type' => 'Restaurant',
+        'name' => $restName,
+        'image' => $image,
+        'url' => $ogUrl,
+    ];
+    if (!empty($data['phone'])) {
+        $jsonLd['telephone'] = $data['phone'];
+    }
+}
+
+echo '<script type="application/ld+json">'
+    . json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    . '</script>';
