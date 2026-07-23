@@ -7,6 +7,7 @@ import { useCartStore } from "./cart-store";
 import { useCompanyStore } from "./company-store";
 import { useOrderStore } from "./order-store";
 import { useMessageStore } from "./message-store";
+import { initPixel, trackFb } from "src/utils/fbpixel";
 
 export const useMainStore = defineStore("main", {
   state: () => ({
@@ -296,6 +297,13 @@ export const useMainStore = defineStore("main", {
         this.paymentDrawer = false;
         this.dataDrawer = false;
 
+        trackFb("Purchase", {
+          value: Number(this.totalToPay) || 0,
+          currency: "MXN",
+          num_items: this.cartStore.cart.length,
+          content_type: "product",
+        });
+
         return true;
       } catch (error) {
         this.messageStore.error(
@@ -340,6 +348,12 @@ export const useMainStore = defineStore("main", {
       this.applyThemeConfig(establisment.theme_config);
 
       this.companyStore.setCompany(establisment);
+
+      // Píxel de Meta por establecimiento (si está activado y configurado).
+      const fb = establisment.facebook_public;
+      if (fb?.enabled && fb.pixel_id) {
+        initPixel(fb.pixel_id);
+      }
       return true;
     },
     async getEstablishmentFromApi(slug, retries = 2) {
@@ -376,6 +390,13 @@ export const useMainStore = defineStore("main", {
       const seeProducto = Object.assign({}, product);
       this.productStore.seeProduct(seeProducto);
       this.addCartDrawer = true;
+      trackFb("ViewContent", {
+        content_name: product.name,
+        content_ids: [product.id],
+        content_type: "product",
+        value: Number(product.price) || 0,
+        currency: "MXN",
+      });
     },
     // Abre el detalle de un platillo por id (usado por el link compartido ?dish=<id>).
     seeProductById(id) {
@@ -433,7 +454,17 @@ export const useMainStore = defineStore("main", {
       if (hasErrors) return;
 
       const wasEditing = this.cartStore.isEditing;
-      this.cartStore.addToCart(Object.assign({}, this.productStore.product));
+      const added = this.productStore.product;
+      this.cartStore.addToCart(Object.assign({}, added));
+      if (!wasEditing) {
+        trackFb("AddToCart", {
+          content_name: added.name,
+          content_ids: [added.id],
+          content_type: "product",
+          value: Number(added.totalPrice) * Number(added.qty || 1) || 0,
+          currency: "MXN",
+        });
+      }
       this.productStore.product = {};
       this.addCartDrawer = false;
       this.messageStore.cartAdded(
