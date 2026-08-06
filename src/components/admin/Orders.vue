@@ -19,6 +19,47 @@
           <q-icon name="search" size="18px" color="grey-5" />
         </template>
       </q-input>
+
+      <!-- Selector de tono de alerta de pedidos nuevos -->
+      <q-btn-dropdown
+        flat
+        no-caps
+        dense
+        icon="notifications_active"
+        label="Tono"
+        color="primary"
+        class="mc-tone-btn"
+      >
+        <q-list style="min-width: 220px">
+          <q-item-label header>Tono de aviso de pedido</q-item-label>
+          <q-item
+            v-for="t in ALERT_TONES"
+            :key="t.value"
+            clickable
+            @click="chooseTone(t.value)"
+          >
+            <q-item-section avatar>
+              <q-icon
+                :name="alertTone === t.value ? 'radio_button_checked' : 'radio_button_unchecked'"
+                :color="alertTone === t.value ? 'primary' : 'grey-5'"
+              />
+            </q-item-section>
+            <q-item-section>{{ t.label }}</q-item-section>
+            <q-item-section side>
+              <q-btn
+                flat
+                round
+                dense
+                icon="play_arrow"
+                color="primary"
+                @click.stop="previewTone(t.value)"
+              >
+                <q-tooltip>Probar</q-tooltip>
+              </q-btn>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
     </div>
 
     <!-- Order status tabs -->
@@ -96,6 +137,12 @@
           </q-chip>
         </div>
 
+        <!-- Pedido programado -->
+        <div v-if="order.schedule_at" class="mc-order-scheduled">
+          <q-icon name="schedule" size="16px" />
+          Programado para {{ helperStore.formatDate(order.schedule_at, "YYYY-MM-DD HH:mm") }}
+        </div>
+
         <!-- Order info -->
         <div class="mc-order-card__body">
           <div class="mc-order-info-row">
@@ -105,6 +152,20 @@
           <div class="mc-order-info-row">
             <q-icon :name="getDeliveryIcon(order)" size="16px" color="grey-5" />
             <span>{{ getTypeDelivery(order) }}</span>
+            <!-- El envío se cobró sin poder ubicar la dirección: el dueño decide
+                 si lo ajusta antes de mandarlo. -->
+            <q-badge
+              v-if="order.delivery_estimated"
+              color="orange"
+              text-color="white"
+              class="q-ml-xs"
+            >
+              ENVÍO ESTIMADO
+              <q-tooltip>
+                No se pudo ubicar la dirección; se cobró la tarifa fija. Revisa la
+                distancia y ajusta si hace falta.
+              </q-tooltip>
+            </q-badge>
           </div>
           <div class="mc-order-info-row">
             <q-icon name="calendar_today" size="16px" color="grey-5" />
@@ -330,11 +391,23 @@ const props = defineProps({
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useHelperStore } from "src/stores/helper";
+import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
+import { amountToWords } from "src/utils/numberToWords";
+import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 
 const helperStore = useHelperStore();
 const adminStore = useAdminStore();
+const companyStore = useCompanyStore();
 const { confirm } = useConfirmDialog();
+
+// Selector de tono de alerta (se guarda por dispositivo en localStorage).
+const alertTone = ref(getAlertTone());
+const chooseTone = (key) => {
+  alertTone.value = key;
+  setAlertTone(key);
+  previewTone(key); // lo reproduce para que lo escuchen al elegir
+};
 
 // Bloqueo anti-doble-clic por pedido: mientras se procesa una acción de un
 // pedido, sus botones quedan en loading/deshabilitados.
@@ -484,20 +557,32 @@ const handleAssignDriver = async (order) => {
 };
 
 const ticketStyles = `
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
-  .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
-  .item { display: flex; justify-content: space-between; padding: 2px 0; }
-  .extra { padding-left: 14px; font-size: 11px; color: #555; }
-  .row { display: flex; justify-content: space-between; padding: 2px 0; }
-  .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; margin-top: 4px; padding-top: 4px; }
-  .header { text-align: center; margin-bottom: 6px; }
-  .header strong { font-size: 14px; display: block; margin-bottom: 2px; }
-  .header span { display: block; font-size: 11px; color: #555; }
-  .order { text-align: center; font-weight: bold; font-size: 13px; margin: 4px 0; }
+  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; color: #000; line-height: 1.35; }
+  .item, .row, .cols, .addr, .info div, .letras, .thead, .section-title, .biz span { font-weight: 700; }
+  .c-desc, .price, .total, .biz strong { font-weight: 800; }
+  .sep { text-align: center; margin: 5px 0; letter-spacing: 1px; }
+  .biz { text-align: center; margin-bottom: 4px; }
+  .biz strong { font-size: 14px; display: block; }
+  .biz span { display: block; font-size: 11px; }
+  .cols { display: flex; justify-content: space-between; gap: 8px; }
+  .cols .col { font-size: 11px; }
+  .cols .col.r { text-align: right; }
+  .cols .col div { padding: 1px 0; }
+  .addr { font-size: 11px; margin-top: 4px; }
+  .addr .lbl { font-weight: bold; }
+  .thead, .item { display: flex; font-size: 11px; }
+  .thead { font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 2px; }
+  .item { padding: 2px 0; }
+  .c-cant { width: 28px; flex: 0 0 28px; }
+  .c-desc { flex: 1 1 auto; padding: 0 4px; word-break: break-word; }
+  .c-imp { width: 60px; flex: 0 0 60px; text-align: right; }
+  .extra { font-size: 10px; padding-left: 32px; }
+  .row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 12px; }
+  .total { font-weight: bold; font-size: 16px; border-top: 1px solid #000; margin-top: 3px; padding-top: 3px; }
+  .letras { font-size: 10px; text-align: center; margin: 4px 0; text-transform: uppercase; }
   .section-title { font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 4px; margin-bottom: 2px; }
   .info div { padding: 1px 0; font-size: 11px; }
-  .footer { text-align: center; margin-top: 8px; font-size: 11px; }
-  .footer span { display: block; }
+  .footer { text-align: center; margin-top: 6px; font-size: 9px; line-height: 1.3; }
 `;
 const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
 
@@ -513,15 +598,39 @@ const esc = (s) =>
 
 const printOrder = (order) => {
   const f = (n) => Number(n || 0).toFixed(2);
+
+  // ---- Datos del negocio (encabezado) ----
+  const company = companyStore.company || {};
+  const tc = company.ticket_config || {};
+  const bizName = esc(company.name || "");
+  const legalName = esc(tc.business_legal_name || "");
+  const rfc = esc(tc.rfc || "");
+  const bizPhone = esc(company.whatsapp || company.phone || "");
+  const addr = company.address || {};
+  const showBizAddr = tc.show_business_address !== false;
+  const bizAddrLine = [
+    [addr.street, addr.exterior_number].filter(Boolean).join(" "),
+    addr.town,
+    addr.postal_code ? `CP ${addr.postal_code}` : "",
+    [addr.city, addr.state].filter(Boolean).join(", "),
+  ]
+    .filter(Boolean)
+    .map(esc)
+    .join(" · ");
+
+  // ---- Artículos (CANT. | DESCRIPCION | IMPORTE) ----
+  let subtotal = 0;
   const items = (order.items || [])
     .map((item) => {
       const name = esc(item.dish?.name ?? "Producto");
-      let html = `<div class="item"><span>${item.quantity}x ${name}</span></div>`;
+      const lineImport = Number(item.total || 0);
+      subtotal += lineImport;
+      let html = `<div class="item"><span class="c-cant">${item.quantity}</span><span class="c-desc">${name}</span><span class="c-imp">$${f(lineImport)}</span></div>`;
       (item.extras || []).forEach((extra) => {
         (extra.options || []).forEach((o) => {
           const optName = esc(o.name);
           let text = o.quantity > 1 ? `${o.quantity * item.quantity}x ${optName}` : optName;
-          if (o.price > 0) text += ` $${f(o.price * o.quantity * item.quantity)}`;
+          if (o.price > 0) text += ` (+$${f(o.price * o.quantity * item.quantity)})`;
           html += `<div class="extra">↳ ${text}</div>`;
         });
       });
@@ -529,49 +638,84 @@ const printOrder = (order) => {
     })
     .join("");
 
-  const date = order.created_at ? new Date(order.created_at).toLocaleString() : "";
+  const deliveryCharge = Number(order.delivery_charge || 0);
   const discount = Number(order.discount || 0);
   const tip = Number(order.tip || 0);
+  const total = Number(order.total || 0);
+
+  const d = order.created_at ? new Date(order.created_at) : new Date();
+  const fecha = d.toLocaleDateString("es-MX");
+  const hora = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
   const paymentLabels = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", mercadopago: "MercadoPago" };
   const payment = paymentLabels[order.payment_method] || order.payment_method || "";
+  const driverName = order.delivery_assignment?.driver?.name || "";
 
-  let deliveryInfo = "";
+  // ---- Bloque de entrega ----
+  let deliveryBlock = "";
   if (order.delivery === "Envio") {
-    deliveryInfo = order.delivery_address ? `<div><strong>Dirección:</strong> ${esc(order.delivery_address)}</div>` : "";
-    if (order.delivery_references) deliveryInfo += `<div><strong>Referencia:</strong> ${esc(order.delivery_references)}</div>`;
+    let a = order.delivery_address ? `<div><span class="lbl">Dir.:</span> ${esc(order.delivery_address)}</div>` : "";
+    if (order.delivery_references) a += `<div><span class="lbl">Entre/Ref.:</span> ${esc(order.delivery_references)}</div>`;
+    if (driverName) a += `<div><span class="lbl">REPARTIDOR:</span> ${esc(driverName)}</div>`;
+    deliveryBlock = a ? `<div class="addr">${a}</div>` : "";
   } else if (order.delivery === "Recoger") {
-    deliveryInfo = `<div><strong>Paso a recoger</strong></div>`;
+    deliveryBlock = `<div class="addr"><strong>PASO A RECOGER</strong></div>`;
   } else if (order.table) {
-    deliveryInfo = `<div><strong>Mesa:</strong> ${esc(order.table)}</div>`;
+    deliveryBlock = `<div class="addr"><span class="lbl">Mesa:</span> ${esc(order.table)}</div>`;
   }
+
+  // ---- Encabezado del negocio ----
+  const bizHeader = `
+    <div class="biz">
+      ${bizName ? `<strong>${bizName}</strong>` : ""}
+      ${legalName ? `<span>${legalName}</span>` : ""}
+      ${rfc ? `<span>RFC: ${rfc}</span>` : ""}
+      ${showBizAddr && bizAddrLine ? `<span>${bizAddrLine}</span>` : ""}
+      ${bizPhone ? `<span>Tel. ${bizPhone}</span>` : ""}
+    </div>`;
+
+  // ---- Pie legal configurable ----
+  const footerText = esc(tc.footer_text || "");
+  const suggestionsEmail = esc(tc.suggestions_email || "");
+  const footer =
+    footerText || suggestionsEmail
+      ? `${SEP}<div class="footer">${footerText}${
+          suggestionsEmail ? `${footerText ? "<br>" : ""}Sugerencias: ${suggestionsEmail}` : ""
+        }</div>`
+      : "";
 
   const html = `
     <html><head><title>Pedido #${esc(order.order_code)}</title>
     <style>${ticketStyles}</style></head><body>
-      <div class="header">
-        <span>${esc(date)}</span>
-      </div>
-      <div class="order">Orden #${esc(order.order_code)}</div>
+      ${bizName || bizAddrLine ? bizHeader : ""}
       ${SEP}
-      <div class="section-title">Productos</div>
+      <div class="cols">
+        <div class="col">
+          <div>Tel.: ${esc(order.phone || "")}</div>
+          <div>${esc(order.customer_name || "")}</div>
+        </div>
+        <div class="col r">
+          <div>FOLIO NO. ${esc(order.id ?? "")}</div>
+          <div>${esc(fecha)}</div>
+          <div>${esc(hora)}</div>
+          <div>ORDEN NO. ${esc(order.order_code ?? "")}</div>
+        </div>
+      </div>
+      ${deliveryBlock}
+      ${SEP}
+      <div class="thead"><span class="c-cant">CANT</span><span class="c-desc">DESCRIPCION</span><span class="c-imp">IMPORTE</span></div>
       ${items}
+      ${deliveryCharge > 0 ? `<div class="item"><span class="c-cant">1</span><span class="c-desc">DELIVERY</span><span class="c-imp">$${f(deliveryCharge)}</span></div>` : ""}
+      ${order.delivery_estimated ? `<div class="addr"><strong>** ENVIO ESTIMADO - REVISAR DISTANCIA **</strong></div>` : ""}
       ${SEP}
-      ${discount > 0 ? `<div class="row"><span>Descuento:</span><span>-$${f(discount)}</span></div>` : ""}
-      ${tip > 0 ? `<div class="row"><span>Propina:</span><span>$${f(tip)}</span></div>` : ""}
-      <div class="row total"><span>TOTAL:</span><span>$${f(order.total)}</span></div>
-      ${SEP}
-      ${payment ? `<div class="section-title">Pago</div><div class="row"><span>${esc(payment)}</span></div>${SEP}` : ""}
-      <div class="section-title">Cliente</div>
-      <div class="info">
-        <div><strong>Nombre:</strong> ${esc(order.customer_name)}</div>
-        <div><strong>Tel:</strong> ${esc(order.phone || "")}</div>
-        ${deliveryInfo}
-      </div>
+      <div class="row"><span>SUBTOTAL:</span><span>$${f(subtotal)}</span></div>
+      ${discount > 0 ? `<div class="row"><span>DESCUENTO:</span><span>-$${f(discount)}</span></div>` : ""}
+      ${tip > 0 ? `<div class="row"><span>PROPINA:</span><span>$${f(tip)}</span></div>` : ""}
+      <div class="row total"><span>TOTAL:</span><span>$${f(total)}</span></div>
+      <div class="letras">${esc(amountToWords(total))}</div>
+      ${payment ? `<div class="row"><span>PAGO:</span><span>${esc(payment)}</span></div>` : ""}
       ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(order.comments)}</div></div>` : ""}
-      ${SEP}
-      <div class="footer">
-        <span>¡Gracias por su compra!</span>
-      </div>
+      ${footer}
     </body></html>
   `;
 
@@ -771,6 +915,20 @@ adminStore.getOrders(props.status);
   font-size: var(--text-base);
   color: var(--q-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.mc-order-scheduled {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #8a5a00;
+  background: color-mix(in srgb, #ff9800 15%, transparent);
+  border: 1px solid color-mix(in srgb, #ff9800 35%, transparent);
 }
 
 .mc-order-time {

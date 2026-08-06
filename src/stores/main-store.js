@@ -8,6 +8,7 @@ import { useCompanyStore } from "./company-store";
 import { useOrderStore } from "./order-store";
 import { useMessageStore } from "./message-store";
 import { initPixel, trackFb } from "src/utils/fbpixel";
+import { initMessenger } from "src/utils/fbchat";
 
 export const useMainStore = defineStore("main", {
   state: () => ({
@@ -25,7 +26,15 @@ export const useMainStore = defineStore("main", {
     orderStore: useOrderStore(),
     messageStore: useMessageStore(),
     search: "",
+    // Menú embebido en iframe (se fija desde MainLayout según ?isExternal=true).
+    isExternal: false,
+    // true solo cuando el sitio contenedor cargó embed.js y dibuja la barra del
+    // carrito por fuera. Si no (embed viejo sin script), se mantiene la barra interna.
+    externalCartBar: false,
     tab: 0,
+    // Timestamp hasta el cual el scroll-spy NO debe cambiar el tab (durante el scroll
+    // provocado por un click en un tab), para que no pise la categoría elegida.
+    spyLockUntil: 0,
     // true cuando la carga del establecimiento falló tras reintentar (para mostrar
     // un estado de "reintentar" en vez de skeletons pegados).
     loadError: false,
@@ -42,6 +51,11 @@ export const useMainStore = defineStore("main", {
       type: "Efectivo",
       value: "",
     },
+    // Pedido programado ("para más tarde"). at = "YYYY-MM-DDTHH:mm" (datetime-local).
+    schedule: {
+      enabled: false,
+      at: "",
+    },
     hasError: {
       payment: false,
     },
@@ -50,6 +64,14 @@ export const useMainStore = defineStore("main", {
       code: "",
       discount: 0,
       applied: false,
+    },
+    // Lealtad en el checkout: config del negocio + puntos del cliente (por teléfono).
+    loyalty: {
+      config: null, // { points_value, min_points_redeem, ... } o null si no aplica
+      points: 0, // saldo del cliente consultado
+      phone: "", // teléfono con el que se consultó
+      use: false, // el cliente eligió canjear
+      loading: false,
     },
     whatsappUrl: "",
   }),
@@ -108,17 +130,73 @@ export const useMainStore = defineStore("main", {
       return this.companyStore.company.coordinates ?? "";
     },
     deliveryCharge() {
-      return this.data.delivery !== "Envio"
-        ? 0
-        : this.establishment.delivery_charge ?? 0;
+      if (this.data.delivery !== "Envio") return 0;
+      const e = this.establishment || {};
+      if ((e.delivery_mode ?? "flat") !== "distance") {
+        return Number(e.delivery_charge ?? 0);
+      }
+      // Modo distancia: usa la distancia (km) a la dirección geocodificada.
+      const dist = Number(this.data.distance);
+      if (!dist || Number.isNaN(dist)) {
+        // Sin ubicación: respaldo a la tarifa fija si está configurada. La base
+        // es el piso para quien vive cerca; cobrársela a todos regala los lejanos.
+        const flat = Number(e.delivery_charge ?? 0);
+        return flat > 0 ? flat : Number(e.delivery_base_fee ?? 0);
+      }
+      const max = Number(e.delivery_max_km ?? 0);
+      if (max > 0 && dist > max) return 0; // fuera de cobertura
+      const extra = Math.max(0, dist - Number(e.delivery_base_km ?? 0));
+      let fee = Number(e.delivery_base_fee ?? 0) + extra * Number(e.delivery_per_km ?? 0);
+      const freeFrom = Number(e.delivery_free_from ?? 0);
+      if (freeFrom > 0 && Number(this.total) >= freeFrom) fee = 0;
+      return Math.round(fee * 100) / 100;
+    },
+    // El envío se cobró sin conocer la distancia real (no se pudo ubicar la
+    // dirección). Se le avisa al cliente y se marca el pedido para que el dueño
+    // pueda ajustarlo.
+    deliveryEstimated() {
+      if (this.data.delivery !== "Envio") return false;
+      const e = this.establishment || {};
+      if ((e.delivery_mode ?? "flat") !== "distance") return false;
+      const dist = Number(this.data.distance);
+      return !dist || Number.isNaN(dist);
+    },
+    // ¿La dirección del cliente está dentro del área de entrega? (modo distancia)
+    deliveryCovered() {
+      if (this.data.delivery !== "Envio") return true;
+      const e = this.establishment || {};
+      if ((e.delivery_mode ?? "flat") !== "distance") return true;
+      const dist = Number(this.data.distance);
+      if (!dist || Number.isNaN(dist)) return true; // sin GPS no bloqueamos
+      const max = Number(e.delivery_max_km ?? 0);
+      return !(max > 0 && dist > max);
     },
     getTip() {
       return this.tip.value;
     },
+    // ¿El cliente puede canjear puntos? (config activa + saldo >= mínimo)
+    canRedeemLoyalty() {
+      const c = this.loyalty.config;
+      return !!c && this.loyalty.points >= (c.min_points_redeem || 0) && (c.points_value || 0) > 0;
+    },
+    // Descuento estimado por puntos (autoritativo en el servidor). Solo usa los puntos
+    // que caben en el pedido (subtotal - cupón), sin desperdiciar ni pasar el mínimo.
+    loyaltyDiscount() {
+      if (!this.loyalty.use || !this.canRedeemLoyalty) return 0;
+      const c = this.loyalty.config;
+      const maxDiscount = Math.max(0, this.total - this.coupon.discount);
+      const affordable = Math.floor(maxDiscount / c.points_value);
+      const use = Math.min(this.loyalty.points, affordable);
+      if (use < (c.min_points_redeem || 0)) return 0;
+      return Math.round(use * c.points_value * 100) / 100;
+    },
     totalToPay() {
-      // El descuento del cupón se guarda como monto absoluto al aplicarlo; si el
-      // carrito baja después, el total no debe volverse negativo.
-      return Math.max(0, this.total + this.tip.value + this.deliveryCharge - this.coupon.discount);
+      // Los descuentos se guardan como monto absoluto; si el carrito baja después,
+      // el total no debe volverse negativo.
+      return Math.max(
+        0,
+        this.total + this.tip.value + this.deliveryCharge - this.coupon.discount - this.loyaltyDiscount
+      );
     },
     cart() {
       return this.cartStore.cart;
@@ -136,6 +214,19 @@ export const useMainStore = defineStore("main", {
     },
     company() {
       return this.companyStore;
+    },
+    // Ajustes de pedidos configurables por el dueño.
+    minOrder() {
+      return Number(this.establishment?.min_order ?? 0);
+    },
+    belowMinOrder() {
+      return this.minOrder > 0 && Number(this.total) < this.minOrder;
+    },
+    ordersPaused() {
+      return !!this.establishment?.orders_paused;
+    },
+    pausedMessage() {
+      return this.establishment?.paused_message || "";
     },
     btnType() {
       return this.cartStore.isEditing ? "Actualizar" : "Agregar";
@@ -211,6 +302,8 @@ export const useMainStore = defineStore("main", {
       this.paymentDrawer = false;
       this.whatsappUrl = null;
       this.removeCoupon();
+      this.schedule = { enabled: false, at: "" };
+      this.loyalty.use = false;
     },
     async applyCoupon(code) {
       if (!code) {
@@ -241,6 +334,34 @@ export const useMainStore = defineStore("main", {
     },
     removeCoupon() {
       this.coupon = { id: null, code: "", discount: 0, applied: false };
+    },
+    // Consulta la config de lealtad + el saldo de puntos del cliente por su teléfono.
+    // Se llama al abrir el pago si hay teléfono capturado.
+    async checkLoyalty() {
+      const phone = (this.data.phone || "").replace(/\D/g, "");
+      if (!phone || phone.length < 10) return;
+      // Evita re-consultar el mismo teléfono.
+      if (this.loyalty.phone === phone && this.loyalty.config !== null) return;
+      this.loyalty.loading = true;
+      const slug = this.companyStore.slug;
+      try {
+        const [{ data: cfg }, { data: look }] = await Promise.all([
+          api.get(`/establishment/${slug}/loyalty/config`),
+          api.post(`/establishment/${slug}/loyalty/lookup`, { phone }),
+        ]);
+        this.loyalty.config = cfg?.config ?? null;
+        this.loyalty.points = look?.loyalty?.points ?? 0;
+        this.loyalty.phone = phone;
+        if (!this.canRedeemLoyalty) this.loyalty.use = false;
+      } catch {
+        this.loyalty.config = null;
+        this.loyalty.points = 0;
+      } finally {
+        this.loyalty.loading = false;
+      }
+    },
+    resetLoyalty() {
+      this.loyalty = { config: null, points: 0, phone: "", use: false, loading: false };
     },
     isDisabled(extra) {
       return this.productStore.isDisabled(extra);
@@ -276,6 +397,11 @@ export const useMainStore = defineStore("main", {
         tip: this.tip,
         payment: this.payment,
         coupon_id: this.coupon.applied ? this.coupon.id : null,
+        use_loyalty: this.loyalty.use && this.canRedeemLoyalty,
+        schedule_at:
+          this.schedule.enabled && this.schedule.at
+            ? this.schedule.at.replace("T", " ") + ":00"
+            : null,
         date: new Date().toISOString().slice(0, 19).replace("T", " "),
       };
 
@@ -292,6 +418,17 @@ export const useMainStore = defineStore("main", {
           establishment: this.companyStore.slug,
           establishmentName: this.establishment?.name || "",
         });
+
+        // Pago en línea (MercadoPago): si el backend devolvió la preferencia de pago,
+        // se redirige al checkout de MercadoPago en vez de continuar por WhatsApp.
+        const mpUrl = data.payment?.init_point;
+        if (mpUrl) {
+          this.paymentDrawer = false;
+          this.dataDrawer = false;
+          window.location.href = mpUrl;
+          return true;
+        }
+
         this.buildWhatsAppUrl();
         this.validationDialog = true;
         this.paymentDrawer = false;
@@ -353,6 +490,11 @@ export const useMainStore = defineStore("main", {
       const fb = establisment.facebook_public;
       if (fb?.enabled && fb.pixel_id) {
         initPixel(fb.pixel_id);
+      }
+      // Chat de Messenger (si configuró su page_id). No en modo embebido (iframe)
+      // para no encimar el widget dentro de la página del cliente.
+      if (fb?.enabled && fb.page_id && !this.isExternal) {
+        initMessenger(fb.page_id);
       }
       return true;
     },
@@ -547,6 +689,9 @@ export const useMainStore = defineStore("main", {
 
       // Order number
       lines.push(`*Orden #${this.orderStore.orderCode}*`);
+      if (this.schedule.enabled && this.schedule.at) {
+        lines.push(`🕒 *Programado para:* ${this.schedule.at.replace("T", " ")}`);
+      }
       lines.push(`- - - - - - - - - - - - - -`);
 
       // Products
@@ -554,8 +699,8 @@ export const useMainStore = defineStore("main", {
         const total = product.totalPrice * product.qty;
         lines.push(`*${product.qty}x ${b(product.name)}* — $${f(total)}`);
 
-        product.extras.forEach((extra) => {
-          extra.options.forEach((option) => {
+        (product.extras || []).forEach((extra) => {
+          (extra.options || []).forEach((option) => {
             if (option.qty > 0) {
               let line = `   ↳ ${option.name}`;
               if (option.qty * product.qty > 1) {
@@ -574,7 +719,13 @@ export const useMainStore = defineStore("main", {
       lines.push(`- - - - - - - - - - - - - -`);
       lines.push(`Subtotal: $${f(this.total)}`);
       if (this.deliveryCharge > 0) {
-        lines.push(`Envio: $${f(this.deliveryCharge)}`);
+        // Marcado cuando no se pudo ubicar la dirección: le avisa al dueño por
+        // WhatsApp que ese envío se cobró sin conocer la distancia real.
+        lines.push(
+          this.deliveryEstimated
+            ? `Envio: $${f(this.deliveryCharge)} (ESTIMADO - revisar distancia)`
+            : `Envio: $${f(this.deliveryCharge)}`
+        );
       }
       if (this.tip.value > 0) {
         lines.push(`Propina: $${f(this.tip.value)}`);
@@ -637,20 +788,44 @@ export const useMainStore = defineStore("main", {
         window.location.href = this.whatsappUrl;
       }
     },
-    getPositions() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            this.userStore.data.latitude = position.coords.latitude;
-            this.userStore.data.longitude = position.coords.longitude;
-            this.getDistance();
-          },
-          function (error) {
-            console.error("Error Code = " + error.code + " - " + error.message);
+    // Borra la ubicación derivada. user-store es persistido, así que sin esto un
+    // cliente arrastraría la coordenada de otro establecimiento, o la de una
+    // dirección que ya corrigió.
+    clearGeo() {
+      this.userStore.data.latitude = null;
+      this.userStore.data.longitude = null;
+      this.userStore.data.distance = null;
+      this.userStore.data.geo_precision = null;
+    },
+    // Convierte la dirección escrita en lat/lng para poder cobrar por distancia.
+    // Antes esto salía del GPS del dispositivo, que mide dónde está el celular y
+    // no a dónde va el pedido — y que la mayoría de los clientes ni autoriza.
+    // Nunca lanza: si falla, el envío queda como estimado y el checkout sigue.
+    async geocodeAddress() {
+      const d = this.userStore.data;
+      if (!d.zip && !d.town) return;
+      try {
+        const { data } = await api.post(
+          `/establishment/${this.companyStore.slug}/geocode`,
+          {
+            zip: d.zip ?? null,
+            town: d.town ?? null,
+            street: d.street ?? null,
+            ext_number: d.ext_number ?? null,
           }
         );
-      } else {
-        console.error("Geolocation is not supported by this browser.");
+        d.geo_precision = data.match_precision ?? null;
+        if (data.lat == null || data.lng == null) {
+          d.latitude = null;
+          d.longitude = null;
+          d.distance = null;
+          return;
+        }
+        d.latitude = data.lat;
+        d.longitude = data.lng;
+        this.getDistance();
+      } catch (e) {
+        this.clearGeo();
       }
     },
     getDistance() {

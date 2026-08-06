@@ -122,7 +122,7 @@
 defineOptions({
   name: "MainLayout",
 });
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useQuasar } from "quasar";
 import AddCartDrawer from "src/components/client/AddCartDrawer.vue";
 import CartDrawer from "src/components/client/CartDrawer.vue";
@@ -134,7 +134,6 @@ import ValidationDialog from "src/components/client/ValidationDialog.vue";
 import { useMainStore } from "src/stores/main-store";
 
 const mainStore = useMainStore();
-mainStore.getPositions();
 mainStore.checkColor();
 const showSearch = ref(true);
 const searchExpanded = ref(false);
@@ -163,6 +162,8 @@ const toggleTheme = () => {
 };
 let heightObserver = null;
 let heightInterval = null;
+let cartStopWatch = null;
+let onParentMessage = null;
 onMounted(() => {
   try {
     // Default siempre claro; solo oscuro si el usuario lo activó manualmente antes
@@ -194,6 +195,52 @@ onMounted(() => {
       postHeight();
       if (++ticks > 15) clearInterval(heightInterval);
     }, 800);
+
+    // Estado del carrito -> barra sticky que dibuja el sitio contenedor (embed.js),
+    // FUERA del iframe. Así queda pegada a la pantalla real del visitante.
+    const postCart = () => {
+      const est = mainStore.establishment || {};
+      const tc = est.theme_config || {};
+      const raw = tc.primary_color || est.color || "";
+      const color = raw ? (raw[0] === "#" ? raw : "#" + raw) : "#1976D2";
+      window.parent.postMessage(
+        {
+          type: "comeleya:cart",
+          count: mainStore.cart.reduce((a, p) => a + (p.qty || 1), 0),
+          total: Number(mainStore.total) || 0,
+          hasItems: mainStore.cart.length > 0,
+          color,
+          cartImage: tc.cart_image || "",
+          label: "Ver pedido",
+        },
+        "*"
+      );
+    };
+    postCart();
+    cartStopWatch = watch(
+      () => [
+        mainStore.cart.length,
+        mainStore.total,
+        mainStore.establishment?.theme_config?.cart_image,
+      ],
+      postCart,
+      { deep: true }
+    );
+
+    // Mensajes del sitio contenedor.
+    onParentMessage = (e) => {
+      const t = e && e.data && e.data.type;
+      // embed.js confirmó que dibuja la barra por fuera -> ocultamos la interna.
+      if (t === "comeleya:embed") {
+        mainStore.externalCartBar = true;
+        postCart(); // reenvía el estado por si el script cargó tarde
+      }
+      // Clic en la barra externa -> abrir el carrito por dentro.
+      if (t === "comeleya:openCart") {
+        mainStore.cartDrawer = true;
+      }
+    };
+    window.addEventListener("message", onParentMessage);
   }
 });
 onUnmounted(() => {
@@ -202,6 +249,8 @@ onUnmounted(() => {
   window.removeEventListener("scroll", onScroll);
   if (heightObserver) heightObserver.disconnect();
   if (heightInterval) clearInterval(heightInterval);
+  if (cartStopWatch) cartStopWatch();
+  if (onParentMessage) window.removeEventListener("message", onParentMessage);
 });
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
   showSearch.value = false;

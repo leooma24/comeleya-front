@@ -488,4 +488,144 @@ describe("main-store", () => {
       expect(store.userStore.data.distance).toBeGreaterThan(0);
     });
   });
+
+  describe("deliveryCharge y deliveryEstimated", () => {
+    // Config real de Bajamar en produccion.
+    const bajamar = {
+      delivery_mode: "distance",
+      delivery_charge: 40,
+      delivery_base_fee: 35,
+      delivery_base_km: 2,
+      delivery_per_km: 5,
+      delivery_max_km: 15,
+      delivery_free_from: 0,
+    };
+
+    const setup = (distance, company = bajamar) => {
+      store.userStore.data = { delivery: "Envio", distance };
+      store.companyStore.company = company;
+    };
+
+    it("dentro de los km base cobra solo la base", () => {
+      setup(1.5);
+      expect(store.deliveryCharge).toBe(35);
+      expect(store.deliveryEstimated).toBe(false);
+    });
+
+    it("cobra los km extra", () => {
+      setup(7); // 35 + (7-2)*5 = 60
+      expect(store.deliveryCharge).toBe(60);
+    });
+
+    it("fuera del radio no esta cubierto", () => {
+      setup(20);
+      expect(store.deliveryCovered).toBe(false);
+    });
+
+    it("sin distancia usa la tarifa fija y marca estimado", () => {
+      setup(undefined);
+      expect(store.deliveryCharge).toBe(40);
+      expect(store.deliveryEstimated).toBe(true);
+    });
+
+    it("sin distancia y sin tarifa fija cae a la base", () => {
+      setup(undefined, { ...bajamar, delivery_charge: 0 });
+      expect(store.deliveryCharge).toBe(35);
+      expect(store.deliveryEstimated).toBe(true);
+    });
+
+    it("envio gratis desde cierto monto", () => {
+      setup(7, { ...bajamar, delivery_free_from: 400 });
+      store.cartStore.addToCart({ name: "A", totalPrice: 500, qty: 1 });
+      expect(store.deliveryCharge).toBe(0);
+    });
+
+    it("en modo tarifa fija nunca es estimado", () => {
+      setup(undefined, { ...bajamar, delivery_mode: "flat" });
+      expect(store.deliveryCharge).toBe(40);
+      expect(store.deliveryEstimated).toBe(false);
+    });
+
+    it("al recoger no hay costo ni estimado", () => {
+      store.userStore.data = { delivery: "Recoger" };
+      store.companyStore.company = bajamar;
+      expect(store.deliveryCharge).toBe(0);
+      expect(store.deliveryEstimated).toBe(false);
+    });
+  });
+
+  describe("clearGeo", () => {
+    it("borra coordenadas y distancia", () => {
+      store.userStore.data = {
+        latitude: 1, longitude: 2, distance: 3, geo_precision: "street",
+      };
+      store.clearGeo();
+      expect(store.userStore.data.latitude).toBeNull();
+      expect(store.userStore.data.longitude).toBeNull();
+      expect(store.userStore.data.distance).toBeNull();
+      expect(store.userStore.data.geo_precision).toBeNull();
+    });
+  });
+
+  describe("geocodeAddress", () => {
+    beforeEach(() => {
+      store.companyStore.slug = "bajamar";
+      store.companyStore.company = {
+        coordinates: "25.792506,-108.980737",
+        delivery_mode: "distance",
+        delivery_charge: 40,
+        delivery_base_fee: 35,
+        delivery_base_km: 2,
+        delivery_per_km: 5,
+        delivery_max_km: 15,
+        delivery_free_from: 0,
+      };
+      store.userStore.data = {
+        delivery: "Envio", zip: "81200", town: "Centro",
+        street: "Aldama", ext_number: "500",
+      };
+    });
+
+    it("guarda lat/lng y recalcula la distancia", async () => {
+      api.post = vi.fn().mockResolvedValue({
+        data: { lat: 25.75, lng: -108.99, match_precision: "street" },
+      });
+
+      await store.geocodeAddress();
+
+      expect(store.userStore.data.latitude).toBe(25.75);
+      expect(store.userStore.data.longitude).toBe(-108.99);
+      expect(Number(store.userStore.data.distance)).toBeGreaterThan(0);
+      expect(store.deliveryEstimated).toBe(false);
+    });
+
+    it("deja la distancia vacia cuando no se pudo ubicar", async () => {
+      api.post = vi.fn().mockResolvedValue({
+        data: { lat: null, lng: null, match_precision: "none" },
+      });
+
+      await store.geocodeAddress();
+
+      expect(store.userStore.data.distance).toBeFalsy();
+      expect(store.deliveryEstimated).toBe(true);
+    });
+
+    it("no revienta si el endpoint falla", async () => {
+      api.post = vi.fn().mockRejectedValue(new Error("network"));
+
+      await expect(store.geocodeAddress()).resolves.not.toThrow();
+      expect(store.deliveryEstimated).toBe(true);
+    });
+
+    it("no llama al endpoint si falta CP y colonia", async () => {
+      api.post = vi.fn();
+      store.userStore.data.zip = "";
+      store.userStore.data.town = "";
+
+      await store.geocodeAddress();
+
+      expect(api.post).not.toHaveBeenCalled();
+    });
+  });
+
 });
