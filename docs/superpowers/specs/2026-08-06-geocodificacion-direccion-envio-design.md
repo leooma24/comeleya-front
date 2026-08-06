@@ -149,19 +149,36 @@ Pasos:
 1. **Normalizar** la dirección: minúsculas, sin acentos, espacios colapsados,
    sin puntuación. El hash de eso es la llave de caché.
 2. **Buscar en `geocode_cache`.** Si hay acierto, responder y terminar.
-3. **Resolver municipio/ciudad/estado desde la tabla `cp`** (modelo `Town`,
-   `d_codigo` → `D_mnpio`, `d_estado`). El endpoint `/towns/{cp}/all` ya
-   demuestra que esos campos están disponibles.
-4. **Consultar Nominatim en cascada**, parando en el primer acierto:
+3. **Resolver ciudad y estado desde la tabla `cp`** (modelo `Town`, `d_codigo` →
+   `d_ciudad`, con `D_mnpio` como respaldo, y `d_estado`). El endpoint
+   `/towns/{cp}/all` ya demuestra que esos campos están disponibles.
+4. **Consultar Nominatim en cascada**, parando en el primer acierto. Se usa la
+   búsqueda **estructurada**, no texto libre:
 
-   | Intento | Consulta | `precision` |
+   | Intento | Parámetros | `precision` |
    |---|---|---|
-   | 1 | `calle #num, colonia, municipio, estado` | `street` |
-   | 2 | `colonia, municipio, estado` | `locality` |
-   | 3 | `CP, estado` | `zip` |
-   | 4 | — sin resultado — | `none` |
+   | 1 | `street="calle num"`, `city`, `postalcode` | `street` |
+   | 2 | `street="calle num"`, `city` | `street` |
+   | 3 | `postalcode` **solo** | `zip` |
+   | 4 | `city` | `locality` |
+   | 5 | — sin resultado — | `none` |
 
-   Parámetros: `format=json&limit=1&countrycodes=mx`.
+   Más `country=Mexico&format=json&limit=1`.
+
+   **Medido contra la dirección real de Bajamar** (Aldama 500, CP 81200): la
+   búsqueda estructurada cae a 0.63 km del negocio; el texto libre, a 4.24 km.
+
+   Tres trampas comprobadas, que explican por qué la cascada es así:
+
+   - **Meter la colonia en la consulta hace que no haya resultado.** OSM en
+     México casi no tiene polígonos de colonia. `Aldama 500, Centro, Los Mochis,
+     Sinaloa` → nada; `Aldama 500, Los Mochis, Sinaloa` → acierto.
+   - **Mandar `city` junto al CP anula el CP.** Con ambos, los códigos 81200,
+     81280 y 81229 devolvían el mismo centroide (0.95 km). Con `postalcode`
+     solo: 1.36, 2.56 y 23.11 km. Por eso el intento 3 va sin ciudad.
+   - **Hay que usar la ciudad (`d_ciudad` = "Los Mochis"), no el municipio
+     (`D_mnpio` = "Ahome").** Con el municipio, las direcciones urbanas no
+     resuelven.
 
 5. **Guardar en caché y responder.**
 
@@ -256,3 +273,28 @@ cobrando según la anterior. Por eso:
 - Distancia por ruta de manejo en vez de línea recta.
 - Permitir al dueño ajustar el envío desde el panel en los pedidos marcados como
   estimados.
+
+## Resultado medido en producción (2026-08-06)
+
+Flujo completo en `comeleya.com/bajamar`, con navegador real y **sin permiso de
+ubicación** (el caso que rompía antes):
+
+| Dirección | Distancia | `precision` | Antes | Ahora |
+|---|---|---|---|---|
+| Independencia 350, Centro (81200) | 1.64 km | `street` | $35 | $35.00 |
+| Macario Gaxiola 1200, Zona Industrial (81255) | 2.76 km | `street` | $35 | **$38.80** |
+| Principal 10, Topolobampo (81370) | 23.11 km | `zip` | $35 | **Fuera de cobertura** |
+| Sin dirección escrita | — | `none` | $35 | $40.00 marcado *estimado* |
+
+El debounce funciona: una sola llamada a `/geocode` por dirección completa, no
+una por tecla.
+
+## Limitación conocida
+
+OSM tiene poca cobertura de números de casa en México. La precisión `street`
+suele resolver a la calle, no al número exacto, y un CP puede desviarse 1–2 km.
+Es la exactitud que se aceptó como objetivo ("aproximado por colonia/CP") y es
+suficiente para tramos de $5/km, pero **puede equivocarse cerca del límite del
+radio de cobertura**: una dirección justo en la frontera de los 15 km podría
+quedar bloqueada por error. Si eso empieza a pasar, subir `delivery_max_km` un
+par de kilómetros como margen es más barato que cambiar de proveedor.
