@@ -246,6 +246,8 @@ const Extras = lazy("Extras");
 const Coupons = lazy("Coupons");
 const Orders = lazy("Orders");
 const Establishments = lazy("Establishments");
+const SuperAdminHome = lazy("SuperAdminHome");
+const EstablishmentsHealth = lazy("EstablishmentsHealth");
 const Users = lazy("Users");
 const EstablishmentCategories = lazy("EstablishmentCategories");
 const EstablishmentTypes = lazy("EstablishmentTypes");
@@ -330,6 +332,10 @@ const getComponentName = (tab) => {
     return Coupons;
   } else if (tab === "pedidos_pendientes") {
     return Orders;
+  } else if (tab === "inicio") {
+    return SuperAdminHome;
+  } else if (tab === "salud") {
+    return EstablishmentsHealth;
   } else if (tab === "establecimientos") {
     return Establishments;
   } else if (tab === "usuarios") {

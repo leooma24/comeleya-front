@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.packageFormDrawer"
+    :form-data="adminStore.packageForm"
     :title="(adminStore.packageForm.id ? 'Editar' : 'Nuevo') + ' Paquete'"
     save-label="Guardar Paquete"
     :loading="adminStore.loading"
@@ -146,5 +147,6 @@ const features = [
   { field: "has_seo", label: "SEO avanzado" },
   { field: "has_theme_customization", label: "Personalización de tema" },
   { field: "has_google_business", label: "Google Business" },
+  { field: "has_facebook", label: "Facebook (Píxel/Messenger)" },
 ];
 </script>

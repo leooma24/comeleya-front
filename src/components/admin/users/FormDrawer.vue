@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.categoryFormDrawer"
+    :form-data="adminStore.categoryForm"
     :title="(adminStore.categoryForm.id ? 'Editar' : 'Nuevo') + ' Usuario'"
     save-label="Guardar"
     :loading="adminStore.loading"

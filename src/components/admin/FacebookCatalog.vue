@@ -5,64 +5,88 @@
         <q-icon name="fab fa-facebook" size="24px" color="primary" class="q-mr-sm" />
         Facebook
       </div>
+      <q-btn
+        outline no-caps color="primary" icon="menu_book"
+        label="Guía paso a paso" size="sm"
+        type="a" href="/guia-facebook" target="_blank"
+      />
     </div>
 
     <div class="mc-fb-sections">
-      <!-- Configuración (Píxel / Messenger) -->
+      <!-- Configuración (Píxel / Messenger) — PREMIUM -->
       <div class="mc-fb-section">
-        <h4 class="mc-section-title">Configuración</h4>
-        <p class="mc-fb-hint">
-          Conecta el <strong>Píxel de Meta</strong> (para medir y potenciar tus anuncios) y tu
-          <strong>página</strong> (para el chat de Messenger). Más abajo tienes la guía para obtener cada dato.
-        </p>
+        <h4 class="mc-section-title">
+          Configuración
+          <q-badge color="amber-8" class="q-ml-sm" rounded>Premium</q-badge>
+        </h4>
 
-        <q-toggle
-          v-model="config.enabled"
-          label="Activar integración con Facebook"
-          color="primary"
-          class="q-mb-md"
-        />
+        <!-- Sin plan: aviso de upgrade en vez de los campos -->
+        <div v-if="!hasFacebook" class="mc-fb-locked">
+          <q-icon name="lock" size="22px" color="amber-8" />
+          <div>
+            <strong>El Píxel de Meta y el chat de Messenger son una función premium.</strong>
+            <p>
+              Mide y potencia tus anuncios con el Píxel, y activa el chat de Messenger en tu menú.
+              Actualiza tu plan para desbloquearlo. El <strong>catálogo de abajo es gratis</strong> y ya puedes usarlo.
+            </p>
+          </div>
+        </div>
 
-        <q-input
-          filled dense rounded
-          v-model="config.pixel_id"
-          label="Pixel ID"
-          hint="Solo el número (ej. 123456789012345)"
-          class="q-mb-md"
-          :disable="!config.enabled"
-        >
-          <template v-slot:prepend><q-icon name="track_changes" /></template>
-        </q-input>
+        <!-- Con plan: los campos normales -->
+        <template v-else>
+          <p class="mc-fb-hint">
+            Conecta el <strong>Píxel de Meta</strong> (para medir y potenciar tus anuncios) y tu
+            <strong>página</strong> (para el chat de Messenger). Más abajo tienes la guía para obtener cada dato.
+          </p>
 
-        <q-input
-          filled dense rounded
-          v-model="config.page_id"
-          label="Page ID (para Messenger)"
-          hint="ID de tu página de Facebook"
-          class="q-mb-md"
-          :disable="!config.enabled"
-        >
-          <template v-slot:prepend><q-icon name="chat" /></template>
-        </q-input>
+          <q-toggle
+            v-model="config.enabled"
+            label="Activar integración con Facebook"
+            color="primary"
+            class="q-mb-md"
+          />
 
-        <q-input
-          filled dense rounded
-          v-model="config.catalog_id"
-          label="Catalog ID (opcional)"
-          hint="Referencia de tu catálogo en Commerce Manager"
-          class="q-mb-md"
-          :disable="!config.enabled"
-        >
-          <template v-slot:prepend><q-icon name="inventory_2" /></template>
-        </q-input>
+          <q-input
+            filled dense rounded
+            v-model="config.pixel_id"
+            label="Pixel ID"
+            hint="Solo el número (ej. 123456789012345)"
+            class="q-mb-md"
+            :disable="!config.enabled"
+          >
+            <template v-slot:prepend><q-icon name="track_changes" /></template>
+          </q-input>
 
-        <q-btn
-          unelevated no-caps color="primary" icon="save"
-          label="Guardar configuración"
-          size="sm"
-          :loading="saving"
-          @click="saveConfig"
-        />
+          <q-input
+            filled dense rounded
+            v-model="config.page_id"
+            label="Page ID (para Messenger)"
+            hint="ID de tu página de Facebook"
+            class="q-mb-md"
+            :disable="!config.enabled"
+          >
+            <template v-slot:prepend><q-icon name="chat" /></template>
+          </q-input>
+
+          <q-input
+            filled dense rounded
+            v-model="config.catalog_id"
+            label="Catalog ID (opcional)"
+            hint="Referencia de tu catálogo en Commerce Manager"
+            class="q-mb-md"
+            :disable="!config.enabled"
+          >
+            <template v-slot:prepend><q-icon name="inventory_2" /></template>
+          </q-input>
+
+          <q-btn
+            unelevated no-caps color="primary" icon="save"
+            label="Guardar configuración"
+            size="sm"
+            :loading="saving"
+            @click="saveConfig"
+          />
+        </template>
       </div>
 
       <!-- Catálogo (feed) -->
@@ -113,8 +137,8 @@
           <div class="mc-fb-guide__item">
             <q-icon name="chat" size="18px" color="primary" />
             <div>
-              <strong>Page ID</strong>
-              <p>En tu página de Facebook → <em>Configuración → Información de la página</em> → busca “Identificación de la página”. (Necesario solo si quieres el chat de Messenger.)</p>
+              <strong>Page ID (chat de Messenger)</strong>
+              <p>En tu página de Facebook → <em>Configuración → Información de la página</em> → busca “Identificación de la página”. Además, para que el chat aparezca en tu menú debes autorizar el dominio: en tu página → <em>Configuración → Mensajes → Plugin de chat</em> → agrega el dominio <strong>comeleya.com</strong> en los dominios permitidos.</p>
             </div>
           </div>
           <div class="mc-fb-guide__item">
@@ -162,6 +186,14 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 
 const adminStore = useAdminStore();
+
+// Píxel/Messenger es premium (has_facebook). El catálogo/feed sigue gratis.
+const hasFacebook = computed(() => {
+  const features = adminStore.companyConfiguration?.features ?? [];
+  const f = features.find((x) => x.name === "facebook" || x.slug === "facebook");
+  if (f?.value) return true;
+  return !!adminStore.company?.active_subscription?.package?.has_facebook;
+});
 
 const config = ref({
   enabled: false,
@@ -231,6 +263,28 @@ onMounted(async () => {
   color: var(--color-text-secondary);
   margin-bottom: var(--space-md);
   line-height: 1.5;
+}
+
+.mc-fb-locked {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, #ff9800 8%, transparent);
+
+  strong {
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  p {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+    margin: 4px 0 0;
+  }
 }
 
 .mc-fb-actions {

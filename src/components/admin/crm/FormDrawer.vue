@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.prospectDrawer"
+    :form-data="adminStore.prospectForm"
     :title="(adminStore.prospectForm.id ? 'Editar' : 'Nuevo') + ' Prospecto'"
     save-label="Guardar"
     :loading="adminStore.loading"

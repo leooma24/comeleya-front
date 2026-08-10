@@ -22,6 +22,24 @@ export const useCompanyStore = defineStore("company", {
     },
     configuration: {
       features: [],
+      min_order: 0,
+      orders_paused: false,
+      paused_message: "",
+      delivery_mode: "flat",
+      delivery_charge: 0,
+      delivery_base_fee: 0,
+      delivery_base_km: 0,
+      delivery_per_km: 0,
+      delivery_max_km: 0,
+      delivery_free_from: 0,
+      coordinates: "",
+      ticket_config: {
+        business_legal_name: "",
+        rfc: "",
+        footer_text: "",
+        suggestions_email: "",
+        show_business_address: true,
+      },
     },
   }),
   getters: {
@@ -94,6 +112,28 @@ export const useCompanyStore = defineStore("company", {
               ?.value == "1" ?? false,
         };
       });
+      // Precarga los ajustes de pedidos configurables por el dueño.
+      this.configuration.min_order = Number(this.company.min_order ?? 0);
+      this.configuration.orders_paused = !!this.company.orders_paused;
+      this.configuration.paused_message = this.company.paused_message ?? "";
+      // Envío
+      this.configuration.delivery_mode = this.company.delivery_mode ?? "flat";
+      this.configuration.delivery_charge = Number(this.company.delivery_charge ?? 0);
+      this.configuration.delivery_base_fee = Number(this.company.delivery_base_fee ?? 0);
+      this.configuration.delivery_base_km = Number(this.company.delivery_base_km ?? 0);
+      this.configuration.delivery_per_km = Number(this.company.delivery_per_km ?? 0);
+      this.configuration.delivery_max_km = Number(this.company.delivery_max_km ?? 0);
+      this.configuration.delivery_free_from = Number(this.company.delivery_free_from ?? 0);
+      this.configuration.coordinates = this.company.coordinates ?? "";
+      // Config del ticket impreso (razón social, RFC, pie legal, email de sugerencias).
+      const tc = this.company.ticket_config ?? {};
+      this.configuration.ticket_config = {
+        business_legal_name: tc.business_legal_name ?? "",
+        rfc: tc.rfc ?? "",
+        footer_text: tc.footer_text ?? "",
+        suggestions_email: tc.suggestions_email ?? "",
+        show_business_address: tc.show_business_address ?? true,
+      };
     },
     setScheduleForm() {
       const defaults = [

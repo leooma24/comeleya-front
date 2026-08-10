@@ -79,6 +79,45 @@
           />
         </div>
 
+        <!-- Ícono del carrito -->
+        <div class="mc-theme-section">
+          <h4 class="mc-section-title">Ícono del carrito</h4>
+          <p class="mc-cart-hint">
+            Si subes una imagen, reemplazará el ícono del carrito en el menú del cliente.
+            Si no, se usa el ícono por defecto.
+          </p>
+          <div class="mc-cart-uploader">
+            <div class="mc-cart-preview">
+              <img v-if="theme.cart_image" :src="theme.cart_image" alt="" />
+              <q-icon v-else name="shopping_cart" size="28px" color="grey-6" />
+            </div>
+            <div class="mc-cart-actions">
+              <q-file
+                v-model="cartFile"
+                accept="image/*"
+                dense
+                filled
+                label="Subir imagen"
+                style="max-width: 220px"
+                :loading="uploadingCart"
+                @update:model-value="onCartFile"
+              >
+                <template v-slot:prepend><q-icon name="upload" /></template>
+              </q-file>
+              <q-btn
+                v-if="theme.cart_image"
+                flat
+                dense
+                no-caps
+                color="negative"
+                icon="delete"
+                label="Quitar"
+                @click="removeCartImage"
+              />
+            </div>
+          </div>
+        </div>
+
         <!-- Preview -->
         <div class="mc-theme-section">
           <h4 class="mc-section-title">Vista previa</h4>
@@ -124,9 +163,37 @@ const defaultTheme = () => ({
   card_style: "elevated",
   show_banner: false,
   banner_text: "",
+  cart_image: "",
 });
 
 const theme = ref(defaultTheme());
+
+const cartFile = ref(null);
+const uploadingCart = ref(false);
+
+const onCartFile = async (file) => {
+  if (!file) return;
+  uploadingCart.value = true;
+  try {
+    const form = new FormData();
+    form.append("image", file);
+    form.append("type", "company");
+    const { data } = await api.post(`/admin/${adminStore.slug}/uploadImage`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    theme.value.cart_image = data.ruta;
+    adminStore.messageStore.success("Imagen subida. No olvides Guardar.");
+  } catch (e) {
+    adminStore.messageStore.error("Error al subir la imagen");
+  } finally {
+    uploadingCart.value = false;
+    cartFile.value = null;
+  }
+};
+
+const removeCartImage = () => {
+  theme.value.cart_image = "";
+};
 
 const colorLabels = {
   primary_color: "Color primario",
@@ -206,6 +273,43 @@ onMounted(() => {
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--space-md) 0;
+}
+
+.mc-cart-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-md);
+}
+
+.mc-cart-uploader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.mc-cart-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-variant);
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.mc-cart-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
 }
 
 .mc-color-grid {

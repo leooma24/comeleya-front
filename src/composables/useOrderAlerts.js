@@ -1,6 +1,72 @@
 import { onMounted, onBeforeUnmount } from "vue";
 import { useAdminStore } from "src/stores/admin-store";
 
+// --- Tonos de alerta seleccionables (sin archivos, generados con Web Audio) ---
+// Onda cuadrada + ganancia alta = mucho más fuerte que el "sine" 0.3 anterior.
+export const ALERT_TONES = [
+  { value: "timbre", label: "Timbre (doble)" },
+  { value: "campana", label: "Campana" },
+  { value: "alarma", label: "Alarma" },
+  { value: "trino", label: "Trino" },
+];
+
+// Cada patrón: onda, notas [freq, inicio(s), duración(s)], repeticiones y separación.
+const PATTERNS = {
+  timbre: { wave: "square", gain: 0.6, reps: 2, gap: 0.85, notes: [[880, 0, 0.45], [1100, 0.22, 0.45]] },
+  campana: { wave: "triangle", gain: 0.7, reps: 2, gap: 1.1, notes: [[1318, 0, 0.9], [1568, 0.04, 0.9]] },
+  alarma: { wave: "sawtooth", gain: 0.55, reps: 3, gap: 0.95, notes: [[700, 0, 0.18], [950, 0.22, 0.18], [700, 0.44, 0.18], [950, 0.66, 0.18]] },
+  trino: { wave: "square", gain: 0.6, reps: 2, gap: 0.7, notes: [[1046, 0, 0.12], [1318, 0.13, 0.12], [1568, 0.26, 0.22]] },
+};
+
+export function getAlertTone() {
+  try {
+    return localStorage.getItem("mc-alert-tone") || "timbre";
+  } catch {
+    return "timbre";
+  }
+}
+export function setAlertTone(key) {
+  try {
+    localStorage.setItem("mc-alert-tone", key);
+  } catch {
+    // ignore
+  }
+}
+
+function playPattern(ctx, key) {
+  const p = PATTERNS[key] || PATTERNS.timbre;
+  const base = ctx.currentTime + 0.02;
+  for (let r = 0; r < (p.reps || 1); r++) {
+    const off = r * (p.gap || 1);
+    for (const [freq, start, dur] of p.notes) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = p.wave || "square";
+      osc.frequency.value = freq;
+      const t = base + off + start;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(p.gain || 0.6, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.start(t);
+      osc.stop(t + dur + 0.03);
+    }
+  }
+}
+
+// Reproduce un tono para PREVISUALIZAR (desde el selector de ajustes).
+let previewCtx = null;
+export function previewTone(key) {
+  try {
+    previewCtx = previewCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (previewCtx.state === "suspended") previewCtx.resume();
+    playPattern(previewCtx, key);
+  } catch {
+    // audio no soportado
+  }
+}
+
 // Alerta GLOBAL de pedidos nuevos: suena/notifica sin importar en qué pestaña
 // esté el operador. Se monta una sola vez (en AdminPage) y sondea los pendientes.
 // Refuerzo: mientras la pestaña esté en segundo plano y haya un pedido nuevo sin
@@ -33,21 +99,8 @@ export function useOrderAlerts(getSlug) {
   const beep = () => {
     ensureAudio();
     if (!audioCtx) return;
-    const tone = (freq, start, dur) => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + dur);
-      osc.start(audioCtx.currentTime + start);
-      osc.stop(audioCtx.currentTime + start + dur);
-    };
     try {
-      tone(880, 0, 0.5);
-      tone(1100, 0.2, 0.5);
+      playPattern(audioCtx, getAlertTone());
     } catch {
       // ignore
     }

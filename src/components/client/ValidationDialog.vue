@@ -93,6 +93,15 @@
       <!-- ¿No se abrió WhatsApp? Reintentar (ancla nativa) -->
       <q-card-section class="success-dialog__actions">
         <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="local_shipping"
+          label="Seguir mi pedido"
+          class="full-width q-mb-sm"
+          :to="`/${mainStore.companyStore.slug}/pedido/${mainStore.orderStore.orderCode}`"
+        />
+        <q-btn
           type="a"
           :href="mainStore.whatsappUrl"
           target="_blank"
@@ -208,6 +217,7 @@ defineOptions({
 
 import { ref, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { fitPageToContent } from "src/utils/ticketPageSize";
 const mainStore = useMainStore();
 
 // Paso interno del diálogo: 1 = enviar por WhatsApp, 2 = confirmación
@@ -227,7 +237,10 @@ const goToConfirmation = () => {
 };
 
 const ticketStyles = `
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
+  /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; line-height: 1.35; }
+  .item, .row, .info div { font-weight: 700; }
   .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
   .item { display: flex; justify-content: space-between; padding: 2px 0; }
   .extra { padding-left: 14px; font-size: 11px; color: #555; }
@@ -253,8 +266,8 @@ const printOrder = () => {
   const items = mainStore.cart
     .map((p) => {
       let html = `<div class="item"><span>${p.qty}x ${esc(p.name)}</span><span>$${f(p.totalPrice * p.qty)}</span></div>`;
-      p.extras.forEach((extra) => {
-        extra.options.forEach((option) => {
+      (p.extras || []).forEach((extra) => {
+        (extra.options || []).forEach((option) => {
           if (option.qty > 0) {
             const optTotal = option.price * option.qty * p.qty;
             let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${esc(option.name)}` : esc(option.name);
@@ -337,6 +350,8 @@ const printOrder = () => {
     if (printed) return;
     printed = true;
     try {
+      // Acota la hoja al alto del ticket antes de mandar a imprimir.
+      fitPageToContent(iframe.contentWindow.document);
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
     } catch {

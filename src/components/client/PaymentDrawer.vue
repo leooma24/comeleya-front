@@ -108,6 +108,38 @@
         </div>
       </div>
 
+      <!-- Programar pedido para más tarde -->
+      <div class="mc-form-section">
+        <div class="mc-schedule-head">
+          <h6 class="mc-section-title q-mb-none">Programar para más tarde</h6>
+          <q-toggle v-model="mainStore.schedule.enabled" color="primary" dense />
+        </div>
+        <q-input
+          v-if="mainStore.schedule.enabled"
+          v-model="mainStore.schedule.at"
+          type="datetime-local"
+          filled dense rounded
+          :min="minDateTime"
+          class="q-mt-sm"
+          hint="¿Para qué día y hora lo quieres?"
+        />
+      </div>
+
+      <!-- Lealtad: canjear puntos -->
+      <div v-if="mainStore.canRedeemLoyalty" class="mc-form-section">
+        <h6 class="mc-section-title">Tus puntos de lealtad</h6>
+        <div class="mc-loyalty-redeem">
+          <q-toggle v-model="mainStore.loyalty.use" color="primary" dense />
+          <div class="mc-loyalty-redeem__text">
+            <span>Usar mis <strong>{{ mainStore.loyalty.points }}</strong> puntos</span>
+            <span
+              v-if="mainStore.loyalty.use && mainStore.loyaltyDiscount > 0"
+              class="mc-loyalty-redeem__disc"
+            >−${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Order Summary -->
       <div class="mc-order-summary">
         <div class="mc-summary-row">
@@ -125,6 +157,10 @@
         <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.coupon.applied">
           <span>Descuento</span>
           <span class="mc-summary-value">- ${{ mainStore.coupon.discount.toFixed(2) }}</span>
+        </div>
+        <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.loyaltyDiscount > 0">
+          <span>Puntos de lealtad</span>
+          <span class="mc-summary-value">- ${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
         </div>
         <div class="mc-summary-row mc-summary-row--total">
           <span>Total a pagar</span>
@@ -289,13 +325,28 @@
 defineOptions({
   name: "PaymentDrawer",
 });
-import { ref } from "vue";
+import { ref, watch, computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
+
+// Mínimo para programar: 15 min en el futuro, en formato datetime-local.
+const minDateTime = computed(() => {
+  const pad = (n) => String(n).padStart(2, "0");
+  const d = new Date(Date.now() + 15 * 60000);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+});
 const couponCode = ref("");
 const sendingOrder = ref(false);
 const applyingCoupon = ref(false);
+
+// Al abrir el pago, consulta los puntos del cliente (por el teléfono ya capturado).
+watch(
+  () => mainStore.paymentDrawer,
+  (open) => {
+    if (open) mainStore.checkLoyalty();
+  }
+);
 
 const applyCoupon = async () => {
   if (!couponCode.value || applyingCoupon.value) return;
@@ -323,6 +374,33 @@ const submitOrder = async () => {
   color: var(--color-text-tertiary);
   margin: 0 0 var(--space-sm);
   line-height: 1.4;
+}
+
+.mc-schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.mc-loyalty-redeem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+
+  &__text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  &__disc {
+    font-weight: 700;
+    color: var(--q-primary);
+  }
 }
 
 .mc-drawer-title {

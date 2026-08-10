@@ -209,12 +209,51 @@ const login = async () => {
   user.loading = false;
 };
 
+const initFb = () => {
+  try {
+    window.FB.init({
+      appId: import.meta.env.VITE_FACEBOOK_APP_ID || "",
+      cookie: true,
+      xfbml: true,
+      version: "v21.0",
+    });
+  } catch (e) {
+    console.error("FB.init falló", e);
+  }
+};
+
+// El backend verifica el access token contra la Graph API de Meta y obtiene el email
+// real (no se confía en datos del cliente).
+const handleFbAuth = async (authResponse) => {
+  const ok = await userStore.loginWithFacebook({ access_token: authResponse.accessToken });
+  if (ok === true) {
+    if (route.params.slug === undefined) {
+      userStore.router.push("/admin");
+    } else {
+      userStore.router.push(`/${route.params.slug}/admin`);
+    }
+  } else if (typeof ok === "string") {
+    $q.notify({ type: "negative", message: ok });
+  } else {
+    $q.notify({ type: "negative", message: "No se pudo iniciar sesión con Facebook" });
+  }
+};
+
 const loginWithFacebook = () => {
-  FB.login(
+  // Si el SDK aún no cargó (o está bloqueado), avisamos en vez de quedar mudos.
+  if (typeof window.FB === "undefined") {
+    $q.notify({
+      type: "warning",
+      message: "Facebook aún se está cargando. Espera un momento e intenta de nuevo.",
+    });
+    return;
+  }
+  // IMPORTANTE: FB.login exige una función NORMAL como callback (no async), o lanza
+  // "Expression is of type asyncfunction, not function". El trabajo async se delega.
+  window.FB.login(
     (response) => {
       if (response.authResponse) {
-        const { accessToken, userID } = response.authResponse;
-        getUserData(accessToken);
+        handleFbAuth(response.authResponse);
       } else {
         console.error("El usuario canceló el inicio de sesión.");
       }
@@ -223,27 +262,24 @@ const loginWithFacebook = () => {
   );
 };
 
-const getUserData = (accessToken) => {
-  FB.api("/me", { fields: "id,name,email" }, async (user) => {
-    if (await userStore.loginWithFacebook(user)) {
-      if (route.params.slug === undefined) {
-        userStore.router.push("/admin");
-      } else {
-        userStore.router.push(`/${route.params.slug}/admin`);
-      }
-    }
-  });
-};
-
 onMounted(() => {
-  window.fbAsyncInit = () => {
-    FB.init({
-      appId: import.meta.env.VITE_FACEBOOK_APP_ID || "",
-      cookie: true,
-      xfbml: true,
-      version: "v21.0",
-    });
-  };
+  // El SDK (index.html) puede cargar ANTES o DESPUÉS de este onMounted. Si ya está,
+  // inicializamos ya; si no, encadenamos su callback sin pisar otro fbAsyncInit.
+  if (window.FB) {
+    initFb();
+  } else {
+    const prev = window.fbAsyncInit;
+    window.fbAsyncInit = () => {
+      if (typeof prev === "function") {
+        try {
+          prev();
+        } catch {
+          // noop
+        }
+      }
+      initFb();
+    };
+  }
 });
 </script>
 

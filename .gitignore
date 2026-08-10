@@ -37,3 +37,6 @@ yarn-error.log*
 .env.*
 !.env.example
 deploy.ps1
+
+# Artefactos de sesiones de Playwright MCP
+.playwright-mcp/

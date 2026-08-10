@@ -23,6 +23,9 @@ export const useCartStore = defineStore("cart", {
     },
     addToCart(product) {
       const newProduct = Object.assign({}, product);
+      // Garantiza que siempre haya un arreglo de extras (algunos platillos no traen
+      // extras y llegan como null/undefined, lo que rompía el render y el envío).
+      if (!Array.isArray(newProduct.extras)) newProduct.extras = [];
       if (this.editing !== -1) {
         this.cart[this.editing] = newProduct;
         this.editing = -1;

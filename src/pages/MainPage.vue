@@ -581,8 +581,9 @@
           <p class="mc-footer-link">
             <q-icon name="email" class="q-mr-xs" /> info@comeleya.com
           </p>
-          <p class="mc-footer-link">Términos y Condiciones</p>
-          <p class="mc-footer-link">Política de Privacidad</p>
+          <router-link to="/terminos" class="mc-footer-link mc-footer-link--clickable">Términos y Condiciones</router-link>
+          <router-link to="/privacidad" class="mc-footer-link mc-footer-link--clickable">Política de Privacidad</router-link>
+          <router-link to="/eliminar-datos" class="mc-footer-link mc-footer-link--clickable">Eliminación de datos</router-link>
         </div>
         <div class="row">
           <div class="col-12 text-center q-mt-md">
@@ -1285,6 +1286,15 @@ footer {
 
   &:hover {
     opacity: 1;
+  }
+
+  &--clickable {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
   }
 }
 

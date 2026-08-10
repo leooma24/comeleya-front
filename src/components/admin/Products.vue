@@ -60,6 +60,18 @@
         </div>
 
         <q-btn
+          outline
+          color="primary"
+          icon="picture_as_pdf"
+          no-caps
+          label="Exportar PDF"
+          :loading="exportingPdf"
+          @click="exportMenuPdf"
+        >
+          <q-tooltip>Descarga el menú en PDF con tus colores y fotos</q-tooltip>
+        </q-btn>
+
+        <q-btn
           unelevated
           color="primary"
           icon="add"
@@ -84,6 +96,35 @@
         :label="sf.label"
         @click="statusFilter = sf.value"
       />
+
+    </div>
+
+    <!-- Barra de acciones en lote (aparece al seleccionar) -->
+    <div v-if="selected.length > 0" class="mc-bulk-bar">
+      <q-btn flat round dense icon="close" color="grey-7" @click="clearSelection">
+        <q-tooltip>Cancelar selección</q-tooltip>
+      </q-btn>
+      <span class="mc-bulk-bar__count">{{ selected.length }} seleccionado(s)</span>
+      <q-space />
+      <div class="mc-bulk-bar__actions">
+        <q-btn flat dense no-caps color="amber-8" icon="star" label="Destacar"
+          :disable="adminStore.loading" @click="runBulk('feature', 'Destacar')" />
+        <q-btn flat dense no-caps color="grey-8" icon="star_border" label="Quitar destacado"
+          :disable="adminStore.loading" @click="runBulk('unfeature', 'Quitar destacado')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="positive" icon="visibility" label="Activar"
+          :disable="adminStore.loading" @click="runBulk('activate', 'Activar')" />
+        <q-btn flat dense no-caps color="grey-8" icon="visibility_off" label="Desactivar"
+          :disable="adminStore.loading" @click="runBulk('deactivate', 'Desactivar')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="deep-orange" icon="remove_shopping_cart" label="Agotado"
+          :disable="adminStore.loading" @click="runBulk('sold_out', 'Marcar agotado')" />
+        <q-btn flat dense no-caps color="teal" icon="shopping_cart_checkout" label="Disponible"
+          :disable="adminStore.loading" @click="runBulk('available', 'Marcar disponible')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="negative" icon="delete" label="Eliminar"
+          :disable="adminStore.loading" @click="runBulkDelete" />
+      </div>
     </div>
 
     <!-- Table view with drag-and-drop -->
@@ -92,6 +133,14 @@
       <table class="mc-admin-table">
         <thead>
           <tr>
+            <th style="width: 40px" class="text-center">
+              <q-checkbox
+                :model-value="allSelected"
+                :indeterminate="someSelected"
+                dense
+                @update:model-value="toggleSelectAll"
+              />
+            </th>
             <th style="width: 48px"></th>
             <th style="width: 56px">Foto</th>
             <th class="text-left">Producto</th>
@@ -118,7 +167,15 @@
             v-for="(element, index) in filteredProducts"
             :key="element.id"
             v-show="isInPage(index)"
+            :class="{ 'mc-row-selected': isSelected(element.id) }"
           >
+            <td class="text-center">
+              <q-checkbox
+                :model-value="isSelected(element.id)"
+                dense
+                @update:model-value="toggleSelect(element.id)"
+              />
+            </td>
             <td>
               <q-icon
                 v-if="canReorder"
@@ -157,42 +214,16 @@
               <span class="mc-text-price">${{ element.price }}</span>
             </td>
             <td class="text-right">
-              <q-btn
-                flat size="sm" dense round
-                :icon="element.is_featured ? 'star' : 'star_border'"
-                :color="element.is_featured ? 'amber-8' : 'grey-7'"
-                @click="adminStore.toggleFeatured(element)"
-              >
-                <q-tooltip>{{ element.is_featured ? 'Quitar destacado' : 'Destacar' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                icon="local_offer"
-                :color="element.special_price ? 'red-6' : 'grey-7'"
-                @click="openOfferDialog(element)"
-              >
-                <q-tooltip>{{ element.special_price ? 'Editar oferta' : 'Crear oferta' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                :icon="element.is_sold_out ? 'remove_shopping_cart' : 'shopping_cart_checkout'"
-                :color="element.is_sold_out ? 'negative' : 'grey-7'"
-                @click="adminStore.toggleSoldOut(element)"
-              >
-                <q-tooltip>{{ element.is_sold_out ? 'Marcar disponible' : 'Marcar agotado' }}</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editProduct(element)">
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="add_circle_outline" color="grey-7" @click="adminStore.extraProduct(element)">
-                <q-tooltip>Agregar Extras</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="content_copy" color="grey-7" @click="cloneProduct(element)">
-                <q-tooltip>Clonar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="delete_outline" color="negative" @click="deleteProduct(element)">
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <product-actions
+                :product="element"
+                @featured="adminStore.toggleFeatured(element)"
+                @offer="openOfferDialog(element)"
+                @soldout="adminStore.toggleSoldOut(element)"
+                @edit="editProduct(element)"
+                @extras="adminStore.extraProduct(element)"
+                @clone="cloneProduct(element)"
+                @delete="deleteProduct(element)"
+              />
             </td>
           </tr>
         </draggable>
@@ -217,9 +248,16 @@
           v-show="isInPage(index)"
           class="q-pa-sm col-xs-12 col-sm-6 col-md-4"
         >
-          <q-card flat class="mc-product-card">
+          <q-card flat class="mc-product-card" :class="{ 'mc-card-selected': isSelected(product.id) }">
             <div class="mc-product-card__image">
               <q-img :src="product.photo" :ratio="16 / 9" />
+              <q-checkbox
+                :model-value="isSelected(product.id)"
+                dense
+                class="mc-product-card__check"
+                color="primary"
+                @update:model-value="toggleSelect(product.id)"
+              />
               <q-chip
                 dense
                 size="sm"
@@ -240,42 +278,16 @@
               </div>
             </q-card-section>
             <q-card-actions class="mc-product-card__actions">
-              <q-btn
-                flat size="sm" dense round
-                :icon="product.is_featured ? 'star' : 'star_border'"
-                :color="product.is_featured ? 'amber-8' : 'grey-5'"
-                @click="adminStore.toggleFeatured(product)"
-              >
-                <q-tooltip>{{ product.is_featured ? 'Quitar destacado' : 'Destacar' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                icon="local_offer"
-                :color="product.special_price ? 'red-6' : 'grey-5'"
-                @click="openOfferDialog(product)"
-              >
-                <q-tooltip>{{ product.special_price ? 'Editar oferta' : 'Crear oferta' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                :icon="product.is_sold_out ? 'remove_shopping_cart' : 'shopping_cart_checkout'"
-                :color="product.is_sold_out ? 'negative' : 'grey-5'"
-                @click="adminStore.toggleSoldOut(product)"
-              >
-                <q-tooltip>{{ product.is_sold_out ? 'Marcar disponible' : 'Marcar agotado' }}</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editProduct(product)">
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="add_circle_outline" color="grey-7" @click="adminStore.extraProduct(product)">
-                <q-tooltip>Agregar Extras</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="content_copy" color="grey-7" @click="cloneProduct(product)">
-                <q-tooltip>Clonar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="delete_outline" color="negative" @click="deleteProduct(product)">
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <product-actions
+                :product="product"
+                @featured="adminStore.toggleFeatured(product)"
+                @offer="openOfferDialog(product)"
+                @soldout="adminStore.toggleSoldOut(product)"
+                @edit="editProduct(product)"
+                @extras="adminStore.extraProduct(product)"
+                @clone="cloneProduct(product)"
+                @delete="deleteProduct(product)"
+              />
             </q-card-actions>
           </q-card>
         </div>
@@ -366,6 +378,7 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
+import ProductActions from "./products/ProductActions.vue";
 
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
@@ -394,6 +407,78 @@ const categoryOptions = computed(() => [
   { label: "Todas las categorías", value: null },
   ...(adminStore.categories || []).map((c) => ({ label: c.name, value: c.id })),
 ]);
+
+// ---- Exportar menú a PDF (descarga directa desde el servidor) ----
+const exportingPdf = ref(false);
+const exportMenuPdf = async () => {
+  if (exportingPdf.value) return;
+  exportingPdf.value = true;
+  try {
+    await adminStore.downloadMenuPdf();
+    adminStore.messageStore.success("Menú PDF descargado");
+  } catch (e) {
+    adminStore.messageStore.error("Error al generar el PDF del menú");
+  } finally {
+    exportingPdf.value = false;
+  }
+};
+
+// ---- Selección múltiple + acciones en lote ----
+const selected = ref([]);
+const isSelected = (id) => selected.value.includes(id);
+const toggleSelect = (id) => {
+  selected.value = isSelected(id)
+    ? selected.value.filter((x) => x !== id)
+    : [...selected.value, id];
+};
+const clearSelection = () => {
+  selected.value = [];
+};
+
+// "Seleccionar todo" opera sobre los productos filtrados (todas las páginas).
+const filteredIds = computed(() => filteredProducts.value.map((p) => p.id));
+const allSelected = computed(
+  () =>
+    filteredIds.value.length > 0 &&
+    filteredIds.value.every((id) => isSelected(id))
+);
+const someSelected = computed(
+  () => selected.value.length > 0 && !allSelected.value
+);
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    const visible = new Set(filteredIds.value);
+    selected.value = selected.value.filter((id) => !visible.has(id));
+  } else {
+    selected.value = [...new Set([...selected.value, ...filteredIds.value])];
+  }
+};
+
+const runBulk = (action, label) => {
+  const n = selected.value.length;
+  if (!n) return;
+  confirm(
+    label,
+    `Se aplicará "${label}" a ${n} platillo(s). ¿Continuar?`,
+    async () => {
+      const ok = await adminStore.bulkDishAction([...selected.value], action);
+      if (ok) clearSelection();
+    }
+  );
+};
+
+const runBulkDelete = () => {
+  const n = selected.value.length;
+  if (!n) return;
+  confirm(
+    "Eliminar platillos",
+    `Se eliminarán ${n} platillo(s) de forma permanente. ¿Continuar?`,
+    async () => {
+      const ok = await adminStore.bulkDishAction([...selected.value], "delete");
+      if (ok) clearSelection();
+    }
+  );
+};
 
 watch([filter, statusFilter, categoryFilter], () => {
   currentPage.value = 1;
@@ -539,6 +624,51 @@ const removeOffer = async () => {
   left: var(--space-xs);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+.mc-product-card__check {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mc-card-selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.mc-row-selected {
+  background: var(--color-primary-container, rgba(25, 118, 210, 0.08));
+}
+
+.mc-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin: 0 var(--space-md) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__count {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
 }
 
 .mc-admin-table {

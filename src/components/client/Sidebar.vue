@@ -179,20 +179,25 @@
     <!-- Reservation Dialog -->
     <reservation-dialog v-model="reservationDialog" />
 
+    <!-- Espacio para que la barra del carrito no tape las categorías (solo escritorio docked) -->
+    <div v-if="mainStore.cart.length > 0 && !mainStore.externalCartBar && !mainStore.isExternal" class="mc-cart-bar-spacer"></div>
+
     <!-- Cart Bar -->
     <div
-      class="mc-cart-bar mc-mb-fix"
-      :class="[
-        $q.screen.width <= 1024 || mainStore.isExternal
-          ? 'fixed-bottom'
-          : 'absolute-bottom',
-      ]"
+      class="mc-cart-bar mc-mb-fix mc-sidebar-cart-bar"
+      :class="{ 'mc-sidebar-cart-bar--external': mainStore.isExternal }"
       @click="mainStore.cartDrawer = true"
-      v-if="mainStore.cart.length > 0"
+      v-if="mainStore.cart.length > 0 && !mainStore.externalCartBar"
     >
       <div class="row items-center justify-between full-width">
         <div class="mc-cart-bar-left" :key="cartUnits">
-          <q-icon name="shopping_cart" size="24px" />
+          <img
+            v-if="mainStore.establishment?.theme_config?.cart_image"
+            :src="mainStore.establishment.theme_config.cart_image"
+            class="mc-cart-bar-img"
+            alt=""
+          />
+          <q-icon v-else name="shopping_cart" size="24px" />
           <q-badge color="white" text-color="primary" rounded>
             {{ cartUnits }}
           </q-badge>
@@ -351,17 +356,50 @@ function openMap() {
 }
 
 function goToCategory(id) {
+  // El usuario eligió esta categoría: fija el tab y bloquea el scroll-spy mientras
+  // dura el scroll (para que el movimiento no cambie el tab a otro).
+  mainStore.tab = id;
+  mainStore.spyLockUntil = Date.now() + 1000;
+
   const section = document.getElementById(id);
   if (section) {
-    // Embebido: solo los tabs fijos (~56px). Normal: header + tabs fijos en móvil.
-    const yOffset = mainStore.isExternal
-      ? -70
-      : $q.screen.width <= 1024
-        ? -230
-        : -60;
+    // Los tabs son position:fixed tanto en iframe como en móvil web, así que su
+    // borde inferior (getBoundingClientRect().bottom) es justo el punto bajo el
+    // cual debe aterrizar la sección. Se mide en vivo (la altura del bloque de
+    // establecimiento varía según dirección/banner) en vez de un offset fijo.
+    let yOffset = -60; // escritorio: solo el header de 56px
+    const tabsFixed = mainStore.isExternal || $q.screen.width <= 1023;
+    if (tabsFixed) {
+      const tabsEl = document.querySelector(".mc-sidebar-tabs");
+      const bottom = tabsEl
+        ? tabsEl.getBoundingClientRect().bottom
+        : mainStore.isExternal
+          ? 56
+          : 230;
+      yOffset = -(bottom + 12); // +12px de respiro para que el título no quede pegado
+    }
     const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
   }
+
+  centerActiveTab();
+}
+
+// Centra el tab activo en la barra horizontal (móvil). El primero/último quedan
+// pegados a su orilla porque el scroll no puede pasar de 0 ni del máximo.
+function centerActiveTab() {
+  // Espera a que Quasar aplique la clase activa y haga su propio ajuste.
+  setTimeout(() => {
+    const content = document.querySelector(".mc-sidebar-tabs .q-tabs__content");
+    const active = document.querySelector(".mc-sidebar-tabs .q-tab--active");
+    if (!content || !active) return;
+    const cRect = content.getBoundingClientRect();
+    const aRect = active.getBoundingClientRect();
+    const delta = aRect.left + aRect.width / 2 - (cRect.left + cRect.width / 2);
+    if (Math.abs(delta) > 2) {
+      content.scrollBy({ left: delta, behavior: "smooth" });
+    }
+  }, 60);
 }
 </script>
 
@@ -499,6 +537,48 @@ function goToCategory(id) {
   35% { transform: scale(1.25); }
   60% { transform: scale(0.92); }
   100% { transform: scale(1); }
+}
+
+.mc-cart-bar-spacer {
+  height: 84px;
+  flex: none;
+}
+
+// La barra va por encima del contenido y de los marginales de Quasar (header/footer,
+// z 2000), pero SIEMPRE por debajo de los drawers (z 3000) y de su backdrop (z 2999).
+// Si empata en 3000 con el drawer, gana la barra por orden del DOM (el q-page-container
+// se pinta después de <add-cart-drawer/>) y se come el click del botón "Agregar".
+// En móvil web esto no se notaba porque .mc-sidebar (position:relative; z-index:2) crea
+// un contexto de apilamiento que encierra a la barra; en embebido .mc-sidebar-external
+// es position:static, así que el z-index sube hasta la raíz y sí compite con el drawer.
+$mc-cart-bar-z: 2500;
+
+// Posición de la barra del carrito del sidebar por CSS (no por JS), para que sea
+// correcta desde el primer render (antes fallaba en móvil al recargar con carrito).
+// Escritorio: anclada al fondo de la columna del sidebar.
+.mc-sidebar-cart-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+// Móvil/tablet: SIEMPRE pegada (sticky) al fondo del viewport.
+@media (max-width: 1024px) {
+  .mc-sidebar-cart-bar {
+    position: fixed;
+    z-index: $mc-cart-bar-z;
+    margin-bottom: 0;
+  }
+  .mc-cart-bar-spacer {
+    display: none; // en móvil la barra es fixed y no ocupa flujo
+  }
+}
+
+// Modo embebido (iframe): también fija aunque el ancho sea grande.
+.mc-sidebar-cart-bar--external {
+  position: fixed;
+  z-index: $mc-cart-bar-z;
 }
 
 .mc-cart-bar-left {

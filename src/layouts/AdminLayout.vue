@@ -217,6 +217,8 @@
           class="mc-tabs"
           no-caps
         >
+          <q-tab name="inicio" icon="insights" label="Inicio" />
+          <q-tab name="salud" icon="health_and_safety" label="Salud" />
           <q-tab name="establecimientos" icon="store" label="Establecimientos" />
           <q-tab name="usuarios" icon="people" label="Usuarios" />
           <q-tab name="categorias_establecimiento" icon="category" label="Categorías" />
@@ -292,6 +294,7 @@ const hasFeature = (featureName) => {
     notifications: 'has_notifications',
     online_payments: 'has_online_payments',
     ticket_printing: 'has_ticket_printing',
+    facebook: 'has_facebook',
   };
   return !!pkg[map[featureName]];
 };

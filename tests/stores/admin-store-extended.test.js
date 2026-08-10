@@ -855,14 +855,36 @@ describe("admin-store - extended coverage", () => {
         name: "Tacos",
         price: 50,
         extras: [
-          { id: 1, name: "Salsa", type: "price", order: 2, options: [] },
-          { id: 2, name: "Bebida", type: "plus", order: 1, options: [] },
+          { id: 1, name: "Salsa", order: 2, options: [] },
+          { id: 2, name: "Bebida", order: 1, options: [] },
         ],
       });
 
       expect(store.extraDrawer).toBe(true);
       expect(store.extras[0].name).toBe("Bebida"); // sorted by order
-      expect(store.extras[0].type.value).toBe("plus");
+    });
+
+    it("conserva la configuración guardada del extra al abrir el cajón", () => {
+      store.extraProduct({
+        id: 1,
+        name: "Promo",
+        price: 350,
+        extras: [
+          {
+            id: 9,
+            name: "Elige tus sushis",
+            order: 0,
+            qty: 3,
+            selection_type: "counter",
+            price_mode: "add",
+            options: [],
+          },
+        ],
+      });
+
+      expect(store.extras[0].selection_type).toBe("counter");
+      expect(store.extras[0].price_mode).toBe("add");
+      expect(store.extras[0].qty).toBe(3);
     });
 
     it("creates default extra for product with no extras", () => {
@@ -875,7 +897,13 @@ describe("admin-store - extended coverage", () => {
 
       expect(store.extras).toHaveLength(1);
       expect(store.extras[0].name).toBe("Opciones");
-      expect(store.extras[0].options[0].price).toBe(50);
+      // La opción base va en $0, NO en el precio del platillo. Ponerla en $50 dejaba
+      // el extra con "todas las opciones con precio", que es justo la configuración
+      // que disparaba el reemplazo y el doble cobro. El default del panel estaba
+      // sembrando el problema.
+      expect(store.extras[0].options[0].price).toBe(0);
+      expect(store.extras[0].selection_type).toBe("radio");
+      expect(store.extras[0].price_mode).toBe("add");
     });
   });
 

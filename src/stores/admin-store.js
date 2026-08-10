@@ -41,11 +41,6 @@ export const useAdminStore = defineStore({
     extras: [],
     loading: false,
     uploadingImage: false,
-    extraTypes: [
-      { value: "price", label: "Precio" },
-      { value: "plus", label: "Agregar" },
-      { value: "minus", label: "Quitar" },
-    ],
     tab: "dashboard",
     orderTab: "pedidos_pendientes",
     product: null,
@@ -136,6 +131,7 @@ export const useAdminStore = defineStore({
         max_products: 0,
         max_categories: 0,
         max_orders_per_month: 0,
+        max_image_improvements: 0,
         has_analytics: false,
         has_loyalty: false,
         has_reservations: false,
@@ -146,6 +142,7 @@ export const useAdminStore = defineStore({
         has_seo: false,
         has_theme_customization: false,
         has_google_business: false,
+        has_facebook: false,
       };
       this.packageFormDrawer = true;
     },
@@ -807,6 +804,70 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al actualizar el platillo");
       }
     },
+    async downloadMenuPdf() {
+      const { data } = await api.get(`/admin/${this.slug}/menu-pdf`, {
+        responseType: "blob",
+      });
+      const blobUrl = URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${this.slug}-menu.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    },
+    async bulkDishAction(ids, action) {
+      if (!ids || !ids.length) return;
+      try {
+        this.loading = true;
+        const { data } = await api.post(`/admin/${this.slug}/dishes/bulk`, {
+          ids,
+          action,
+        });
+        const idset = new Set(ids);
+        if (action === "delete") {
+          this.products = this.products.filter((p) => !idset.has(p.id));
+        } else {
+          const patch = {
+            feature: { is_featured: true },
+            unfeature: { is_featured: false },
+            activate: { status: "Activo" },
+            deactivate: { status: "Inactivo" },
+            sold_out: { is_sold_out: true },
+            available: { is_sold_out: false },
+          }[action];
+          if (patch) {
+            this.products = this.products.map((p) =>
+              idset.has(p.id) ? { ...p, ...patch } : p
+            );
+          }
+        }
+        this.messageStore.success(`Acción aplicada a ${data.updated} platillo(s)`);
+        return true;
+      } catch (error) {
+        this.messageStore.error("Error al aplicar la acción en lote");
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async clearAllFeatured() {
+      try {
+        this.loading = true;
+        const { data } = await api.put(`/admin/${this.slug}/dishes/clear-featured`);
+        this.products = this.products.map((p) => ({ ...p, is_featured: false }));
+        this.messageStore.success(
+          data.updated > 0
+            ? `Se quitó el destacado a ${data.updated} platillo(s)`
+            : "No había platillos destacados"
+        );
+      } catch (error) {
+        this.messageStore.error("Error al quitar los destacados");
+      } finally {
+        this.loading = false;
+      }
+    },
     async toggleSoldOut(product) {
       try {
         const { data } = await api.put(
@@ -1014,7 +1075,7 @@ export const useAdminStore = defineStore({
     setSlug(slug) {
       this.slug = slug;
       if (!slug) {
-        this.tab = "establecimientos";
+        this.tab = "inicio";
       } else {
         this.tab = "dashboard";
       }
@@ -1246,6 +1307,8 @@ export const useAdminStore = defineStore({
         name: "",
         qty: 1,
         is_required: 0,
+        selection_type: "radio",
+        price_mode: "add",
         options: [
           {
             name: "",
@@ -1267,25 +1330,21 @@ export const useAdminStore = defineStore({
       this.product = product;
       this.extraDrawer = true;
       if (product.extras.length > 0) {
-        this.extras = product.extras
-          .map((e) => {
-            return {
-              ...e,
-              type: this.extraTypes.find((t) => t.value === e.type),
-            };
-          })
-          .sort((a, b) => a.order - b.order);
+        this.extras = [...product.extras].sort((a, b) => a.order - b.order);
       } else {
         this.extras = [
           {
             name: "Opciones",
-            type: this.extraTypes.find((e) => e.value === "price"),
             is_required: 0,
             qty: 1,
+            selection_type: "radio",
+            // "add" y no "replace": la opción base va en $0 y las demás llevan la
+            // diferencia. Es la forma correcta de configurar variantes.
+            price_mode: "add",
             options: [
               {
                 name: "Base",
-                price: product.price,
+                price: 0,
               },
             ],
           },

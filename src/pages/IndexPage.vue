@@ -263,10 +263,10 @@ const $q = useQuasar();
 const productColClass = computed(() => {
   if (mainStore.viewType === "Tarjeta") {
     return mainStore.isExternal
-      ? "col-sm-6 col-md-4"
+      ? "col-sm-6 col-md-4 col-lg-3"
       : "col-sm-6 col-lg-4 col-xl-3";
   }
-  return mainStore.isExternal ? "col-md-6" : "col-md-6 col-xl-3";
+  return mainStore.isExternal ? "col-md-6 col-lg-4" : "col-md-6 col-xl-3";
 });
 
 // Desde el estado vacío de búsqueda: limpia el término y salta a la categoría
@@ -318,6 +318,9 @@ useMeta(metaData);
 // pasó la línea de fijado (justo debajo del header/tabs).
 let spyRaf = false;
 const updateActiveCategory = () => {
+  // Mientras hay un scroll por click en un tab, el spy NO cambia el tab (evita que
+  // el movimiento pise la categoría que el usuario eligió).
+  if (Date.now() < mainStore.spyLockUntil) return;
   const threshold = mainStore.isExternal
     ? 60
     : $q.screen.width <= 1023

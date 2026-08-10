@@ -18,7 +18,7 @@
       @click="mainStore.addCartDrawer = false"
     />
 
-    <q-scroll-area class="fit" style="padding-bottom: 80px">
+    <div class="mc-addcart-scroll">
       <div class="q-pa-md">
         <div v-if="mainStore.product">
           <!-- Hero Image -->
@@ -83,16 +83,16 @@
                     <q-item-label class="mc-extra-price">{{ checkOptionType(extra, option) }}</q-item-label>
                   </q-item-section>
                   <q-item-section avatar>
-                    <!-- Selección única (elige 1): radio -->
+                    <!-- El control lo decide la configuración del extra, no sus precios -->
                     <q-radio
-                      v-if="extra.qty === 1"
+                      v-if="controlOf(extra) === 'radio'"
                       v-model="option.qty"
                       :val="1"
                       color="primary"
-                      @update:model-value="updateHasPricesValue(extra, option)"
+                      @update:model-value="selectOnly(extra, option)"
                     />
-                    <!-- Selección múltiple con precio: stepper de cantidad -->
-                    <div v-else-if="extra.qty > 1 && hasPrices(extra)" class="mc-qty-stepper">
+                    <!-- Cantidades: permite repetir la misma opción hasta el tope -->
+                    <div v-else-if="controlOf(extra) === 'counter'" class="mc-qty-stepper">
                       <q-btn
                         flat
                         dense
@@ -115,7 +115,8 @@
                         :disabled="mainStore.isDisabled(extra)"
                       />
                     </div>
-                    <!-- Selección múltiple sin precio: checkbox -->
+                    <!-- Varias opciones distintas, sin repetir. Se deshabilitan las
+                         no marcadas al llegar al tope: antes dejaba marcar de más. -->
                     <q-checkbox
                       v-else
                       v-model="option.qty"
@@ -123,6 +124,7 @@
                       :true-value="1"
                       :false-value="0"
                       color="primary"
+                      :disable="!option.qty && isFull(extra)"
                       @update:model-value="mainStore.updatePrice"
                     />
                   </q-item-section>
@@ -159,26 +161,26 @@
               </div>
             </div>
           </div>
+
+          <!-- Botón Agregar: en el flujo (se alcanza scrolleando), no tapado en móvil -->
+          <div class="mc-add-to-cart-bar">
+            <q-btn
+              ref="addBtnRef"
+              color="primary"
+              unelevated
+              no-caps
+              class="full-width mc-add-btn"
+              size="lg"
+              @click="handleAdd"
+            >
+              <div class="row items-center justify-between full-width q-px-sm">
+                <span>{{ mainStore.btnType }} {{ mainStore.product?.qty }}</span>
+                <span class="mc-add-btn-price">${{ mainStore.totalPrice }}</span>
+              </div>
+            </q-btn>
+          </div>
         </div>
       </div>
-    </q-scroll-area>
-
-    <!-- Add to Cart Button -->
-    <div class="mc-add-to-cart-bar" v-if="mainStore.product">
-      <q-btn
-        ref="addBtnRef"
-        color="primary"
-        unelevated
-        no-caps
-        class="full-width mc-add-btn"
-        size="lg"
-        @click="handleAdd"
-      >
-        <div class="row items-center justify-between full-width q-px-sm">
-          <span>{{ mainStore.btnType }} {{ mainStore.product?.qty }}</span>
-          <span class="mc-add-btn-price">${{ mainStore.totalPrice }}</span>
-        </div>
-      </q-btn>
     </div>
   </q-drawer>
 </template>
@@ -189,6 +191,7 @@ defineOptions({
 });
 import { ref, nextTick } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { controlOf, priceModeOf, isFull, selectionRuleOf } from "src/utils/extraConfig";
 const mainStore = useMainStore();
 const addBtnRef = ref(null);
 
@@ -260,31 +263,21 @@ const incrementValue = (option) => {
   mainStore.updatePrice();
 };
 
-const hasPrices = (extra) => {
-  return extra.options.every((o) => o.price > 0);
-};
-
-const updateHasPricesValue = (extra, option) => {
+// El radio es excluyente: al elegir uno se limpian los demás.
+const selectOnly = (extra, option) => {
   extra.options.forEach((o) => {
     if (o.id !== option.id) o.qty = 0;
   });
   mainStore.updatePrice();
 };
 
+// "$425" cuando la opción ES el precio del platillo, "+ $50" cuando se le suma.
 const checkOptionType = (extra, option) => {
-  const hasPrice = extra.options.every((o) => o.price > 0);
-  if (extra.qty === 1 && hasPrice) return `$${option.price}`;
-  if (extra.qty > 1 && hasPrice) return `+ $${option.price}`;
-  if (option.price > 0) return `+ $${option.price}`;
-  return "";
+  if (!(option.price > 0)) return "";
+  return priceModeOf(extra) === "replace" ? `$${option.price}` : `+ $${option.price}`;
 };
 
-// Regla de selección para el encabezado del grupo de extras
-const selectionRule = (extra) => {
-  if (extra.qty === 1) return "Elige 1";
-  if (extra.qty > 1) return `Elige hasta ${extra.qty}`;
-  return "";
-};
+const selectionRule = (extra) => selectionRuleOf(extra);
 </script>
 
 <style lang="scss" scoped>
@@ -387,14 +380,16 @@ const selectionRule = (extra) => {
   font-variant-numeric: tabular-nums;
 }
 
+.mc-addcart-scroll {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .mc-add-to-cart-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: var(--space-md);
-  background: var(--color-surface);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--color-border);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 </style>

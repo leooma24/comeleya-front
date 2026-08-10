@@ -394,6 +394,8 @@ import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { amountToWords } from "src/utils/numberToWords";
+import { orderTotals } from "src/utils/orderTotals";
+import { fitPageToContent } from "src/utils/ticketPageSize";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 
 const helperStore = useHelperStore();
@@ -557,6 +559,9 @@ const handleAssignDriver = async (order) => {
 };
 
 const ticketStyles = `
+  /* El alto de @page lo inyecta fitPageToContent() al imprimir, medido del contenido.
+     Ver src/utils/ticketPageSize.js: sin eso sale una hoja Carta con papel en blanco. */
+  html, body { margin: 0; padding: 0; }
   body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; color: #000; line-height: 1.35; }
   .item, .row, .cols, .addr, .info div, .letras, .thead, .section-title, .biz span { font-weight: 700; }
   .c-desc, .price, .total, .biz strong { font-weight: 800; }
@@ -619,12 +624,10 @@ const printOrder = (order) => {
     .join(" · ");
 
   // ---- Artículos (CANT. | DESCRIPCION | IMPORTE) ----
-  let subtotal = 0;
   const items = (order.items || [])
     .map((item) => {
       const name = esc(item.dish?.name ?? "Producto");
       const lineImport = Number(item.total || 0);
-      subtotal += lineImport;
       let html = `<div class="item"><span class="c-cant">${item.quantity}</span><span class="c-desc">${name}</span><span class="c-imp">$${f(lineImport)}</span></div>`;
       (item.extras || []).forEach((extra) => {
         (extra.options || []).forEach((o) => {
@@ -638,10 +641,9 @@ const printOrder = (order) => {
     })
     .join("");
 
-  const deliveryCharge = Number(order.delivery_charge || 0);
-  const discount = Number(order.discount || 0);
-  const tip = Number(order.tip || 0);
-  const total = Number(order.total || 0);
+  // `order.total` es solo el subtotal de platillos; el total a cobrar suma
+  // propina y envío y resta el descuento (ver src/utils/orderTotals.js).
+  const { subtotal, discount, tip, deliveryCharge, grandTotal } = orderTotals(order);
 
   const d = order.created_at ? new Date(order.created_at) : new Date();
   const fecha = d.toLocaleDateString("es-MX");
@@ -705,14 +707,14 @@ const printOrder = (order) => {
       ${SEP}
       <div class="thead"><span class="c-cant">CANT</span><span class="c-desc">DESCRIPCION</span><span class="c-imp">IMPORTE</span></div>
       ${items}
-      ${deliveryCharge > 0 ? `<div class="item"><span class="c-cant">1</span><span class="c-desc">DELIVERY</span><span class="c-imp">$${f(deliveryCharge)}</span></div>` : ""}
       ${order.delivery_estimated ? `<div class="addr"><strong>** ENVIO ESTIMADO - REVISAR DISTANCIA **</strong></div>` : ""}
       ${SEP}
       <div class="row"><span>SUBTOTAL:</span><span>$${f(subtotal)}</span></div>
       ${discount > 0 ? `<div class="row"><span>DESCUENTO:</span><span>-$${f(discount)}</span></div>` : ""}
+      ${deliveryCharge > 0 ? `<div class="row"><span>ENVIO:</span><span>$${f(deliveryCharge)}</span></div>` : ""}
       ${tip > 0 ? `<div class="row"><span>PROPINA:</span><span>$${f(tip)}</span></div>` : ""}
-      <div class="row total"><span>TOTAL:</span><span>$${f(total)}</span></div>
-      <div class="letras">${esc(amountToWords(total))}</div>
+      <div class="row total"><span>TOTAL:</span><span>$${f(grandTotal)}</span></div>
+      <div class="letras">${esc(amountToWords(grandTotal))}</div>
       ${payment ? `<div class="row"><span>PAGO:</span><span>${esc(payment)}</span></div>` : ""}
       ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(order.comments)}</div></div>` : ""}
       ${footer}
@@ -739,6 +741,8 @@ const printOrder = (order) => {
     if (printed) return;
     printed = true;
     try {
+      // Acota la hoja al alto del ticket antes de mandar a imprimir.
+      fitPageToContent(iframe.contentWindow.document);
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
     } catch {

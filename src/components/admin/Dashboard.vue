@@ -64,6 +64,53 @@
       </div>
     </q-card>
 
+    <!-- ASESOR DE MENÚ -->
+    <q-card v-if="menuHealth && !loading" flat class="mc-admin-card q-mb-md">
+      <div class="mc-admin-card__header">
+        <div class="mc-admin-card__title">
+          <q-icon name="menu_book" size="24px" color="primary" class="q-mr-sm" />
+          Salud de tu menú
+        </div>
+        <div class="mc-mh-score" :class="`mc-mh-score--${scoreColor(menuHealth.score)}`">
+          {{ menuHealth.score }}<small>/100</small>
+        </div>
+      </div>
+      <div class="q-px-lg q-pb-lg">
+        <q-linear-progress
+          :value="menuHealth.score / 100"
+          :color="scoreColor(menuHealth.score)"
+          size="10px"
+          rounded
+          class="q-mb-md"
+        />
+
+        <div v-if="!menuHealth.findings.length" class="mc-mh-empty">
+          <q-icon name="check_circle" color="positive" size="28px" />
+          <span>¡Tu menú está bien optimizado! Sigue así. 🎉</span>
+        </div>
+
+        <div v-for="f in menuHealth.findings" :key="f.key" class="mc-mh-finding">
+          <q-icon :name="f.icon" size="22px" :color="sevColor(f.severity)" class="mc-mh-finding__icon" />
+          <div class="mc-mh-finding__body">
+            <div class="mc-mh-finding__title">{{ f.title }}</div>
+            <div class="mc-mh-finding__tip">{{ f.tip }}</div>
+            <div v-if="f.dishes.length" class="mc-mh-finding__dishes">
+              <q-chip
+                v-for="d in f.dishes"
+                :key="d.id"
+                dense size="sm" color="grey-3" text-color="grey-8"
+              >{{ d.name }}</q-chip>
+            </div>
+          </div>
+          <q-btn
+            flat dense no-caps color="primary" size="sm" label="Arreglar"
+            class="mc-mh-finding__btn"
+            @click="handleSuggestion(f.action)"
+          />
+        </div>
+      </div>
+    </q-card>
+
     <!-- MAIN DASHBOARD (existing stats) -->
     <q-card flat class="mc-admin-card">
       <div class="mc-admin-card__header">
@@ -73,6 +120,7 @@
         </div>
         <div class="row q-gutter-sm items-center">
           <q-btn unelevated no-caps color="red" icon="local_fire_department" label="Oferta flash" size="sm" @click="showFlashOffer = true" />
+          <q-btn outline no-caps color="primary" icon="point_of_sale" label="Corte de caja" size="sm" @click="openCashCut" />
           <q-btn outline no-caps color="primary" icon="code" label="Insertar en web" size="sm" @click="showEmbed = true" class="gt-xs" />
           <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir" size="sm" @click="shareMenuWa" class="gt-xs" />
           <q-btn-toggle
@@ -227,7 +275,22 @@
         </div>
       </div>
 
-      <q-table flat :rows="stats.customers" :columns="customerColumns" row-key="phone"
+      <!-- Filtros por segmento -->
+      <div class="mc-segment-filters">
+        <q-chip
+          v-for="s in ['all', 'nuevo', 'frecuente', 'vip', 'inactivo']"
+          :key="s"
+          clickable
+          :selected="segmentFilter === s"
+          :color="segmentFilter === s ? (s === 'all' ? 'primary' : segmentMeta[s]?.color) : 'grey-3'"
+          :text-color="segmentFilter === s ? 'white' : 'grey-8'"
+          @click="segmentFilter = s"
+        >
+          {{ s === 'all' ? 'Todos' : segmentMeta[s].label }} ({{ segmentCounts[s] }})
+        </q-chip>
+      </div>
+
+      <q-table flat :rows="filteredCustomers" :columns="customerColumns" row-key="phone"
         :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por página:" class="mc-inner-table"
         :filter="customerSearch"
       >
@@ -240,6 +303,11 @@
           <q-tr :props="props">
             <q-td key="customer_name" :props="props">
               <span class="text-weight-medium">{{ props.row.customer_name }}</span>
+            </q-td>
+            <q-td key="segment" :props="props">
+              <q-chip dense size="sm" :color="segmentMeta[segmentOf(props.row)].color" text-color="white">
+                {{ segmentMeta[segmentOf(props.row)].label }}
+              </q-chip>
             </q-td>
             <q-td key="phone" :props="props">{{ props.row.phone }}</q-td>
             <q-td key="order_count" :props="props">
@@ -260,6 +328,53 @@
         </template>
       </q-table>
     </q-card>
+
+    <!-- CORTE DE CAJA DIALOG -->
+    <q-dialog v-model="cashCutDialog">
+      <q-card style="min-width: 340px; max-width: 420px; border-radius: 16px" id="mc-cashcut-card">
+        <q-card-section class="row items-center justify-between">
+          <div class="row items-center q-gutter-sm">
+            <q-icon name="point_of_sale" size="24px" color="primary" />
+            <span style="font-size: 18px; font-weight: 700">Corte de caja</span>
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input v-model="cashCutDate" type="date" filled dense label="Fecha" @update:model-value="fetchCashCut" />
+        </q-card-section>
+
+        <q-card-section v-if="cashCutLoading" class="text-center">
+          <q-spinner-dots color="primary" size="32px" />
+        </q-card-section>
+
+        <q-card-section v-else-if="cashCut" class="q-pt-none">
+          <div class="mc-cc-summary">
+            <div class="mc-cc-row"><span>Pedidos</span><strong>{{ cashCut.orders }}</strong></div>
+            <div class="mc-cc-row"><span>Ventas</span><strong>${{ formatNumber(cashCut.revenue) }}</strong></div>
+            <div class="mc-cc-row"><span>Propinas</span><strong>${{ formatNumber(cashCut.tips) }}</strong></div>
+            <div class="mc-cc-row"><span>Descuentos</span><strong>-${{ formatNumber(cashCut.discounts) }}</strong></div>
+            <div class="mc-cc-row"><span>Ticket promedio</span><strong>${{ formatNumber(cashCut.avg_ticket) }}</strong></div>
+          </div>
+
+          <div class="mc-cc-methods">
+            <div class="mc-cc-methods__title">Por método de pago</div>
+            <div v-for="m in cashCut.by_method" :key="m.method" class="mc-cc-row">
+              <span>{{ m.method }} ({{ m.count }})</span>
+              <strong>${{ formatNumber(m.total) }}</strong>
+            </div>
+            <div v-if="!cashCut.by_method.length" class="text-caption text-grey-6 q-mt-sm">
+              Sin pedidos en esta fecha.
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-px-md q-pb-md">
+          <q-btn flat no-caps color="grey-7" icon="print" label="Imprimir" @click="printCashCut" />
+          <q-btn unelevated no-caps color="primary" label="Cerrar" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- FLASH OFFER DIALOG -->
     <q-dialog v-model="showFlashOffer">
@@ -381,11 +496,74 @@ const showFlashOffer = ref(false);
 const flashForm = ref({ dish_id: null, special_price: null, hours: 4 });
 const flashLoading = ref(false);
 
+// --- CORTE DE CAJA ---
+const cashCutDialog = ref(false);
+const cashCutDate = ref(new Date().toISOString().slice(0, 10));
+const cashCut = ref(null);
+const cashCutLoading = ref(false);
+
+const fetchCashCut = async () => {
+  cashCutLoading.value = true;
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/cash-cut`, {
+      params: { date: cashCutDate.value },
+    });
+    cashCut.value = data;
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo cargar el corte de caja");
+  } finally {
+    cashCutLoading.value = false;
+  }
+};
+
+const openCashCut = () => {
+  cashCutDate.value = new Date().toISOString().slice(0, 10);
+  cashCutDialog.value = true;
+  fetchCashCut();
+};
+
+const printCashCut = () => {
+  if (!cashCut.value) return;
+  const c = cashCut.value;
+  const name = adminStore.company?.name || "Restaurante";
+  const money = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const methods = c.by_method.map((m) => `<div class="row"><span>${m.method} (${m.count})</span><b>${money(m.total)}</b></div>`).join("");
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`
+    <html><head><title>Corte ${c.date}</title><style>
+      body{font-family:'Consolas','DejaVu Sans Mono','Liberation Mono',Menlo,'Courier New',monospace;font-weight:700;line-height:1.35;max-width:320px;margin:0 auto;padding:12px;color:#000}
+      h2{text-align:center;margin:4px 0}.date{text-align:center;margin-bottom:10px}
+      .row{display:flex;justify-content:space-between;padding:3px 0}
+      .sep{border-top:1px dashed #000;margin:8px 0}.title{font-weight:bold;margin-top:8px}
+    </style></head><body>
+      <h2>${name}</h2>
+      <div class="date">Corte de caja — ${c.date}</div>
+      <div class="sep"></div>
+      <div class="row"><span>Pedidos</span><b>${c.orders}</b></div>
+      <div class="row"><span>Ventas</span><b>${money(c.revenue)}</b></div>
+      <div class="row"><span>Propinas</span><b>${money(c.tips)}</b></div>
+      <div class="row"><span>Descuentos</span><b>-${money(c.discounts)}</b></div>
+      <div class="row"><span>Ticket promedio</span><b>${money(c.avg_ticket)}</b></div>
+      <div class="sep"></div>
+      <div class="title">Por método de pago</div>
+      ${methods || "<div>Sin pedidos</div>"}
+      <div class="sep"></div>
+      <div class="date">${new Date().toLocaleString("es-MX")}</div>
+    </body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+  w.close();
+};
+
 // --- Insertar en web (iframe) ---
 const showEmbed = ref(false);
 const embedUrl = computed(() => `${window.location.origin}/${adminStore.slug}?isExternal=true`);
 const embedCode = computed(
-  () => `<iframe src="${embedUrl.value}" width="100%" height="100%" frameborder="0"></iframe>`
+  () =>
+    `<iframe src="${embedUrl.value}" data-comeleya style="width:100%;border:0;" height="700"></iframe>\n` +
+    `<script src="${window.location.origin}/embed.js" defer><\/script>`
 );
 const copyText = async (text, okMsg) => {
   try {
@@ -417,6 +595,12 @@ const stats = ref({
   peakHours: [],
   reviews: null,
 });
+
+// Asesor de menú (auditoría + tips).
+const menuHealth = ref(null);
+const scoreColor = (s) => (s >= 80 ? "positive" : s >= 50 ? "orange" : "negative");
+const sevColor = (sev) =>
+  sev === "high" ? "negative" : sev === "medium" ? "orange-8" : "primary";
 
 const formatNumber = (num) => Number(num || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const getBarHeight = (count) => {
@@ -698,6 +882,7 @@ const timeAgo = (d) => {
 
 const customerColumns = [
   { name: "customer_name", label: "Cliente", align: "left", field: "customer_name", sortable: true },
+  { name: "segment", label: "Segmento", align: "left", field: "phone" },
   { name: "phone", label: "Teléfono", align: "left", field: "phone" },
   { name: "order_count", label: "Pedidos", align: "center", field: "order_count", sortable: true },
   { name: "total_spent", label: "Total gastado", align: "right", field: "total_spent", sortable: true },
@@ -705,14 +890,48 @@ const customerColumns = [
   { name: "actions", label: "", align: "right" },
 ];
 
+// --- SEGMENTACIÓN DE CLIENTES (comensales) ---
+const segmentFilter = ref("all");
+const daysSince = (d) => Math.floor((Date.now() - new Date(d)) / 86400000);
+const segmentOf = (c) => {
+  if (daysSince(c.last_order_at) > 30) return "inactivo";
+  if (c.order_count >= 6) return "vip";
+  if (c.order_count >= 3) return "frecuente";
+  return "nuevo";
+};
+const segmentMeta = {
+  nuevo: { label: "Nuevo", color: "grey-6" },
+  frecuente: { label: "Frecuente", color: "primary" },
+  vip: { label: "VIP", color: "amber-8" },
+  inactivo: { label: "Inactivo", color: "negative" },
+};
+const segmentCounts = computed(() => {
+  const counts = { all: (stats.value.customers || []).length, nuevo: 0, frecuente: 0, vip: 0, inactivo: 0 };
+  (stats.value.customers || []).forEach((c) => { counts[segmentOf(c)]++; });
+  return counts;
+});
+const filteredCustomers = computed(() => {
+  const list = stats.value.customers || [];
+  if (segmentFilter.value === "all") return list;
+  return list.filter((c) => segmentOf(c) === segmentFilter.value);
+});
+
 const sendWaToCustomer = (customer) => {
   const name = adminStore.company?.name || "nuestro restaurante";
+  const first = (customer.customer_name || "").split(" ")[0] || "";
+  const menu = `https://comeleya.com/${adminStore.slug}`;
+  const seg = segmentOf(customer);
+  let msg;
+  if (seg === "inactivo") {
+    msg = `¡Hola ${first}! Te extrañamos en ${name} 🥺. Vuelve y disfruta tu platillo favorito. Mira el menú aquí: ${menu}`;
+  } else if (seg === "vip") {
+    msg = `¡Hola ${first}! Gracias por ser cliente frecuente de ${name} 🙌. Tenemos algo especial para ti. Menú: ${menu}`;
+  } else {
+    msg = `¡Hola ${first}! Gracias por tu preferencia en ${name}. Mira nuestras novedades: ${menu}`;
+  }
   const phone = customer.phone.replace(/\D/g, "");
   const normalized = phone.length === 10 ? "52" + phone : phone;
-  const msg = encodeURIComponent(
-    `Hola ${customer.customer_name}! Gracias por ser cliente de ${name}. Tenemos promociones especiales para ti. Visita nuestro menú: https://comeleya.com/${adminStore.slug}`
-  );
-  window.open(`https://wa.me/${normalized}?text=${msg}`, "_blank");
+  window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(msg)}`, "_blank");
 };
 
 const shareMenuWa = () => {
@@ -752,6 +971,12 @@ onMounted(async () => {
     stats.value = data;
   } catch (e) {
     // Stats not available
+  }
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/menu-health`);
+    menuHealth.value = data;
+  } catch (e) {
+    // Asesor de menú no disponible
   } finally {
     loading.value = false;
   }
@@ -773,6 +998,54 @@ onMounted(async () => {
   &__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
   &__desc { font-size: 12px; color: var(--color-text-secondary); }
   &__btn { flex-shrink: 0; }
+}
+
+// Asesor de menú
+.mc-mh-score {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  small { font-size: 12px; font-weight: 600; opacity: 0.6; }
+  &--positive { color: var(--q-positive); }
+  &--orange { color: #f57c00; }
+  &--negative { color: var(--q-negative); }
+}
+.mc-mh-empty {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--color-text-primary); padding: 8px 0;
+}
+.mc-mh-finding {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border-subtle);
+  &:first-of-type { border-top: none; }
+  &__icon { flex-shrink: 0; margin-top: 2px; }
+  &__body { flex: 1; min-width: 0; }
+  &__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
+  &__tip { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.45; margin-top: 2px; }
+  &__dishes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  &__btn { flex-shrink: 0; align-self: center; }
+}
+
+// Corte de caja
+.mc-cc-summary { display: flex; flex-direction: column; gap: 2px; }
+.mc-cc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; font-size: 14px; color: var(--color-text-primary);
+  strong { font-variant-numeric: tabular-nums; }
+}
+.mc-cc-methods {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  &__title { font-weight: 700; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
+}
+
+// Segmentación de clientes
+.mc-segment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 var(--space-lg) var(--space-sm);
 }
 
 // Optimization

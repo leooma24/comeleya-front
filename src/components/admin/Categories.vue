@@ -84,26 +84,12 @@
               </q-chip>
             </td>
             <td class="text-right">
-              <q-btn
-                flat
-                round
-                size="sm"
-                icon="edit"
-                color="grey-7"
-                @click="editCategory(element)"
-              >
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                size="sm"
-                icon="delete_outline"
-                color="negative"
-                @click="deleteCategory(element)"
-              >
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <row-actions-menu
+                :actions="[
+                  { key: 'edit', icon: 'edit', color: 'grey-7', label: 'Editar', handler: () => editCategory(element) },
+                  { key: 'delete', icon: 'delete_outline', color: 'negative', label: 'Eliminar', handler: () => deleteCategory(element) },
+                ]"
+              />
             </td>
           </tr>
         </draggable>
@@ -155,6 +141,7 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./categories/FormDrawer.vue";
+import RowActionsMenu from "./RowActionsMenu.vue";
 
 defineOptions({
   name: "establishment-categories",

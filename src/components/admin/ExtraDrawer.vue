@@ -1,6 +1,7 @@
 <template>
   <q-drawer
-    v-model="adminStore.extraDrawer"
+    :model-value="adminStore.extraDrawer"
+    @update:model-value="onDrawerModel"
     bordered
     overlay
     side="right"
@@ -15,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="adminStore.extraDrawer = false"
+        @click="requestClose"
       />
     </div>
 
@@ -93,23 +94,48 @@
                   class="q-mb-md"
                 />
 
+                <!-- Cómo elige el cliente. Antes se deducía del precio de las
+                     opciones, lo que hacía imposible un extra gratis y repetible. -->
+                <div class="mc-field-label">¿Cómo elige el cliente?</div>
+                <q-btn-toggle
+                  :model-value="controlOf(extra)"
+                  @update:model-value="setControl(extra, $event)"
+                  spread
+                  no-caps
+                  unelevated
+                  toggle-color="primary"
+                  color="grey-3"
+                  text-color="grey-8"
+                  class="q-mb-md mc-control-toggle"
+                  :options="[
+                    { label: 'Uno solo', value: 'radio', icon: 'radio_button_checked' },
+                    { label: 'Cantidades', value: 'counter', icon: 'exposure' },
+                    { label: 'Varios', value: 'checkbox', icon: 'check_box' },
+                  ]"
+                />
+
                 <div class="row q-col-gutter-sm q-mb-md">
-                  <div class="col-6">
+                  <div class="col-6" v-if="controlOf(extra) !== 'radio'">
                     <q-input
                       v-model="extra.qty"
-                      label="Máx. selecciones"
+                      :label="controlOf(extra) === 'counter' ? 'Máx. piezas' : 'Máx. opciones'"
                       type="number"
+                      min="1"
                       filled
                       dense
                     >
                       <template v-slot:append>
                         <q-icon name="info_outline" color="grey-5" size="xs">
-                          <q-tooltip>Cantidad máxima de opciones que se pueden seleccionar</q-tooltip>
+                          <q-tooltip>
+                            {{ controlOf(extra) === "counter"
+                              ? "Piezas en total. El cliente puede repetir la misma opción."
+                              : "Opciones distintas que puede marcar, sin repetir." }}
+                          </q-tooltip>
                         </q-icon>
                       </template>
                     </q-input>
                   </div>
-                  <div class="col-6">
+                  <div :class="controlOf(extra) === 'radio' ? 'col-12' : 'col-6'">
                     <q-toggle
                       v-model="extra.is_required"
                       :true-value="1"
@@ -121,6 +147,22 @@
                       dense
                     />
                   </div>
+                </div>
+
+                <!-- Solo tiene sentido si alguna opción cuesta. Es el campo que hacía
+                     que el navegador y el servidor calcularan distinto. -->
+                <div v-if="tieneOpcionConPrecio(extra)" class="q-mb-md">
+                  <div class="mc-field-label">El precio de la opción</div>
+                  <q-option-group
+                    :model-value="priceModeOf(extra)"
+                    @update:model-value="extra.price_mode = $event"
+                    :options="[
+                      { label: 'Se suma al precio del platillo', value: 'add' },
+                      { label: 'Reemplaza el precio del platillo', value: 'replace' },
+                    ]"
+                    color="primary"
+                    dense
+                  />
                 </div>
 
                 <!-- Options -->
@@ -234,17 +276,47 @@
 defineOptions({
   name: "ExtraDrawer",
 });
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
+import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
+import { controlOf, priceModeOf } from "src/utils/extraConfig";
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
+
+// Aviso de cambios sin guardar al cerrar.
+const { snap, isDirty, confirmClose } = useUnsavedChanges();
+watch(() => adminStore.extraDrawer, (v) => { if (v) snap(adminStore.extras); });
+const onDrawerModel = (v) => {
+  if (v) { adminStore.extraDrawer = true; return; }
+  requestClose();
+};
+const requestClose = () =>
+  confirmClose(
+    isDirty(adminStore.extras),
+    () => { adminStore.saveExtras(); adminStore.extraDrawer = false; },
+    () => { adminStore.extraDrawer = false; }
+  );
 
 const expandedExtras = reactive({});
 
 const toggleExtra = (index) => {
   expandedExtras[index] = !expandedExtras[index];
+};
+
+const tieneOpcionConPrecio = (extra) =>
+  (extra.options || []).some((o) => Number(o.price) > 0);
+
+// Al cambiar el control se fija también el máximo coherente: el radio siempre es 1,
+// y pasar a varios/cantidades sin tope quedaría en 1, que no sirve de nada.
+const setControl = (extra, control) => {
+  extra.selection_type = control;
+  if (control === "radio") {
+    extra.qty = 1;
+  } else if (Number(extra.qty) <= 1) {
+    extra.qty = 2;
+  }
 };
 
 const onDragEnd = () => {
@@ -314,6 +386,18 @@ const removeOption = (extra, optionIndex) => {
     padding: var(--space-md);
     border-top: 1px solid var(--color-border-subtle);
   }
+}
+
+.mc-field-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.mc-control-toggle {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
 .mc-options-section {

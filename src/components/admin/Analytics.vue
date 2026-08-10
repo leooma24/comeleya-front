@@ -121,8 +121,10 @@
               <hr />
               <div class="mc-ticket-preview__totals">
                 <div><span>Subtotal:</span><span>${{ ticketData.subtotal }}</span></div>
-                <div v-if="ticketData.discount"><span>Descuento:</span><span>-${{ ticketData.discount }}</span></div>
-                <div v-if="ticketData.tip"><span>Propina:</span><span>${{ ticketData.tip }}</span></div>
+                <!-- Number(...) porque toFixed(2) da la cadena "0.00", que es truthy -->
+                <div v-if="Number(ticketData.discount) > 0"><span>Descuento:</span><span>-${{ ticketData.discount }}</span></div>
+                <div v-if="Number(ticketData.deliveryCharge) > 0"><span>Envío:</span><span>${{ ticketData.deliveryCharge }}</span></div>
+                <div v-if="Number(ticketData.tip) > 0"><span>Propina:</span><span>${{ ticketData.tip }}</span></div>
                 <div class="mc-ticket-total"><span>TOTAL:</span><span>${{ ticketData.total }}</span></div>
               </div>
               <div class="mc-ticket-preview__footer">
@@ -144,6 +146,7 @@ defineOptions({ name: "AnalyticsComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { fitPageToContent } from "src/utils/ticketPageSize";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
@@ -226,6 +229,7 @@ const generateTicket = async () => {
       })),
       subtotal: Number(data.totals?.subtotal || 0).toFixed(2),
       discount: Number(data.totals?.discount || 0).toFixed(2),
+      deliveryCharge: Number(data.totals?.delivery_charge || 0).toFixed(2),
       tip: Number(data.totals?.tip || 0).toFixed(2),
       total: Number(data.totals?.total || 0).toFixed(2),
       payment_method: data.payment?.method || "",
@@ -245,7 +249,9 @@ const printTicketContent = () => {
   printWindow.document.write(`
     <html><head><title>Ticket</title>
     <style>
-      body { font-family: monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
+      /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
+      html, body { margin: 0; padding: 0; }
+      body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; line-height: 1.35; width: 280px; margin: 0 auto; padding: 10px; }
       hr { border: none; border-top: 1px dashed #000; }
       .mc-ticket-item, .mc-ticket-preview__totals > div { display: flex; justify-content: space-between; }
       .mc-ticket-total { font-weight: bold; font-size: 14px; margin-top: 4px; }
@@ -259,6 +265,8 @@ const printTicketContent = () => {
     </body></html>
   `);
   printWindow.document.close();
+  // Acota la hoja al alto del ticket antes de mandar a imprimir.
+  fitPageToContent(printWindow.document);
   printWindow.print();
   printWindow.close();
 };

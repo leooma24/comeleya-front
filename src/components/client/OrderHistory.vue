@@ -44,6 +44,17 @@
             </div>
             <div class="mc-history-item__actions">
               <q-btn
+                v-if="order.establishment && order.order_code"
+                outline
+                dense
+                no-caps
+                size="sm"
+                color="primary"
+                icon="local_shipping"
+                label="Ver estado"
+                :to="`/${order.establishment}/pedido/${order.order_code}`"
+              />
+              <q-btn
                 unelevated
                 dense
                 no-caps

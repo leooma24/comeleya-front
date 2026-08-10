@@ -1,6 +1,8 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.productFormDrawer"
+    :form-data="adminStore.productForm"
+    :uploading="adminStore.uploadingImage"
     :title="(adminStore.productForm.id ? 'Editar' : 'Nuevo') + ' Producto'"
     save-label="Guardar Producto"
     :loading="adminStore.loading || adminStore.uploadingImage"
@@ -23,21 +25,22 @@
         </div>
       </q-img>
       <q-btn
-        v-if="imgUsage.limit > 0 && adminStore.productForm.id && displayedPhoto"
+        v-if="adminStore.productForm.id && displayedPhoto"
         round
-        :color="imgUsage.remaining > 0 ? 'primary' : 'grey-5'"
+        :color="imgBtnColor"
         icon="auto_fix_high"
         size="sm"
         class="mc-image-upload__refresh"
         :loading="adminStore.loading"
-        :disable="imgUsage.remaining <= 0"
+        :disable="imgFeatureEnabled && imgUsage.remaining <= 0"
         @click.stop="triggerImproveImage"
       >
+        <!-- Candado cuando el plan no incluye la función -->
+        <q-badge v-if="!imgFeatureEnabled" floating color="amber-8" rounded class="mc-image-upload__lock">
+          <q-icon name="lock" size="11px" color="white" />
+        </q-badge>
         <q-tooltip>
-          {{ imgUsage.remaining > 0
-            ? `Mejorar imagen con IA (${imgUsage.used}/${imgUsage.limit} usadas)`
-            : `Limite alcanzado este mes (${imgUsage.limit}/${imgUsage.limit})`
-          }}
+          {{ imgTooltip }}
         </q-tooltip>
       </q-btn>
     </div>
@@ -122,8 +125,22 @@
       label="Estado"
       filled
       dense
+      class="q-mb-md"
       :options="['Activo', 'Inactivo']"
     />
+
+    <!-- Disponibilidad por horario (ej. desayunos 07:00–12:00) -->
+    <div class="mc-availability">
+      <div class="mc-availability__label">
+        <q-icon name="schedule" size="18px" color="primary" />
+        Disponible solo en horario
+      </div>
+      <div class="row q-col-gutter-sm">
+        <q-input class="col-6" v-model="availFrom" type="time" filled dense label="Desde" />
+        <q-input class="col-6" v-model="availUntil" type="time" filled dense label="Hasta" />
+      </div>
+      <p class="mc-availability__hint">Déjalo vacío para que esté disponible siempre.</p>
+    </div>
   </BaseFormDrawer>
 </template>
 
@@ -132,10 +149,12 @@ defineOptions({
   name: "ProductFormDrawer",
 });
 import { ref, reactive, watch, computed } from "vue";
+import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
 const adminStore = useAdminStore();
+const $q = useQuasar();
 
 const fileInput = ref(null);
 const imgUsage = reactive({ used: 0, limit: 0, remaining: 0 });
@@ -144,6 +163,31 @@ const showGuide = ref(false);
 
 // Imagen a mostrar: preview local mientras sube, o la URL ya guardada
 const displayedPhoto = computed(() => localPreview.value || adminStore.productForm.photo);
+
+// Horario de disponibilidad: el input type=time usa HH:MM; la BD puede traer HH:MM:SS.
+const availFrom = computed({
+  get: () => (adminStore.productForm.available_from || "").slice(0, 5),
+  set: (v) => { adminStore.productForm.available_from = v || null; },
+});
+const availUntil = computed({
+  get: () => (adminStore.productForm.available_until || "").slice(0, 5),
+  set: (v) => { adminStore.productForm.available_until = v || null; },
+});
+
+// ¿El plan del restaurante incluye mejoras de imagen con IA?
+const imgFeatureEnabled = computed(() => imgUsage.limit > 0);
+
+const imgBtnColor = computed(() => {
+  if (!imgFeatureEnabled.value) return "amber-8"; // premium/candado
+  return imgUsage.remaining > 0 ? "primary" : "grey-5"; // disponible / agotado
+});
+
+const imgTooltip = computed(() => {
+  if (!imgFeatureEnabled.value) return "Mejorar imagen con IA ✨ — disponible al mejorar tu plan";
+  if (imgUsage.remaining > 0)
+    return `Mejorar imagen con IA (${imgUsage.used}/${imgUsage.limit} usadas)`;
+  return `Límite alcanzado este mes (${imgUsage.limit}/${imgUsage.limit})`;
+});
 
 // Cuando la subida termina y guarda la URL real, descartar el preview base64
 watch(() => adminStore.productForm.photo, (photo) => {
@@ -168,6 +212,17 @@ const triggerFileInput = () => {
 };
 
 const triggerImproveImage = async () => {
+  // Plan sin la función: no se llama a la IA, se invita a mejorar el plan.
+  if (!imgFeatureEnabled.value) {
+    $q.notify({
+      message: "Mejorar imágenes con IA es una función premium. Actualiza tu plan para activarla.",
+      color: "amber-9",
+      icon: "auto_fix_high",
+      position: "top",
+      timeout: 3500,
+    });
+    return;
+  }
   const ok = await adminStore.improveImage();
   // Solo descontar el cupo si la mejora tuvo éxito
   if (ok) {
@@ -215,12 +270,34 @@ const onFileSelected = (event) => {
     right: var(--space-sm);
     box-shadow: var(--shadow-md);
   }
+
+  &__lock {
+    padding: 2px;
+    min-height: 0;
+  }
 }
 
 .mc-upload-btn {
   border-radius: var(--radius-md);
   border-style: dashed;
   font-weight: 500;
+}
+
+.mc-availability {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: var(--text-sm);
+    color: var(--color-text-primary); margin-bottom: var(--space-sm);
+  }
+  &__hint {
+    font-size: var(--text-xs); color: var(--color-text-tertiary);
+    margin: var(--space-xs) 0 0;
+  }
 }
 
 .mc-photo-guide {

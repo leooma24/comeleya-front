@@ -259,17 +259,21 @@ h6 {
   }
 }
 
-// Embebido (iframe): los tabs van pegados arriba (56px), así que aquí el nombre
-// de categoría SÍ se pega justo debajo, en móvil y desktop.
-// z-index 1 (por debajo del sidebar/tabs, que están en z-index 2): así el título
-// que sale pasa POR DETRÁS de los tabs en la transición, sin taparlos.
+// Embebido (iframe): en móvil NO se pega el título (la barra de tabs fija ya
+// indica la categoría, pegarlo se ve redundante). Solo se desplaza normal.
 .mc-content-external .mc-category-heading:not(.mc-featured-heading) {
-  position: sticky;
-  top: 53px;
-  z-index: 1;
-  background: var(--color-header-bg);
-  backdrop-filter: blur(12px);
   scroll-margin-top: 64px;
+
+  // Solo en escritorio embebido se pega justo debajo de los tabs (53px).
+  // z-index 1 (por debajo de los tabs, z-index 2): el título pasa POR DETRÁS
+  // de los tabs en la transición, sin taparlos.
+  @media screen and (min-width: 1024px) {
+    position: sticky;
+    top: 53px;
+    z-index: 1;
+    background: var(--color-header-bg);
+    backdrop-filter: blur(12px);
+  }
 }
 
 // Escritorio embebido: el contenido arranca justo bajo los tabs fijos (~53px) para
@@ -393,6 +397,11 @@ h6 {
   &-external {
     height: auto;
     width: 100%;
+    // En embebido el sidebar va en FLUJO normal (no fijo/estrecho como el docked de
+    // escritorio). Sin esto, la regla @media(min-width:1024){position:fixed} del modo
+    // normal se filtra y el sidebar tapa el tope del contenido (hueco gris + tarjetas
+    // cortadas en web).
+    position: static;
     // Deja espacio para los tabs fijos (ver abajo)
     padding-top: 56px;
 
@@ -487,6 +496,17 @@ h6 {
 // FLOATING CART BAR
 // ============================================
 
+.mc-cart-bar-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+  background: #fff;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
 .mc-cart-bar {
   padding: var(--space-md) var(--space-lg);
   padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
@@ -512,6 +532,7 @@ h6 {
     transform: scale(0.99);
   }
 }
+
 
 .mc-total {
   &-title {

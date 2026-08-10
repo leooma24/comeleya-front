@@ -192,6 +192,137 @@ describe("products store", () => {
     });
   });
 
+  // Casos reales que reprodujeron el doble cobro contra el servidor: el frontend
+  // reemplazaba el precio base y el backend lo sumaba. Verificado con un pedido real
+  // en local: Charola Clásica salía $425 en pantalla y $850 en el ticket.
+  // Ninguna prueba cubría esta rama, por eso nadie lo detectó.
+  describe("updatePrice: modo de precio (reemplazo vs suma)", () => {
+    const elegir = (extras) => {
+      store.product = { price: "425.00", totalPrice: 0, extras };
+      store.updatePrice();
+      return store.product.totalPrice;
+    };
+
+    it("reemplazo explícito: la opción ES el precio del platillo", () => {
+      const total = elegir([
+        {
+          qty: 1,
+          price_mode: "replace",
+          options: [
+            { qty: 1, price: 425 },
+            { qty: 0, price: 529 },
+          ],
+        },
+      ]);
+      expect(total).toBe(425); // NO 850
+    });
+
+    it("reemplazo elige la opción marcada, no la primera", () => {
+      const total = elegir([
+        {
+          qty: 1,
+          price_mode: "replace",
+          options: [
+            { qty: 0, price: 425 },
+            { qty: 1, price: 669 },
+          ],
+        },
+      ]);
+      expect(total).toBe(669);
+    });
+
+    it("suma explícita: la opción se agrega al precio base", () => {
+      const total = elegir([
+        {
+          qty: 1,
+          price_mode: "add",
+          options: [
+            { qty: 0, price: 0 },
+            { qty: 1, price: 91 },
+          ],
+        },
+      ]);
+      expect(total).toBe(516); // 425 + 91
+    });
+
+    it("Charola Premium: un extra que suma y otro que reemplaza conviven", () => {
+      store.product = {
+        price: "534.00",
+        totalPrice: 0,
+        extras: [
+          { qty: 1, price_mode: "add", options: [{ qty: 1, price: 0 }] },
+          { qty: 1, price_mode: "replace", options: [{ qty: 1, price: 534 }] },
+        ],
+      };
+      store.updatePrice();
+      expect(store.product.totalPrice).toBe(534); // NO 1068
+    });
+
+    it("sin el campo, el respaldo reproduce la conducta vieja (todas con precio)", () => {
+      const total = elegir([
+        {
+          qty: 1,
+          options: [
+            { qty: 1, price: 425 },
+            { qty: 0, price: 529 },
+          ],
+        },
+      ]);
+      expect(total).toBe(425);
+    });
+
+    it("sin el campo y con una opción en cero, suma (configuración correcta)", () => {
+      const total = elegir([
+        {
+          qty: 1,
+          options: [
+            { qty: 0, price: 0 },
+            { qty: 1, price: 91 },
+          ],
+        },
+      ]);
+      expect(total).toBe(516);
+    });
+  });
+
+  // El caso que motivó todo esto: "3 sushis por $350", opciones gratis y repetibles.
+  describe("updatePrice: promo con contador y opciones en $0", () => {
+    it("el total se queda en el precio de la promo aunque elija 3 piezas", () => {
+      store.product = {
+        price: "350.00",
+        totalPrice: 0,
+        extras: [
+          {
+            qty: 3,
+            selection_type: "counter",
+            price_mode: "add",
+            options: [
+              { qty: 2, price: 0 }, // dos del mismo
+              { qty: 1, price: 0 },
+            ],
+          },
+        ],
+      };
+      store.updatePrice();
+      expect(store.product.totalPrice).toBe(350);
+    });
+
+    it("el tope cuenta piezas totales, no opciones marcadas", () => {
+      const extra = {
+        qty: 3,
+        selection_type: "counter",
+        options: [
+          { qty: 2, price: 0 },
+          { qty: 0, price: 0 },
+        ],
+      };
+      store.product = { price: "350.00", totalPrice: 0, extras: [extra] };
+      expect(store.isDisabled(extra)).toBe(false); // van 2 de 3
+      extra.options[1].qty = 1;
+      expect(store.isDisabled(extra)).toBe(true); // ya son 3
+    });
+  });
+
   describe("isDisabled", () => {
     beforeEach(() => {
       store.product = {
