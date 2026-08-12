@@ -427,6 +427,41 @@
             </template>
           </q-input>
           <q-input :model-value="embedCode" readonly filled type="textarea" autogrow label="Código para insertar (iframe)" />
+
+          <!-- El carrusel es lo contrario del iframe: no mete el menú completo, sino
+               unos cuantos platillos que se actualizan solos donde el dueño ya tiene
+               su propio diseño. -->
+          <q-separator class="q-my-lg" />
+          <div style="font-weight: 700">Solo unos platillos (carrusel)</div>
+          <p class="text-caption text-grey-6 q-mt-xs q-mb-md">
+            Muestra unos cuantos platillos en tu página y se actualizan solos cuando
+            cambies el menú. Cada uno lleva a tu carta, listo para pedir.
+          </p>
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div :class="showcaseTipo === 'categoria' ? 'col-6' : 'col-12'">
+              <q-select
+                v-model="showcaseTipo"
+                :options="showcaseTipos"
+                emit-value map-options filled dense
+                label="Qué mostrar"
+              />
+            </div>
+            <div class="col-6" v-if="showcaseTipo === 'categoria'">
+              <q-select
+                v-model="showcaseCat"
+                :options="showcaseCategorias"
+                emit-value map-options filled dense clearable
+                label="Categoría"
+              />
+            </div>
+          </div>
+          <q-input :model-value="showcaseCode" readonly filled type="textarea" autogrow label="Código del carrusel">
+            <template v-slot:append>
+              <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(showcaseCode, 'Código copiado')">
+                <q-tooltip>Copiar código del carrusel</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cerrar" v-close-popup />
@@ -565,6 +600,35 @@ const embedCode = computed(
     `<iframe src="${embedUrl.value}" data-comeleya style="width:100%;border:0;" height="700"></iframe>\n` +
     `<script src="${window.location.origin}/embed.js" defer><\/script>`
 );
+
+// --- Carrusel de platillos (public/widget.js) ---
+const showcaseTipo = ref("destacados");
+const showcaseCat = ref(null);
+const showcaseTipos = [
+  { label: "Destacados (los que marcas tú)", value: "destacados" },
+  { label: "Los más pedidos", value: "populares" },
+  { label: "Promociones vigentes", value: "ofertas" },
+  { label: "Una categoría", value: "categoria" },
+];
+const showcaseCategorias = computed(() =>
+  (adminStore.categories || []).map((c) => ({ label: c.name, value: c.id }))
+);
+const showcaseCode = computed(() => {
+  const attrs = [
+    "data-comeleya-showcase",
+    `data-slug="${adminStore.slug}"`,
+    `data-tipo="${showcaseTipo.value}"`,
+  ];
+  // La categoría solo viaja cuando aplica: un data-cat suelto confunde a quien lea
+  // el código pegado en su sitio.
+  if (showcaseTipo.value === "categoria" && showcaseCat.value) {
+    attrs.push(`data-cat="${showcaseCat.value}"`);
+  }
+  return (
+    `<div ${attrs.join(" ")}></div>\n` +
+    `<script src="${window.location.origin}/widget.js" defer><\/script>`
+  );
+});
 const copyText = async (text, okMsg) => {
   try {
     if (navigator.clipboard?.writeText) {

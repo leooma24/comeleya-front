@@ -79,6 +79,36 @@
           />
         </div>
 
+        <!-- Botón de las tarjetas. La URL es para quien tiene el menú embebido en
+             su propio sitio y quiere una salida de regreso a sus categorías. -->
+        <div class="mc-theme-section">
+          <h4 class="mc-section-title">Botón de los platillos</h4>
+          <p class="mc-cart-hint">
+            Es el botón que cierra cada tarjeta del menú. Si lo dejas vacío dice
+            <strong>Ver más</strong> y abre el detalle del platillo.
+          </p>
+          <q-input
+            filled dense rounded
+            v-model="theme.card_cta_label"
+            label="Texto del botón"
+            maxlength="40"
+            counter
+            placeholder="Ver más"
+          />
+          <q-input
+            filled dense rounded
+            v-model="theme.card_cta_url"
+            label="Enlace del botón (opcional)"
+            placeholder="https://tusitio.com/categorias"
+            class="q-mt-sm"
+          >
+            <template v-slot:hint>
+              Con un enlace, el botón deja de abrir el detalle y lleva a esa página.
+              Debe empezar con https://
+            </template>
+          </q-input>
+        </div>
+
         <!-- Ícono del carrito -->
         <div class="mc-theme-section">
           <h4 class="mc-section-title">Ícono del carrito</h4>
@@ -164,6 +194,9 @@ const defaultTheme = () => ({
   show_banner: false,
   banner_text: "",
   cart_image: "",
+  // Vacíos: el botón dice "Ver más" y abre el detalle, como siempre.
+  card_cta_label: "",
+  card_cta_url: "",
 });
 
 const theme = ref(defaultTheme());

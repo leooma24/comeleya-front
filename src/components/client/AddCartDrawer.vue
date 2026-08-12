@@ -45,8 +45,13 @@
             <p class="mc-product-desc">{{ mainStore.product.description }}</p>
           </div>
 
-          <!-- Extras -->
-          <div class="q-mt-md">
+          <!-- Todo lo que sirve para ARMAR un pedido: extras, comentario y
+               cantidad. Con los pedidos apagados el cajón es una ficha de menú y
+               nada de esto tiene a dónde ir, así que no se dibuja: elegir el
+               término de la carne o pedir tres piezas no lleva a ninguna parte si
+               no se puede agregar al carrito. Queda la foto, el nombre y la
+               descripción. -->
+          <div class="q-mt-md" v-if="mainStore.orderingEnabled">
             <div
               v-for="extra in extrasVisibles"
               :key="extra.id"
@@ -144,7 +149,7 @@
             <!-- Comentario del platillo. También aquí y no solo en el carrito:
                  si el comensal le da al lápiz para editar, lo busca donde está
                  todo lo demás del platillo. -->
-            <div class="mc-extra-group" v-if="mainStore.orderingEnabled">
+            <div class="mc-extra-group">
               <div class="row items-center justify-between">
                 <span class="mc-extra-name">Comentario</span>
                 <q-btn

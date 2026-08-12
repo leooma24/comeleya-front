@@ -84,13 +84,35 @@
         no-caps
         class="dish-card__cta"
       />
+      <!-- Con URL configurada el botón navega en vez de abrir el detalle, y por eso
+           necesita `@click.stop`: el click vive en la tarjeta ENTERA (arriba), así
+           que sin detenerlo pasarían las dos cosas a la vez.
+
+           `target="_top"` porque el menú suele correr dentro de un iframe en el
+           sitio del negocio; un enlace normal metería esa página en el marco
+           angosto en vez de abrirla completa. -->
+      <q-btn
+        v-else-if="ctaUrl"
+        flat
+        dense
+        color="primary"
+        icon-right="arrow_forward"
+        :label="ctaLabel"
+        no-caps
+        type="a"
+        :href="ctaUrl"
+        target="_top"
+        rel="noopener noreferrer"
+        class="dish-card__cta"
+        @click.stop
+      />
       <q-btn
         v-else
         flat
         dense
         color="primary"
         icon-right="arrow_forward"
-        label="Ver más"
+        :label="ctaLabel"
         no-caps
         class="dish-card__cta"
       />
@@ -103,8 +125,10 @@ defineOptions({
   name: "CardDish",
 });
 
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import { useDish } from "src/composables/useDish";
+import { useMainStore } from "src/stores/main-store";
+import { ctaLabelOf, ctaUrlOf } from "src/utils/cardCta";
 
 const props = defineProps({
   item: {
@@ -116,6 +140,12 @@ const props = defineProps({
 const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
+
+// Texto y destino del botón, configurables por negocio. Sin configurar dice
+// "Ver más" y abre el detalle, que es como funcionó siempre.
+const mainStore = useMainStore();
+const ctaLabel = computed(() => ctaLabelOf(mainStore.establishment));
+const ctaUrl = computed(() => ctaUrlOf(mainStore.establishment));
 </script>
 
 <style lang="scss" scoped>
