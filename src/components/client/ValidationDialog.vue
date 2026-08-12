@@ -145,6 +145,9 @@
                 </span>
               </template>
             </div>
+            <div v-if="product.notes" class="receipt__item-note">
+              &nbsp;&nbsp;Nota: {{ product.notes }}
+            </div>
           </div>
         </div>
 
@@ -244,6 +247,7 @@ const ticketStyles = `
   .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
   .item { display: flex; justify-content: space-between; padding: 2px 0; }
   .extra { padding-left: 14px; font-size: 11px; color: #555; }
+  .note { padding-left: 14px; font-size: 11px; font-weight: 700; }
   .row { display: flex; justify-content: space-between; padding: 2px 0; }
   .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; margin-top: 4px; padding-top: 4px; }
   .header { text-align: center; margin-bottom: 6px; }
@@ -276,6 +280,9 @@ const printOrder = () => {
           }
         });
       });
+      if (p.notes) {
+        html += `<div class="note">** ${esc(p.notes)}</div>`;
+      }
       return html;
     })
     .join("");

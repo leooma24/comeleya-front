@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { controlOf, priceModeOf, maxOf, chosenOf } from "src/utils/extraConfig";
+import { controlOf, priceModeOf, maxOf, maxOfOption, chosenOf } from "src/utils/extraConfig";
+import { effectivePrice, isSpecialActive } from "src/utils/dishPrice";
 
 // ¿El platillo está dentro de su horario disponible ahora? Sin horario => siempre.
 // Soporta ventanas que cruzan medianoche (ej. 22:00–02:00).
@@ -39,13 +40,9 @@ export const useProductStore = defineStore("products", {
       return this.items.filter((item) => item.is_featured && isAvailableNow(item));
     },
     specialOffers() {
-      const now = new Date();
-      return this.items.filter(
-        (item) =>
-          item.special_price &&
-          (!item.special_until || new Date(item.special_until) > now) &&
-          isAvailableNow(item)
-      );
+      // Misma regla que el carrito y el servidor: una oferta sin fecha de fin no
+      // es oferta, así que tampoco debe aparecer en la vitrina de ofertas.
+      return this.items.filter((item) => isSpecialActive(item) && isAvailableNow(item));
     },
   },
   actions: {
@@ -71,7 +68,8 @@ export const useProductStore = defineStore("products", {
     seeProduct(product) {
       this.product = Object.assign({}, product);
       this.product.qty = 1;
-      this.product.totalPrice = parseFloat(product.price);
+      // El precio de oferta, si está vigente. El servidor cobra con la misma regla.
+      this.product.totalPrice = effectivePrice(product);
       this.product.extras = [...(product.extras || [])].sort((a, b) => a.order - b.order);
       this.product.extras.forEach((extra) => {
         // Solo el radio preselecciona: es el único donde "no elegir" no es opción.
@@ -94,7 +92,58 @@ export const useProductStore = defineStore("products", {
     },
     isDisabled(extra) {
       this.updatePrice();
-      return chosenOf(extra) >= maxOf(extra);
+      return chosenOf(extra) >= maxOf(extra, this.product?.extras);
+    },
+    /**
+     * Recorta lo que ya no cabe tras cambiar de tamaño.
+     *
+     * Al pasar de 48 a 36 piezas el grupo baja de 4 rollos a 3, y además se
+     * reactivan los techos por rollo, así que un tercer Norteño sobra aunque el
+     * total sí cupiera. Se conserva lo elegido y solo se quita el excedente,
+     * empezando por lo último que agregó.
+     *
+     * Devuelve qué se quitó para poder avisarle al comensal por su nombre.
+     */
+    enforceLimits() {
+      const extras = this.product?.extras || [];
+      const quitados = [];
+
+      const anotar = (nombre, cuantos) => {
+        if (cuantos <= 0) return;
+        const previo = quitados.find((q) => q.name === nombre);
+        if (previo) previo.count += cuantos;
+        else quitados.push({ name: nombre, count: cuantos });
+      };
+
+      extras.forEach((extra) => {
+        if (controlOf(extra) === "radio") return;
+        const opciones = extra.options || [];
+
+        // 1) Techos por opción (los que el tamaño no haya desactivado).
+        opciones.forEach((option) => {
+          const techo = maxOfOption(extra, option, extras);
+          const actual = Number(option.qty) || 0;
+          if (actual > techo) {
+            option.qty = techo;
+            anotar(option.name, actual - techo);
+          }
+        });
+
+        // 2) Tope total del grupo, recortando desde el final.
+        let sobra = chosenOf(extra) - maxOf(extra, extras);
+        for (let i = opciones.length - 1; i >= 0 && sobra > 0; i--) {
+          const option = opciones[i];
+          const actual = Number(option.qty) || 0;
+          if (!actual) continue;
+          const quitar = Math.min(actual, sobra);
+          option.qty = actual - quitar;
+          sobra -= quitar;
+          anotar(option.name, quitar);
+        }
+      });
+
+      this.updatePrice();
+      return quitados;
     },
     updatePrice() {
       // El modo de precio de cada extra sale de su configuración (ver
@@ -103,7 +152,7 @@ export const useProductStore = defineStore("products", {
       //    ej. Charola $425 -> opción "36 Piezas" $425 = $425).
       //  - "add": el precio base se cuenta una vez y las opciones se suman encima.
       // El servidor aplica exactamente la misma regla leyendo el mismo campo.
-      const base = parseFloat(this.product.price) || 0;
+      const base = effectivePrice(this.product);
 
       if (!this.product.extras || this.product.extras.length === 0) {
         this.product.totalPrice = base;

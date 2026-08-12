@@ -199,6 +199,13 @@
                 {{ option.name }}<span v-if="extra.extra?.qty > 1"> ({{ option.quantity * item.quantity }})</span><span v-if="optionIndex < extra.options.length - 1">, </span>
               </span>
             </div>
+
+            <!-- Nota del comensal para ESTE platillo. Se resalta: es una instrucción
+                 para la cocina, no un adorno. -->
+            <div v-if="item.notes" class="mc-order-item__note">
+              <q-icon name="chat_bubble" size="12px" />
+              <span>{{ item.notes }}</span>
+            </div>
           </div>
         </div>
 
@@ -582,6 +589,7 @@ const ticketStyles = `
   .c-desc { flex: 1 1 auto; padding: 0 4px; word-break: break-word; }
   .c-imp { width: 60px; flex: 0 0 60px; text-align: right; }
   .extra { font-size: 10px; padding-left: 32px; }
+  .item-note { font-size: 11px; padding-left: 32px; font-weight: 800; }
   .row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 12px; }
   .total { font-weight: bold; font-size: 16px; border-top: 1px solid #000; margin-top: 3px; padding-top: 3px; }
   .letras { font-size: 10px; text-align: center; margin: 4px 0; text-transform: uppercase; }
@@ -637,6 +645,11 @@ const printOrder = (order) => {
           html += `<div class="extra">↳ ${text}</div>`;
         });
       });
+      // La nota va bajo su platillo y en negrita: es lo que la cocina tiene que
+      // ver de un vistazo, no una línea más de detalle.
+      if (item.notes) {
+        html += `<div class="item-note">** ${esc(item.notes)}</div>`;
+      }
       return html;
     })
     .join("");
@@ -997,6 +1010,22 @@ adminStore.getOrders(props.status);
   &__name {
     font-weight: 500;
     font-size: var(--text-sm);
+  }
+
+  // Instrucción de cocina: tiene que saltar a la vista entre los extras.
+  &__note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: var(--space-xs) 0 0 32px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--color-warning-bg, rgba(255, 193, 7, 0.14));
+    color: var(--color-text-primary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    width: fit-content;
+    max-width: 100%;
   }
 
   &__extra {

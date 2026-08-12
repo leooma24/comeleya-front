@@ -1,18 +1,16 @@
 import { computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { isSpecialActive } from "src/utils/dishPrice";
 
 // Lógica compartida por CardDish y ListDish (una sola fuente de verdad).
 // `item` debe ser un ref (usa toRef(props, "item") en el componente).
 export function useDish(item) {
   const mainStore = useMainStore();
 
-  const hasSpecialPrice = computed(() => {
-    const i = item.value;
-    return (
-      i?.special_price &&
-      (!i.special_until || new Date(i.special_until) > new Date())
-    );
-  });
+  // Misma regla que el carrito y que el servidor (src/utils/dishPrice.js). Antes
+  // aquí una oferta SIN fecha de fin se pintaba como vigente, pero el servidor no
+  // la aplicaba: se anunciaba un descuento que nunca se cobraba.
+  const hasSpecialPrice = computed(() => isSpecialActive(item.value));
 
   // "Nuevo" = creado en los últimos 14 días
   const isNew = computed(() => {

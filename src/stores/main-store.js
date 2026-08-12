@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { api } from "boot/axios";
+import { scrollOffsetFor } from "src/utils/categoryScroll";
 
 import { useProductStore } from "./products";
 import { useUserStore } from "./user-store";
@@ -221,6 +222,25 @@ export const useMainStore = defineStore("main", {
     },
     belowMinOrder() {
       return this.minOrder > 0 && Number(this.total) < this.minOrder;
+    },
+    /**
+     * ¿El negocio toma pedidos por la plataforma?
+     *
+     * Con la feature 12 ("delivery") apagada el menú queda de SOLO LECTURA: se ven
+     * platillos y precios pero no hay forma de agregar al carrito. Es distinto de
+     * `ordersPaused`, que es una pausa temporal del dueño ("hoy ya no alcanzo") y
+     * sí muestra el carrito con su aviso.
+     *
+     * OJO: no confundir con la feature 1 ("Servicio a Domicilio"), que solo decide
+     * si aparece la opción de envío en el checkout. Un negocio que solo hace
+     * recoger debe poder seguir vendiendo.
+     */
+    orderingEnabled() {
+      // Sin features cargadas todavía no se apaga nada: si no, el menú parpadearía
+      // a solo lectura mientras carga.
+      const features = this.company?.features;
+      if (!Array.isArray(features) || !features.length) return true;
+      return this.hasService(12);
     },
     ordersPaused() {
       return !!this.establishment?.orders_paused;
@@ -486,6 +506,16 @@ export const useMainStore = defineStore("main", {
 
       this.companyStore.setCompany(establisment);
 
+      // Si el negocio ya no toma pedidos, el carrito guardado del comensal deja de
+      // servir. Se limpia aquí y no al pagar: descubrir que no puede mandar nada
+      // después de armar el pedido completo es peor que perderlo al entrar.
+      if (!this.orderingEnabled && this.cartStore.cart.length) {
+        this.cartStore.clear();
+        this.messageStore.error(
+          "Este restaurante no está recibiendo pedidos en línea. Puedes consultar el menú."
+        );
+      }
+
       // Píxel de Meta por establecimiento (si está activado y configurado).
       const fb = establisment.facebook_public;
       if (fb?.enabled && fb.pixel_id) {
@@ -559,6 +589,12 @@ export const useMainStore = defineStore("main", {
       return this.productStore.countByCategory[categoryId] > 0;
     },
     addToCart() {
+      // Última barrera: los botones ya están ocultos, pero un carrito viejo o un
+      // atajo del teclado no deben poder colarse.
+      if (!this.orderingEnabled) {
+        this.messageStore.error("Este restaurante no está recibiendo pedidos en línea");
+        return;
+      }
       if (!this.companyStore.isOpen) {
         this.messageStore.error("Establecimiento cerrado");
 
@@ -648,6 +684,27 @@ export const useMainStore = defineStore("main", {
         // ignore
       }
     },
+    /**
+     * Salta a una categoría del menú y la deja seleccionada.
+     *
+     * La usan los DOS caminos que existen: el click en un tab y el deep-link
+     * ?cat= del iframe. Antes cada uno tenía su propia versión y se
+     * desincronizaron: el deep-link no ponía el candado del spy y usaba un
+     * offset fijo, así que el tab se quedaba en la categoría anterior.
+     */
+    goToCategory(id, isNarrow = false) {
+      this.tab = id;
+      // Sin este candado el spy recalcula durante el scroll suave y, como todavía
+      // va pasando por la categoría anterior, le regresa el tab.
+      this.spyLockUntil = Date.now() + 1000;
+
+      const section = document.getElementById(String(id));
+      if (!section) return;
+
+      const offset = scrollOffsetFor({ isExternal: !!this.isExternal, isNarrow });
+      const y = section.getBoundingClientRect().top + window.scrollY + offset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    },
     setTip(value) {
       if (value === "otro") {
         this.tip.type = "otro";
@@ -713,6 +770,16 @@ export const useMainStore = defineStore("main", {
             }
           });
         });
+
+        // La nota va pegada a SU platillo, no al final del mensaje: el restaurante
+        // tiene que saber a cuál se refiere. Pasa por b() como el nombre, porque un
+        // asterisco suelto rompe el negrita de WhatsApp.
+        // Sin emoji a propósito: este mismo texto se imprime en tickets térmicos,
+        // que no saben renderizarlos, y no todos los clientes de WhatsApp los
+        // muestran igual. El ↳ es el mismo que ya se usa para los extras.
+        if (product.notes) {
+          lines.push(`   ↳ Nota: ${b(product.notes)}`);
+        }
       });
 
       // Totals

@@ -253,6 +253,7 @@ import CardDish from "src/components/client/CardDish.vue";
 import ListDish from "src/components/client/ListDish.vue";
 import { useRoute } from "vue-router";
 import { useMainStore } from "src/stores/main-store";
+import { spyThresholdFor } from "src/utils/categoryScroll";
 
 const mainStore = useMainStore();
 const route = useRoute();
@@ -321,11 +322,13 @@ const updateActiveCategory = () => {
   // Mientras hay un scroll por click en un tab, el spy NO cambia el tab (evita que
   // el movimiento pise la categoría que el usuario eligió).
   if (Date.now() < mainStore.spyLockUntil) return;
-  const threshold = mainStore.isExternal
-    ? 60
-    : $q.screen.width <= 1023
-      ? 245
-      : 75;
+  // Sale de la MISMA medición que el punto de aterrizaje, así el título siempre
+  // cae por encima de esta línea. Con el 60 fijo de antes y tabs de ~53px, el
+  // título aterrizaba en 65 y quedaba a 5px de activar su tab.
+  const threshold = spyThresholdFor({
+    isExternal: !!mainStore.isExternal,
+    isNarrow: $q.screen.width <= 1023,
+  });
   const headings = document.querySelectorAll(".mc-category-heading[data-id]");
   if (!headings.length) return;
   // Por defecto la primera categoría (cuando aún no pasa ninguna por la línea)
@@ -440,11 +443,10 @@ const scrollToDeepLinkCategory = async () => {
   await nextTick();
   // Espera a que las secciones/productos rendericen para medir bien la posición.
   setTimeout(() => {
-    const section = document.getElementById(String(target.id));
-    if (!section) return;
-    const yOffset = mainStore.isExternal ? -70 : $q.screen.width <= 1024 ? -230 : -60;
-    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
-    window.scrollTo({ top: y, behavior: "smooth" });
+    // La MISMA acción que el click en un tab: antes esto tenía su propia versión
+    // con un offset fijo y sin candado del spy, y por eso el tab se quedaba en la
+    // categoría anterior.
+    mainStore.goToCategory(target.id, $q.screen.width <= 1023);
   }, 500);
 };
 

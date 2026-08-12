@@ -848,6 +848,85 @@ describe("admin-store - extended coverage", () => {
     });
   });
 
+  // La relación entre grupos se declara desde el que manda ("Número de piezas
+  // define el máximo de Seleccionar sushis") pero se GUARDA en el dependiente,
+  // en su qty_from_extra_id. Estas pruebas fijan esa traducción.
+  describe("relación entre grupos de extras", () => {
+    const dosGrupos = () => {
+      store.extras = [
+        { id: 667, name: "Número de piezas", qty: 1, selection_type: "radio", options: [] },
+        { id: 703, name: "Seleccionar sushis", qty: 3, selection_type: "counter", options: [] },
+      ];
+      return { tamanos: store.extras[0], sushis: store.extras[1] };
+    };
+
+    // Réplica de lo que hace el panel al elegir en el selector.
+    const setDependiente = (extra, id) => {
+      store.extras.forEach((e) => {
+        if (e.id === extra.id) return;
+        if (e.id === id) e.qty_from_extra_id = extra.id;
+        else if (e.qty_from_extra_id === extra.id) e.qty_from_extra_id = null;
+      });
+    };
+
+    it("ligar escribe la referencia en el grupo dependiente, no en el que manda", () => {
+      const { tamanos, sushis } = dosGrupos();
+
+      setDependiente(tamanos, 703);
+
+      expect(sushis.qty_from_extra_id).toBe(667);
+      expect(tamanos.qty_from_extra_id).toBeUndefined();
+    });
+
+    it("desligar devuelve al dependiente a su máximo fijo", () => {
+      const { tamanos, sushis } = dosGrupos();
+      setDependiente(tamanos, 703);
+
+      setDependiente(tamanos, null);
+
+      expect(sushis.qty_from_extra_id).toBeNull();
+      expect(sushis.qty).toBe(3); // su máximo propio sigue intacto
+    });
+
+    // Uno solo a propósito: el "36 Piezas incluye 3" no se puede repartir entre dos
+    // grupos, daría 3 rollos y 3 salsas a la vez.
+    it("cambiar de destino desliga al anterior", () => {
+      store.extras = [
+        { id: 667, name: "Piezas", qty: 1, selection_type: "radio", options: [] },
+        { id: 703, name: "Sushis", qty: 3, selection_type: "counter", options: [] },
+        { id: 704, name: "Salsas", qty: 2, selection_type: "counter", options: [] },
+      ];
+      setDependiente(store.extras[0], 703);
+
+      setDependiente(store.extras[0], 704);
+
+      expect(store.extras[1].qty_from_extra_id).toBeNull();
+      expect(store.extras[2].qty_from_extra_id).toBe(667);
+    });
+
+    it("no se liga a sí mismo", () => {
+      const { tamanos } = dosGrupos();
+      setDependiente(tamanos, 667);
+      expect(tamanos.qty_from_extra_id).toBeUndefined();
+    });
+
+    it("la relación solo puede ser entre extras del mismo platillo", () => {
+      // store.extras SIEMPRE son los del producto abierto: extraProduct los carga
+      // de product.extras. No hay forma de listar los de otro platillo.
+      store.extraProduct({
+        id: 1,
+        name: "Charola",
+        price: 425,
+        extras: [
+          { id: 667, name: "Piezas", order: 0, qty: 1, options: [] },
+          { id: 703, name: "Sushis", order: 1, qty: 3, options: [] },
+        ],
+      });
+
+      expect(store.extras.map((e) => e.id)).toEqual([667, 703]);
+    });
+  });
+
   describe("extraProduct", () => {
     it("sets product extras with types mapped", () => {
       store.extraProduct({

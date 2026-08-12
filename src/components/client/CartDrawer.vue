@@ -58,6 +58,23 @@
 
               <div class="mc-cart-item__info">
                 <span class="mc-cart-item__name">{{ product.name }}</span>
+
+                <!-- Con nota se lee recortada; sin ella, la invitación a ponerla.
+                     En ambos casos abre el mismo diálogo. -->
+                <button
+                  type="button"
+                  class="mc-cart-item__note"
+                  :class="{ 'mc-cart-item__note--filled': !!product.notes }"
+                  @click="openNotes(index)"
+                >
+                  <q-icon
+                    :name="product.notes ? 'chat_bubble' : 'chat_bubble_outline'"
+                    size="13px"
+                  />
+                  <span class="mc-cart-item__note-text">{{
+                    product.notes || "Agregar comentario"
+                  }}</span>
+                </button>
               </div>
 
               <div class="mc-cart-item__actions">
@@ -210,6 +227,14 @@
         </div>
       </div>
     </div>
+
+    <item-notes-dialog
+      v-model="notesDialog"
+      :dish-name="notesDishName"
+      :model-value-text="notesCurrent"
+      @save="saveNotes"
+      @remove="removeNotes"
+    />
   </q-drawer>
 </template>
 
@@ -217,10 +242,32 @@
 defineOptions({
   name: "CartDrawer",
 });
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import CheckoutSteps from "./CheckoutSteps.vue";
+import ItemNotesDialog from "./ItemNotesDialog.vue";
 const mainStore = useMainStore();
+
+// Comentario por platillo. Un solo diálogo reutilizado para todos los renglones:
+// se guarda el índice del que se está editando.
+const notesDialog = ref(false);
+const notesIndex = ref(-1);
+
+const notesDishName = computed(() => mainStore.cart[notesIndex.value]?.name ?? "");
+const notesCurrent = computed(() => mainStore.cart[notesIndex.value]?.notes ?? "");
+
+const openNotes = (index) => {
+  notesIndex.value = index;
+  notesDialog.value = true;
+};
+
+const saveNotes = (texto) => {
+  mainStore.cartStore.setNotes(notesIndex.value, texto);
+};
+
+const removeNotes = () => {
+  mainStore.cartStore.setNotes(notesIndex.value, "");
+};
 
 // El detalle del item se dibuja de DOS formas: con extras (muestra la lista de
 // opciones) y sin extras (solo nombre + cantidad + precio). Los botones editar/
@@ -503,9 +550,45 @@ const continueCheckout = () => {
   }
 
   &__name {
+    display: block;
     font-weight: 600;
     font-size: var(--text-base);
     color: var(--color-text-primary);
+  }
+
+  // Botón de comentario. max-width:100% y el ellipsis del texto son obligatorios:
+  // un comentario largo desbordaría el q-scrollarea y sacaría de vista el precio
+  // y los botones alineados a la derecha (ver el comentario del :deep de arriba).
+  &__note {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin-top: 2px;
+    padding: 2px 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+    transition: color var(--transition-fast);
+
+    &:hover {
+      color: var(--q-primary);
+    }
+
+    &--filled {
+      color: var(--color-text-secondary);
+      font-style: italic;
+    }
+  }
+
+  &__note-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__qty {

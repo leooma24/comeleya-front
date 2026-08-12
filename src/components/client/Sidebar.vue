@@ -187,7 +187,7 @@
       class="mc-cart-bar mc-mb-fix mc-sidebar-cart-bar"
       :class="{ 'mc-sidebar-cart-bar--external': mainStore.isExternal }"
       @click="mainStore.cartDrawer = true"
-      v-if="mainStore.cart.length > 0 && !mainStore.externalCartBar"
+      v-if="mainStore.cart.length > 0 && !mainStore.externalCartBar && mainStore.orderingEnabled"
     >
       <div class="row items-center justify-between full-width">
         <div class="mc-cart-bar-left" :key="cartUnits">
@@ -356,32 +356,9 @@ function openMap() {
 }
 
 function goToCategory(id) {
-  // El usuario eligió esta categoría: fija el tab y bloquea el scroll-spy mientras
-  // dura el scroll (para que el movimiento no cambie el tab a otro).
-  mainStore.tab = id;
-  mainStore.spyLockUntil = Date.now() + 1000;
-
-  const section = document.getElementById(id);
-  if (section) {
-    // Los tabs son position:fixed tanto en iframe como en móvil web, así que su
-    // borde inferior (getBoundingClientRect().bottom) es justo el punto bajo el
-    // cual debe aterrizar la sección. Se mide en vivo (la altura del bloque de
-    // establecimiento varía según dirección/banner) en vez de un offset fijo.
-    let yOffset = -60; // escritorio: solo el header de 56px
-    const tabsFixed = mainStore.isExternal || $q.screen.width <= 1023;
-    if (tabsFixed) {
-      const tabsEl = document.querySelector(".mc-sidebar-tabs");
-      const bottom = tabsEl
-        ? tabsEl.getBoundingClientRect().bottom
-        : mainStore.isExternal
-          ? 56
-          : 230;
-      yOffset = -(bottom + 12); // +12px de respiro para que el título no quede pegado
-    }
-    const y = section.getBoundingClientRect().top + window.scrollY + yOffset;
-    window.scrollTo({ top: y, behavior: "smooth" });
-  }
-
+  // Misma acción que usa el deep-link ?cat= del iframe: fija el tab, bloquea el
+  // scroll-spy mientras dura el movimiento y mide los tabs en vivo.
+  mainStore.goToCategory(id, $q.screen.width <= 1023);
   centerActiveTab();
 }
 

@@ -40,6 +40,20 @@ export const useCartStore = defineStore("cart", {
       const product = Object.assign({}, this.cart[index]);
       return product;
     },
+    // Nota del comensal para UNA línea ("sin cebolla"). Aplica a toda la línea:
+    // si pidió 3 del mismo platillo, la nota va para los 3.
+    setNotes(index, texto) {
+      const item = this.cart[index];
+      if (!item) return;
+      const limpio = String(texto ?? "").trim();
+      // Vacío = sin nota. Se borra la llave en vez de guardar "" para que el
+      // payload no mande ruido al servidor.
+      if (limpio) {
+        item.notes = limpio;
+      } else {
+        delete item.notes;
+      }
+    },
     removeProduct(index) {
       this.cart.splice(index, 1);
       this.updateTotal();

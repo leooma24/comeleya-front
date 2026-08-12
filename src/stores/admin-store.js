@@ -1309,6 +1309,7 @@ export const useAdminStore = defineStore({
         is_required: 0,
         selection_type: "radio",
         price_mode: "add",
+        require_variety: false,
         options: [
           {
             name: "",
@@ -1324,6 +1325,10 @@ export const useAdminStore = defineStore({
       extra.options.push({
         name: "",
         price: 0,
+        // Topes dependientes: nulos salvo que el dueño los capture.
+        grants_qty: null,
+        max_qty: null,
+        lifts_caps: false,
       });
     },
     extraProduct(product) {

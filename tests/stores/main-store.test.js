@@ -358,6 +358,60 @@ describe("main-store", () => {
     });
   });
 
+  // El mensaje de WhatsApp es lo que el restaurante lee para preparar el pedido:
+  // si la nota no sale aquí, la cocina nunca se entera.
+  describe("buildWhatsAppUrl: comentario por platillo", () => {
+    const prepararPedido = () => {
+      store.companyStore.company = { name: "Test", whatsapp: "9876543210", features: [] };
+      store.userStore.data = { name: "Omar", phone: "1234567890", delivery: "Recoger" };
+      store.orderStore.order = { order_code: "ORD-1" };
+      store.payment = { type: "Efectivo", value: 0 };
+    };
+
+    const mensaje = () => decodeURIComponent(store.whatsappUrl.split("?text=")[1] ?? "");
+
+    beforeEach(prepararPedido);
+
+    it("imprime la nota debajo de su platillo", () => {
+      store.cartStore.addToCart({ name: "Charola", totalPrice: 550, qty: 1, extras: [], notes: "Sin cebolla" });
+      store.buildWhatsAppUrl();
+
+      const texto = mensaje();
+      expect(texto).toContain("Sin cebolla");
+      // Debe ir DESPUÉS del platillo al que pertenece, no al final del mensaje.
+      expect(texto.indexOf("Sin cebolla")).toBeGreaterThan(texto.indexOf("Charola"));
+    });
+
+    it("cada platillo lleva la suya", () => {
+      store.cartStore.addToCart({ name: "Charola", totalPrice: 550, qty: 1, extras: [], notes: "Sin cebolla" });
+      store.cartStore.addToCart({ name: "Bazuka", totalPrice: 170, qty: 1, extras: [], notes: "Extra picante" });
+      store.buildWhatsAppUrl();
+
+      const texto = mensaje();
+      expect(texto.indexOf("Sin cebolla")).toBeGreaterThan(texto.indexOf("Charola"));
+      expect(texto.indexOf("Sin cebolla")).toBeLessThan(texto.indexOf("Bazuka"));
+      expect(texto.indexOf("Extra picante")).toBeGreaterThan(texto.indexOf("Bazuka"));
+    });
+
+    it("un platillo sin nota no imprime línea de más", () => {
+      store.cartStore.addToCart({ name: "Charola", totalPrice: 550, qty: 1, extras: [] });
+      store.buildWhatsAppUrl();
+
+      expect(mensaje()).not.toContain("Nota:");
+    });
+
+    // WhatsApp usa * para negrita: un asterisco suelto en la nota rompería el
+    // formato del resto del mensaje.
+    it("un asterisco en la nota no rompe el formato", () => {
+      store.cartStore.addToCart({ name: "Charola", totalPrice: 550, qty: 1, extras: [], notes: "Sin *cebolla*" });
+      store.buildWhatsAppUrl();
+
+      const texto = mensaje();
+      expect(texto).toContain("Sin cebolla");
+      expect(texto).not.toContain("*cebolla*");
+    });
+  });
+
   describe("buildWhatsAppUrl", () => {
     it("builds URL with delivery info", () => {
       store.cartStore.addToCart({

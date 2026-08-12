@@ -48,7 +48,7 @@
           <!-- Extras -->
           <div class="q-mt-md">
             <div
-              v-for="extra in mainStore.product.extras"
+              v-for="extra in extrasVisibles"
               :key="extra.id"
               :class="[
                 'mc-extra-group',
@@ -77,7 +77,16 @@
                   class="mc-extra-item"
                 >
                   <q-item-section>
-                    <q-item-label>{{ option.name }}</q-item-label>
+                    <q-item-label>
+                      {{ option.name }}
+                      <!-- Solo aparece cuando ESTA opción tiene un techo menor al
+                           del grupo: sin esto el comensal ve un + apagado y no
+                           sabe si el límite es del grupo o de este rollo. -->
+                      <span
+                        v-if="capLabel(extra, option)"
+                        class="mc-extra-cap"
+                      >{{ capLabel(extra, option) }}</span>
+                    </q-item-label>
                   </q-item-section>
                   <q-item-section class="col-2">
                     <q-item-label class="mc-extra-price">{{ checkOptionType(extra, option) }}</q-item-label>
@@ -112,7 +121,7 @@
                         icon="add"
                         size="sm"
                         @click="incrementValue(option)"
-                        :disabled="mainStore.isDisabled(extra)"
+                        :disabled="mainStore.isDisabled(extra) || optionFull(extra, option)"
                       />
                     </div>
                     <!-- Varias opciones distintas, sin repetir. Se deshabilitan las
@@ -124,12 +133,32 @@
                       :true-value="1"
                       :false-value="0"
                       color="primary"
-                      :disable="!option.qty && isFull(extra)"
+                      :disable="!option.qty && (isFull(extra, extrasDelProducto) || optionFull(extra, option))"
                       @update:model-value="mainStore.updatePrice"
                     />
                   </q-item-section>
                 </q-item>
               </q-list>
+            </div>
+
+            <!-- Comentario del platillo. También aquí y no solo en el carrito:
+                 si el comensal le da al lápiz para editar, lo busca donde está
+                 todo lo demás del platillo. -->
+            <div class="mc-extra-group" v-if="mainStore.orderingEnabled">
+              <div class="row items-center justify-between">
+                <span class="mc-extra-name">Comentario</span>
+                <q-btn
+                  flat
+                  dense
+                  no-caps
+                  size="sm"
+                  color="primary"
+                  :icon="notaActual ? 'chat_bubble' : 'chat_bubble_outline'"
+                  :label="notaActual ? 'Editar' : 'Agregar'"
+                  @click="notesDialog = true"
+                />
+              </div>
+              <p v-if="notaActual" class="mc-product-note">{{ notaActual }}</p>
             </div>
 
             <!-- Quantity -->
@@ -162,8 +191,10 @@
             </div>
           </div>
 
-          <!-- Botón Agregar: en el flujo (se alcanza scrolleando), no tapado en móvil -->
-          <div class="mc-add-to-cart-bar">
+          <!-- Botón Agregar: en el flujo (se alcanza scrolleando), no tapado en móvil.
+               Con los pedidos apagados el menú es solo de consulta: se ven platillos
+               y precios, pero no hay forma de agregar nada. -->
+          <div class="mc-add-to-cart-bar" v-if="mainStore.orderingEnabled">
             <q-btn
               ref="addBtnRef"
               color="primary"
@@ -182,6 +213,14 @@
         </div>
       </div>
     </div>
+
+    <item-notes-dialog
+      v-model="notesDialog"
+      :dish-name="mainStore.product?.name || ''"
+      :model-value-text="notaActual"
+      @save="guardarNota"
+      @remove="quitarNota"
+    />
   </q-drawer>
 </template>
 
@@ -189,9 +228,18 @@
 defineOptions({
   name: "AddCartDrawer",
 });
-import { ref, nextTick } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { useMainStore } from "src/stores/main-store";
-import { controlOf, priceModeOf, isFull, selectionRuleOf } from "src/utils/extraConfig";
+import ItemNotesDialog from "./ItemNotesDialog.vue";
+import {
+  controlOf,
+  priceModeOf,
+  isFull,
+  isOptionFull,
+  optionCapLabel,
+  isDecorative,
+  selectionRuleOf,
+} from "src/utils/extraConfig";
 const mainStore = useMainStore();
 const addBtnRef = ref(null);
 
@@ -263,11 +311,49 @@ const incrementValue = (option) => {
   mainStore.updatePrice();
 };
 
+// Comentario del platillo. Se escribe sobre el borrador que se está armando, así
+// que viaja solo al carrito cuando le da Agregar, igual que los extras.
+const notesDialog = ref(false);
+const notaActual = computed(() => mainStore.product?.notes || "");
+
+const guardarNota = (texto) => {
+  if (mainStore.product) mainStore.product.notes = texto;
+};
+
+const quitarNota = () => {
+  if (mainStore.product) delete mainStore.product.notes;
+};
+
+// Los extras del platillo, para resolver topes que dependen de otro grupo.
+// OJO: aquí van TODOS, incluidos los escondidos. Un grupo decorativo puede seguir
+// siendo la fuente del tope de otro, así que filtrarlos aquí rompería el cálculo.
+const extrasDelProducto = computed(() => mainStore.product?.extras || []);
+
+// Se esconden los grupos de una sola opción que no cambian el precio: son una
+// pregunta con una sola respuesta. Siguen existiendo en los datos y su opción
+// sigue seleccionada, así que ni el precio ni la validación de requeridos cambian.
+const extrasVisibles = computed(() =>
+  extrasDelProducto.value.filter((e) => !isDecorative(e, mainStore.product?.price))
+);
+
+const optionFull = (extra, option) => isOptionFull(extra, option, extrasDelProducto.value);
+const capLabel = (extra, option) => optionCapLabel(extra, option, extrasDelProducto.value);
+
 // El radio es excluyente: al elegir uno se limpian los demás.
 const selectOnly = (extra, option) => {
   extra.options.forEach((o) => {
     if (o.id !== option.id) o.qty = 0;
   });
+
+  // Cambiar de tamaño puede achicar el cupo de otro grupo (de 4 rollos a 3) y
+  // reactivar techos por rollo. Se conserva lo elegido y se recorta el sobrante,
+  // avisando qué se quitó para que no parezca que la app perdió la selección.
+  const quitados = mainStore.productStore.enforceLimits();
+  if (quitados.length) {
+    const detalle = quitados.map((q) => `${q.count} ${q.name}`).join(", ");
+    mainStore.messageStore.error(`Quitamos ${detalle}: ya no cabían en este tamaño`);
+  }
+
   mainStore.updatePrice();
 };
 
@@ -277,7 +363,7 @@ const checkOptionType = (extra, option) => {
   return priceModeOf(extra) === "replace" ? `$${option.price}` : `+ $${option.price}`;
 };
 
-const selectionRule = (extra) => selectionRuleOf(extra);
+const selectionRule = (extra) => selectionRuleOf(extra, extrasDelProducto.value);
 </script>
 
 <style lang="scss" scoped>
@@ -300,6 +386,30 @@ const selectionRule = (extra) => selectionRuleOf(extra);
   background: var(--color-surface-variant);
   color: var(--color-text-tertiary);
   border-radius: var(--radius-lg);
+}
+
+// Techo propio de una opción ("máx. 2"). Discreta pero legible: es la explicación
+// de por qué su + está apagado mientras los otros siguen activos.
+// El comentario ya escrito, dentro del cajón del platillo.
+.mc-product-note {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--color-text-secondary);
+  overflow-wrap: break-word;
+}
+
+.mc-extra-cap {
+  display: inline-block;
+  margin-left: var(--space-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  vertical-align: middle;
 }
 
 .mc-extra-rule {
