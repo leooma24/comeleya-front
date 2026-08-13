@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { ctaLabelOf, ctaUrlOf, ETIQUETA_POR_DEFECTO } from "src/utils/cardCta.js";
+import {
+  ctaIsCustom,
+  ctaLabelOf,
+  ctaUrlOf,
+  ETIQUETA_POR_DEFECTO,
+} from "src/utils/cardCta.js";
 
 // Atajo: un negocio con la configuración de tema que se le pase.
 const negocio = (theme_config) => ({ name: "Kazuki", theme_config });
@@ -85,6 +90,51 @@ describe("cardCta", () => {
       expect(ctaUrlOf(negocio({ card_cta_url: "kazuki.com" }))).toBeNull();
       expect(ctaUrlOf(negocio({ card_cta_url: "/categorias" }))).toBeNull();
       expect(ctaUrlOf(negocio({ card_cta_url: "esto no es una url" }))).toBeNull();
+    });
+  });
+
+  // La vista de LISTA es una fila angosta que nunca tuvo texto, solo una flecha.
+  // Ahí la etiqueta solo aparece si el dueño capturó algo; a los demás no se les
+  // quita espacio del nombre del platillo.
+  describe("¿configuró algo el negocio?", () => {
+    it("sin configurar, no", () => {
+      expect(ctaIsCustom(negocio(null))).toBe(false);
+      expect(ctaIsCustom(negocio({ primary_color: "#F00" }))).toBe(false);
+      expect(ctaIsCustom(negocio({ card_cta_label: "  ", card_cta_url: "" }))).toBe(false);
+    });
+
+    it("con etiqueta propia, sí", () => {
+      expect(ctaIsCustom(negocio({ card_cta_label: "Seguir ordenando" }))).toBe(true);
+    });
+
+    it("con enlace, sí aunque no haya etiqueta", () => {
+      expect(ctaIsCustom(negocio({ card_cta_url: "https://kazuki.com" }))).toBe(true);
+    });
+
+    // Una URL que no sirve no cuenta como configuración: el botón no la usaría.
+    it("con un enlace inválido, no", () => {
+      expect(ctaIsCustom(negocio({ card_cta_url: "javascript:alert(1)" }))).toBe(false);
+      expect(ctaIsCustom(negocio({ card_cta_url: "kazuki.com" }))).toBe(false);
+    });
+
+    it("con nulos no revienta", () => {
+      expect(ctaIsCustom(null)).toBe(false);
+      expect(ctaIsCustom(undefined)).toBe(false);
+    });
+  });
+
+  // El caso real que destapó el hueco: Sushi Express lo capturó, se guardó bien, y
+  // en la vista de lista no se veía nada porque el botón solo existía en cuadrícula.
+  describe("el caso de Sushi Express", () => {
+    const sushi = negocio({
+      card_cta_label: "Seguir ordenando",
+      card_cta_url: "https://www.sushiexpresslosmochis.com/",
+    });
+
+    it("las dos vistas leen lo mismo", () => {
+      expect(ctaLabelOf(sushi)).toBe("Seguir ordenando");
+      expect(ctaUrlOf(sushi)).toBe("https://www.sushiexpresslosmochis.com/");
+      expect(ctaIsCustom(sushi)).toBe(true);
     });
   });
 

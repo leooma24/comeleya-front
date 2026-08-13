@@ -12,6 +12,45 @@
             mainStore.isExternal ? 'mc-content-external' : '',
           ]"
         >
+          <!-- Selector de vista, SOLO embebido.
+               Fuera del iframe vive en la barra de arriba (MainLayout); embebido esa
+               barra se esconde entera —el logo de ComeleYa no pinta nada dentro de la
+               página de un cliente— y el comensal quedaba atrapado en la vista que
+               tuviera guardada.
+               Va aquí, con el contenido y sin fijar, y no junto a las categorías: esa
+               tira es `position: fixed` dentro del iframe, así que todo lo que se le
+               acerca termina encimado. Aquí se desplaza con la página y no tapa nada.
+               Es además donde vive este control en cualquier tienda. -->
+          <div
+            v-if="mainStore.isExternal && mainStore.categories.length"
+            class="mc-view-toggle-inline"
+          >
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              :color="mainStore.viewType === 'Tarjeta' ? 'primary' : 'grey-6'"
+              icon="grid_view"
+              aria-label="Vista cuadrícula"
+              @click="mainStore.setViewType('Tarjeta')"
+            >
+              <q-tooltip>Vista cuadrícula</q-tooltip>
+            </q-btn>
+            <q-btn
+              flat
+              dense
+              round
+              size="sm"
+              :color="mainStore.viewType === 'Lista' ? 'primary' : 'grey-6'"
+              icon="view_list"
+              aria-label="Vista lista"
+              @click="mainStore.setViewType('Lista')"
+            >
+              <q-tooltip>Vista lista</q-tooltip>
+            </q-btn>
+          </div>
+
           <!-- Aviso: establecimiento cerrado -->
           <div
             v-if="mainStore.categories.length && !mainStore.company.isOpen"
@@ -738,5 +777,16 @@ onBeforeUnmount(() => {
     gap: var(--space-xs);
     margin-top: var(--space-md);
   }
+}
+
+// Selector de vista embebido: a la derecha, discreto, y en el flujo del contenido.
+// Sin fondo ni recuadro a propósito — compitiendo con la tira de categorías se veía
+// como un parche pegado encima.
+.mc-view-toggle-inline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-bottom: var(--space-xs);
 }
 </style>

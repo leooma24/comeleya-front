@@ -345,7 +345,32 @@
           {{ offerProduct.name }} — Precio actual: <strong>${{ offerProduct.price }}</strong>
         </p>
         <q-input filled dense rounded v-model="offerPrice" type="number" label="Precio de oferta ($)" class="q-mb-md" />
-        <q-input filled dense rounded v-model="offerUntil" type="datetime-local" label="Válido hasta (opcional)" />
+
+        <!-- "Los martes el ceviche a $99". Sin días marcados aplica todos, que es
+             como se comportaron siempre las ofertas. -->
+        <div class="mc-offer-days-label">Solo estos días</div>
+        <div class="mc-days q-mb-md">
+          <q-btn
+            v-for="dia in DIAS_LUNES_PRIMERO"
+            :key="dia.valor"
+            :label="dia.corto"
+            :color="offerDays.includes(dia.valor) ? 'primary' : 'grey-4'"
+            :text-color="offerDays.includes(dia.valor) ? 'white' : 'grey-8'"
+            unelevated
+            dense
+            no-caps
+            class="mc-days__btn"
+            @click="toggleOfferDay(dia.valor)"
+          >
+            <q-tooltip>{{ dia.nombre }}</q-tooltip>
+          </q-btn>
+        </div>
+
+        <!-- Antes decía "(opcional)" pero la regla EXIGÍA la fecha: quien la dejaba
+             en blanco guardaba el precio y la oferta no aplicaba nunca. -->
+        <q-input filled dense rounded v-model="offerUntil" type="datetime-local" label="Válido hasta">
+          <template v-slot:hint>Déjalo vacío para que corra hasta que la quites</template>
+        </q-input>
       </q-card-section>
 
       <q-card-actions class="q-px-lg q-pb-lg">
@@ -379,6 +404,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
 import ProductActions from "./products/ProductActions.vue";
+import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
 
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
@@ -575,20 +601,36 @@ const offerProduct = ref(null);
 const offerPrice = ref("");
 const offerUntil = ref("");
 
+// Días en que aplica la oferta. Se manda null cuando no queda ninguno, no un
+// arreglo vacío: la columna dice "sin restricción" de una sola forma.
+const offerDays = ref([]);
+
+const toggleOfferDay = (valor) => {
+  offerDays.value = offerDays.value.includes(valor)
+    ? offerDays.value.filter((d) => d !== valor)
+    : [...offerDays.value, valor].sort((a, b) => a - b);
+};
+
 const openOfferDialog = (product) => {
   offerProduct.value = product;
   offerPrice.value = product.special_price || "";
   offerUntil.value = product.special_until ? product.special_until.slice(0, 16) : "";
+  offerDays.value = diasValidos(product.special_days);
   offerDialog.value = true;
 };
 
 const saveOffer = async () => {
-  await adminStore.setSpecialOffer(offerProduct.value, offerPrice.value, offerUntil.value);
+  await adminStore.setSpecialOffer(
+    offerProduct.value,
+    offerPrice.value,
+    offerUntil.value,
+    offerDays.value
+  );
   offerDialog.value = false;
 };
 
 const removeOffer = async () => {
-  await adminStore.setSpecialOffer(offerProduct.value, null, null);
+  await adminStore.setSpecialOffer(offerProduct.value, null, null, null);
   offerDialog.value = false;
 };
 </script>
@@ -756,6 +798,28 @@ const removeOffer = async () => {
   &__select {
     width: 70px;
     font-size: var(--text-xs);
+  }
+}
+
+// Los siete días como botones: se ven todos de un vistazo y "fin de semana" son dos
+// toques. Mismo bloque que en la ficha del producto, para que se capturen igual en
+// los dos lugares.
+.mc-offer-days-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.mc-days {
+  display: flex;
+  gap: 4px;
+
+  &__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 0;
+    font-weight: 700;
   }
 }
 </style>

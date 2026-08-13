@@ -276,14 +276,19 @@ h6 {
   }
 }
 
-// Escritorio embebido: el contenido arranca justo bajo los tabs fijos (~53px) para
-// que el primer elemento (aviso de horario / Recomendados) no quede tapado. En
-// móvil el contenido ya despeja los tabs, así que no se toca.
-// Se usa .mc-content.mc-content-external (doble clase) para ganarle a la regla
-// .mc-content{padding-top:0} de escritorio, que si no lo anula.
+// Escritorio embebido: el hueco de los tabs fijos lo reserva UNA sola vez.
+//
+// Aquí había un padding-top de 52px que se sumaba a los 56px de .mc-sidebar-external:
+// 108px de blanco para una tira de 53px. Se veía solo en escritorio (en móvil esta
+// regla ni aplica), que es justo como se reportó.
+//
+// El duplicado viene de que el sidebar ANTES iba fijo y no ocupaba lugar en el flujo,
+// así que el contenido tenía que despejar los tabs por su cuenta. Desde que el
+// sidebar es `position: static` con su propio padding, embebido los dos van apilados
+// (los dos son col-12) y ese padding ya empuja al contenido: este sobraba.
 @media screen and (min-width: 1024px) {
   .mc-content.mc-content-external {
-    padding-top: 52px;
+    padding-top: 0;
   }
 }
 

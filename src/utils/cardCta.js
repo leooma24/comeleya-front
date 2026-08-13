@@ -29,6 +29,18 @@ export function ctaLabelOf(establishment) {
 }
 
 /**
+ * ¿Este negocio configuró algo, o está con lo de fábrica?
+ *
+ * La vista de lista es una fila angosta y nunca tuvo texto, solo una flecha. Meterle
+ * la etiqueta a todos le quitaría espacio al nombre del platillo sin que nadie lo
+ * haya pedido, así que ahí solo aparece cuando el dueño capturó algo.
+ */
+export function ctaIsCustom(establishment) {
+  const cfg = config(establishment);
+  return !!(texto(cfg.card_cta_label) || ctaUrlOf(establishment));
+}
+
+/**
  * A dónde va el botón, o null si abre el detalle (lo normal).
  *
  * Solo http y https. Este valor termina en un `href` dentro del menú de un cliente:

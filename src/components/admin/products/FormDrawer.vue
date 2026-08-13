@@ -129,11 +129,33 @@
       :options="['Activo', 'Inactivo']"
     />
 
-    <!-- Disponibilidad por horario (ej. desayunos 07:00–12:00) -->
+    <!-- Disponibilidad por día y horario (ej. desayunos entre semana 07:00–12:00).
+         Los días extienden esta tarjeta en vez de estrenar una: su pie ya dice
+         "déjalo vacío para que esté disponible siempre", que es exactamente la
+         regla de los días. No hay concepto nuevo que explicarle al dueño.
+
+         Y son los que hacen posible la promo como producto: un "Ceviche 3x2"
+         marcado solo en lunes aparece y desaparece solo. -->
     <div class="mc-availability">
       <div class="mc-availability__label">
         <q-icon name="schedule" size="18px" color="primary" />
-        Disponible solo en horario
+        Disponible solo en
+      </div>
+      <div class="mc-days">
+        <q-btn
+          v-for="dia in DIAS_LUNES_PRIMERO"
+          :key="dia.valor"
+          :label="dia.corto"
+          :color="availDays.includes(dia.valor) ? 'primary' : 'grey-4'"
+          :text-color="availDays.includes(dia.valor) ? 'white' : 'grey-8'"
+          unelevated
+          dense
+          no-caps
+          class="mc-days__btn"
+          @click="toggleAvailDay(dia.valor)"
+        >
+          <q-tooltip>{{ dia.nombre }}</q-tooltip>
+        </q-btn>
       </div>
       <div class="row q-col-gutter-sm">
         <q-input class="col-6" v-model="availFrom" type="time" filled dense label="Desde" />
@@ -153,6 +175,7 @@ import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
+import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
 const adminStore = useAdminStore();
 const $q = useQuasar();
 
@@ -173,6 +196,18 @@ const availUntil = computed({
   get: () => (adminStore.productForm.available_until || "").slice(0, 5),
   set: (v) => { adminStore.productForm.available_until = v || null; },
 });
+
+// Días en que se vende el platillo. Se guarda NULL cuando no queda ninguno, no un
+// arreglo vacío: así la columna dice "sin restricción" de una sola forma.
+const availDays = computed(() => diasValidos(adminStore.productForm.available_days));
+
+const toggleAvailDay = (valor) => {
+  const actuales = availDays.value;
+  const nuevos = actuales.includes(valor)
+    ? actuales.filter((d) => d !== valor)
+    : [...actuales, valor].sort((a, b) => a - b);
+  adminStore.productForm.available_days = nuevos.length ? nuevos : null;
+};
 
 // ¿El plan del restaurante incluye mejoras de imagen con IA?
 const imgFeatureEnabled = computed(() => imgUsage.limit > 0);
@@ -297,6 +332,21 @@ const onFileSelected = (event) => {
   &__hint {
     font-size: var(--text-xs); color: var(--color-text-tertiary);
     margin: var(--space-xs) 0 0;
+  }
+}
+
+// Siete botones y no un desplegable: se ven todos de un vistazo y "fin de semana"
+// son dos toques. Se reparten el ancho para que quepan en el cajón del panel.
+.mc-days {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+
+  &__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 0;
+    font-weight: 700;
   }
 }
 

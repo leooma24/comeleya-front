@@ -1,10 +1,16 @@
 import { defineStore } from "pinia";
 import { controlOf, priceModeOf, maxOf, maxOfOption, chosenOf } from "src/utils/extraConfig";
 import { effectivePrice, isSpecialActive } from "src/utils/dishPrice";
+import { aplicaHoy } from "src/utils/weekDays";
 
-// ¿El platillo está dentro de su horario disponible ahora? Sin horario => siempre.
+// ¿El platillo se vende ahora? Sin días ni horario => siempre.
 // Soporta ventanas que cruzan medianoche (ej. 22:00–02:00).
 function isAvailableNow(item) {
+  // Días de la semana: un "Ceviche 3x2" que solo existe los lunes. Va antes del
+  // horario porque las dos condiciones se SUMAN: martes de 8 a 12 es martes Y de
+  // 8 a 12. Espejo de Dish::disponibleAhora() en el servidor.
+  if (!aplicaHoy(item?.available_days)) return false;
+
   const from = item.available_from;
   const until = item.available_until;
   if (!from || !until) return true;

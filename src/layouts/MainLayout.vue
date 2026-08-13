@@ -100,6 +100,10 @@
           <q-tooltip>{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</q-tooltip>
         </q-btn>
       </q-toolbar>
+
+      <!-- Embebido el selector NO va aquí: la tira de categorías se fija en top:0
+           dentro del iframe y taparía esta barra. Vive junto a las categorías,
+           en Sidebar.vue. -->
     </q-header>
 
     <add-cart-drawer />
@@ -286,6 +290,7 @@ if (primaryColor) {
   border-radius: var(--radius-full);
   padding: 2px;
 }
+
 
 .mc-logo {
   transition: opacity var(--transition-fast);

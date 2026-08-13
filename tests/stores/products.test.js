@@ -302,9 +302,28 @@ describe("products store", () => {
       expect(store.product.totalPrice).toBe(200);
     });
 
-    it("una oferta sin fecha de fin no aplica, igual que en el servidor", () => {
+    // Sin fecha de fin la oferta corre hasta que la quiten, que es lo que hace
+    // posible "los martes el ceviche a $99, hasta nuevo aviso". Antes se ignoraba,
+    // y el panel ofrecía la fecha como opcional: el dueño guardaba el precio y no
+    // pasaba nada.
+    it("una oferta sin fecha de fin sí se cobra", () => {
       store.seeProduct({ id: 1, price: "200.00", special_price: "150.00", extras: [] });
+      expect(store.product.totalPrice).toBe(150);
+    });
+
+    it("una oferta de martes no se cobra en lunes", () => {
+      vi.setSystemTime(new Date("2026-08-10T12:00:00")); // lunes
+      store.seeProduct({
+        id: 1, price: "200.00", special_price: "150.00", special_days: [2], extras: [],
+      });
       expect(store.product.totalPrice).toBe(200);
+
+      vi.setSystemTime(new Date("2026-08-11T12:00:00")); // martes
+      store.seeProduct({
+        id: 1, price: "200.00", special_price: "150.00", special_days: [2], extras: [],
+      });
+      expect(store.product.totalPrice).toBe(150);
+      vi.useRealTimers();
     });
 
     it("los extras que suman se agregan sobre el precio de oferta", () => {

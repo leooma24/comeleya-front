@@ -886,13 +886,21 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al actualizar el platillo");
       }
     },
-    async setSpecialOffer(product, specialPrice, specialUntil) {
+    async setSpecialOffer(product, specialPrice, specialUntil, specialDays = null) {
       if (this.loading) return;
       this.loading = true;
       try {
         const { data } = await api.put(
           `/admin/${this.slug}/${product.id}/special-offer`,
-          { special_price: specialPrice || null, special_until: specialUntil || null }
+          {
+            special_price: specialPrice || null,
+            // Sin fecha la oferta corre hasta que la quiten.
+            special_until: specialUntil || null,
+            // Vacío se manda como null: es la forma en que la columna dice "todos
+            // los días", y así "Quitar oferta" no deja días sueltos que revivan
+            // solos con la siguiente promo.
+            special_days: specialDays?.length ? specialDays : null,
+          }
         );
         this.products = this.products.map((p) => {
           if (p.id === product.id) return data.product;

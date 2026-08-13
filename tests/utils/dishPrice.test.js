@@ -18,12 +18,18 @@ describe("dishPrice", () => {
       expect(isSpecialActive({ price: 200, special_price: 150, special_until: pasado })).toBe(false);
     });
 
-    // Aquí es donde el navegador y el servidor no se ponían de acuerdo: la app
-    // daba por vigente una oferta sin fecha de fin y el servidor la ignoraba.
-    it("SIN fecha de fin NO está vigente, igual que en el servidor", () => {
-      expect(isSpecialActive({ price: 200, special_price: 150 })).toBe(false);
-      expect(isSpecialActive({ price: 200, special_price: 150, special_until: null })).toBe(false);
-      expect(isSpecialActive({ price: 200, special_price: 150, special_until: "" })).toBe(false);
+    /**
+     * SIN fecha de fin la oferta corre hasta que la quiten.
+     *
+     * Antes esto devolvía false, y era una trampa: el panel ofrecía la fecha como
+     * "opcional", así que quien la dejaba en blanco guardaba el precio, lo veía
+     * guardado y la oferta no aplicaba nunca. Cambió junto con
+     * Dish::tieneOfertaVigente() del servidor, en el mismo movimiento.
+     */
+    it("SIN fecha de fin corre hasta que la quiten", () => {
+      expect(isSpecialActive({ price: 200, special_price: 150 })).toBe(true);
+      expect(isSpecialActive({ price: 200, special_price: 150, special_until: null })).toBe(true);
+      expect(isSpecialActive({ price: 200, special_price: 150, special_until: "" })).toBe(true);
     });
 
     it("sin precio de oferta no aplica", () => {
@@ -32,8 +38,40 @@ describe("dishPrice", () => {
       expect(isSpecialActive({ price: 200, special_price: null, special_until: futuro })).toBe(false);
     });
 
-    it("una fecha ilegible no activa la oferta", () => {
-      expect(isSpecialActive({ price: 200, special_price: 150, special_until: "ayer" })).toBe(false);
+    // Una fecha que no se entiende no puede cancelar una oferta que el dueño sí
+    // capturó: se trata como si no la hubiera puesto.
+    it("una fecha ilegible no cancela la oferta", () => {
+      expect(isSpecialActive({ price: 200, special_price: 150, special_until: "ayer" })).toBe(true);
+    });
+
+    // ------------------------------------------------------- días de la semana
+
+    describe("promociones por día", () => {
+      // Fechas fijas: si no, la prueba pasa o falla según el día en que corra.
+      const martes = new Date("2026-08-11T12:00:00");
+      const oferta = (dias) => ({ price: 200, special_price: 150, special_days: dias });
+
+      it("sin días capturados aplica todos, como siempre", () => {
+        expect(isSpecialActive(oferta(null))).toBe(true);
+        expect(isSpecialActive(oferta([]))).toBe(true);
+      });
+
+      it("solo el día marcado", () => {
+        vi.setSystemTime(martes);
+        expect(isSpecialActive(oferta([2]))).toBe(true); // martes
+        expect(isSpecialActive(oferta([1]))).toBe(false); // lunes
+        expect(isSpecialActive(oferta([0, 6]))).toBe(false); // fin de semana
+        vi.useRealTimers();
+      });
+
+      // Las dos condiciones se suman: el día correcto no salva una oferta vencida.
+      it("el día correcto no revive una oferta vencida", () => {
+        vi.setSystemTime(martes);
+        expect(
+          isSpecialActive({ ...oferta([2]), special_until: "2020-01-01T00:00:00" })
+        ).toBe(false);
+        vi.useRealTimers();
+      });
     });
 
     it("tolera null", () => {
