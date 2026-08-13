@@ -1,5 +1,9 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { scrollOffsetFor, spyThresholdFor } from "src/utils/categoryScroll.js";
+import {
+  centerTabScroll,
+  scrollOffsetFor,
+  spyThresholdFor,
+} from "src/utils/categoryScroll.js";
 
 // Simula la barra de categorías fija con un alto dado.
 const conTabsDeAlto = (bottom) => {
@@ -86,6 +90,78 @@ describe("categoryScroll", () => {
       sinTabs();
       expect(scrollOffsetFor({ isExternal: false, isNarrow: false })).toBe(-60);
       expect(spyThresholdFor({ isExternal: false, isNarrow: false })).toBe(75);
+    });
+  });
+});
+
+// La tira de categorías siguiendo a la sección que se está viendo. Quasar ya la movía,
+// pero con el cálculo mínimo: el tab activo quedaba pegado a la orilla.
+describe("centerTabScroll", () => {
+  // Una tira típica de móvil: 8 categorías de 120px en una pantalla de 360.
+  const TIRA = { viewSize: 360, contentSize: 960, tabSize: 120 };
+  const enPosicion = (tabStart) => centerTabScroll({ ...TIRA, tabStart });
+
+  it("deja el tab de en medio centrado", () => {
+    // Un tab que empieza en 420 y mide 120: su centro está en 480. Con 360 de ancho
+    // visible, centrarlo pide arrancar en 480 - 180 = 300.
+    expect(enPosicion(420)).toBe(300);
+  });
+
+  // Sin el recorte, la primera categoría quedaría flotando a media pantalla con un
+  // hueco a su izquierda, y la última con uno a la derecha.
+  describe("no se despega de los extremos", () => {
+    it("los primeros tabs se quedan en 0", () => {
+      expect(enPosicion(0)).toBe(0);
+      expect(enPosicion(120)).toBe(0);
+    });
+
+    it("los últimos se quedan en el tope", () => {
+      const tope = TIRA.contentSize - TIRA.viewSize; // 600
+      expect(enPosicion(840)).toBe(tope);
+      expect(enPosicion(720)).toBe(tope);
+    });
+  });
+
+  it("sin desbordamiento no hay nada que recorrer", () => {
+    expect(centerTabScroll({ tabStart: 100, tabSize: 80, viewSize: 400, contentSize: 300 }))
+      .toBe(0);
+    // Justo del tamaño de la pantalla: tampoco.
+    expect(centerTabScroll({ tabStart: 100, tabSize: 80, viewSize: 400, contentSize: 400 }))
+      .toBe(0);
+  });
+
+  // ESTA es la que no se puede perder al centrar: dejar el tab completamente visible es
+  // lo único que Quasar sí hacía bien, y es para lo que sirve la tira.
+  describe("el tab activo SIEMPRE queda completo en pantalla", () => {
+    const tiras = [
+      { caso: "móvil, categorías cortas", viewSize: 360, tabSize: 90, total: 12 },
+      { caso: "móvil, categorías largas", viewSize: 360, tabSize: 240, total: 6 },
+      { caso: "embebido angosto", viewSize: 280, tabSize: 150, total: 9 },
+      { caso: "escritorio vertical", viewSize: 520, tabSize: 48, total: 20 },
+      // Un tab más ancho que la pantalla no cabe entero; se pide que al menos arranque
+      // visible y no deje hueco.
+      { caso: "una categoría con nombre kilométrico", viewSize: 200, tabSize: 300, total: 4 },
+    ];
+
+    tiras.forEach(({ caso, viewSize, tabSize, total }) => {
+      it(caso, () => {
+        const contentSize = tabSize * total;
+
+        for (let i = 0; i < total; i++) {
+          const tabStart = i * tabSize;
+          const scroll = centerTabScroll({ tabStart, tabSize, viewSize, contentSize });
+
+          // Nunca se sale de lo que existe.
+          expect(scroll).toBeGreaterThanOrEqual(0);
+          expect(scroll).toBeLessThanOrEqual(Math.max(0, contentSize - viewSize));
+          // El tab empieza dentro de la ventana...
+          expect(tabStart).toBeGreaterThanOrEqual(scroll);
+          // ...y termina dentro, salvo que no quepa ni ocupando toda la pantalla.
+          if (tabSize <= viewSize) {
+            expect(tabStart + tabSize).toBeLessThanOrEqual(scroll + viewSize);
+          }
+        }
+      });
     });
   });
 });

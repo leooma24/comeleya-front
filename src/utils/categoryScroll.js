@@ -47,3 +47,30 @@ export function spyThresholdFor(ctx) {
   if (bottom === null) return 75;
   return bottom + RESPIRO + MARGEN_SPY;
 }
+
+/**
+ * A qué scroll llevar la tira de categorías para dejar el tab activo al centro.
+ *
+ * Quasar ya la mueve sola al cambiar de tab, pero con el cálculo mínimo: empuja lo
+ * justo para que el tab entre en pantalla, así que la categoría activa acaba pegada a
+ * la orilla y no se ve qué sigue. Centrarla es lo que la vuelve una brújula: siempre
+ * se asoma la anterior y la siguiente.
+ *
+ * El recorte a los extremos es la otra mitad. Sin él, la primera categoría quedaría
+ * flotando a media pantalla con un hueco a su izquierda, y la última con uno a la
+ * derecha.
+ *
+ * Sin unidades ni ejes: el llamador pasa medidas horizontales o verticales según cómo
+ * esté la tira, y lo que sale es el scroll de ese mismo eje.
+ */
+export function centerTabScroll({ tabStart, tabSize, viewSize, contentSize }) {
+  const maximo = contentSize - viewSize;
+  if (!(maximo > 0)) return 0; // no se pasa de largo: no hay nada que recorrer
+
+  // Un tab más ancho que la tira no cabe, y centrarlo le cortaría el principio al
+  // nombre. Se alinea a su inicio: más vale leer "CAMARONES EMPANIZ…" que "…IZADOS".
+  const destino =
+    tabSize >= viewSize ? tabStart : tabStart + tabSize / 2 - viewSize / 2;
+
+  return Math.max(0, Math.min(destino, maximo));
+}
