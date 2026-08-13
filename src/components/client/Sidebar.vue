@@ -286,7 +286,7 @@
 defineOptions({
   name: "SidebarComponent",
 });
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { api } from "boot/axios";
 import { useMainStore } from "src/stores/main-store";
 import { useQuasar } from "quasar";
@@ -357,24 +357,23 @@ const visibleCategories = computed(() =>
 //
 // Quasar ya la movía, con dos defectos: brincaba en un frame y dejaba el tab pegado a
 // la orilla, sin que se asomara la categoría siguiente. Su scrollToTabEl no se puede
-// apagar, así que el acomodo va en dos tiempos:
+// apagar, así que se trabaja con él:
 //
-//   1. ANTES de que mida —este watcher corre primero, porque el del padre se registra
-//      antes que el interno de QTabs— se enciende scroll-behavior: smooth. Su
-//      "scrollLeft += offset" deja de ser un brinco y arranca una animación.
-//   2. En nextTick, ya con Quasar pasado, un scrollTo al punto centrado REAPUNTA esa
-//      animación. Los dos pasos ocurren antes del primer repintado, así que no se ve
-//      el paso intermedio: es un solo deslizamiento hasta el centro.
+//   - El scroll-behavior: smooth del CSS convierte su "scrollLeft += offset" en una
+//     animación en vez de un brinco.
+//   - En nextTick, ya con Quasar pasado, este scrollTo al punto centrado REAPUNTA esa
+//     animación. Los dos ocurren antes del primer repintado, así que no se ve el paso
+//     intermedio: es un solo deslizamiento hasta el centro.
 //
-// Al revés no funciona: si centramos primero, Quasar corre después, mide el tab a
-// mitad de la animación y lo regresa a la orilla.
+// El nextTick es lo que no se puede quitar. Si centramos antes, Quasar corre después,
+// mide el tab a mitad de la animación y lo regresa a la orilla.
+//
+// El recuadro azul viaja aparte, sin JavaScript: vive en el indicador de Quasar y lo
+// anima él. Está en app.scss, en .mc-sidebar-tabs .q-tab__indicator.
 const tabsRef = ref(null);
 const tabsVertical = computed(
   () => $q.screen.width >= 1024 && !mainStore.isExternal
 );
-
-const CLASE_SUAVE = "mc-tabs-smooth";
-let smoothTimer = null;
 
 const tabsContent = () => tabsRef.value?.$el?.querySelector(".q-tabs__content") ?? null;
 
@@ -383,20 +382,6 @@ watch(
   () => {
     const content = tabsContent();
     if (!content) return;
-
-    // Centrar sí, deslizar no: hoy Quasar ya brinca, así que centrar de golpe no
-    // agrega movimiento a quien pidió que no lo hubiera.
-    const suave = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches !== true;
-
-    if (suave) {
-      // La clase NO se puede quedar puesta: las flechas de Quasar avanzan asignando
-      // scrollLeft de 5 en 5 px cada 5ms, y con smooth permanente cada paso arranca su
-      // propia animación y se arrastran. Un click en una flecha no cambia el tab, así
-      // que nunca pasa por aquí.
-      content.classList.add(CLASE_SUAVE);
-      clearTimeout(smoothTimer);
-      smoothTimer = setTimeout(() => content.classList.remove(CLASE_SUAVE), 500);
-    }
 
     nextTick(() => {
       const tab = content.querySelector(".q-tab--active");
@@ -410,15 +395,18 @@ watch(
         contentSize: vertical ? content.scrollHeight : content.scrollWidth,
       });
 
+      // Centrar sí, deslizar no: hoy Quasar ya brincaba, así que centrar de golpe no
+      // le agrega movimiento a quien pidió que no lo hubiera.
       content.scrollTo({
         [vertical ? "top" : "left"]: destino,
-        behavior: suave ? "smooth" : "auto",
+        behavior:
+          window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+            ? "auto"
+            : "smooth",
       });
     });
   }
 );
-
-onUnmounted(() => clearTimeout(smoothTimer));
 
 watch(() => mainStore.company?.name, () => {
   setTimeout(updateSidebarHeight, 100);
@@ -454,26 +442,10 @@ function openMap() {
 
 function goToCategory(id) {
   // Misma acción que usa el deep-link ?cat= del iframe: fija el tab, bloquea el
-  // scroll-spy mientras dura el movimiento y mide los tabs en vivo.
+  // scroll-spy mientras dura el movimiento y mide los tabs en vivo. Fijar el tab
+  // dispara el watcher de arriba, que es quien acomoda la tira: el click y el scroll
+  // llegan por el mismo camino.
   mainStore.goToCategory(id, $q.screen.width <= 1023);
-  centerActiveTab();
-}
-
-// Centra el tab activo en la barra horizontal (móvil). El primero/último quedan
-// pegados a su orilla porque el scroll no puede pasar de 0 ni del máximo.
-function centerActiveTab() {
-  // Espera a que Quasar aplique la clase activa y haga su propio ajuste.
-  setTimeout(() => {
-    const content = document.querySelector(".mc-sidebar-tabs .q-tabs__content");
-    const active = document.querySelector(".mc-sidebar-tabs .q-tab--active");
-    if (!content || !active) return;
-    const cRect = content.getBoundingClientRect();
-    const aRect = active.getBoundingClientRect();
-    const delta = aRect.left + aRect.width / 2 - (cRect.left + cRect.width / 2);
-    if (Math.abs(delta) > 2) {
-      content.scrollBy({ left: delta, behavior: "smooth" });
-    }
-  }, 60);
 }
 </script>
 
@@ -672,10 +644,15 @@ $mc-cart-bar-z: 2500;
   gap: var(--space-xs);
 }
 
-// Solo mientras la tira se acomoda a la categoría activa. Permanente romperia las
-// flechas de Quasar, que avanzan asignando scrollLeft de 5 en 5 px.
-.mc-sidebar-tabs :deep(.mc-tabs-smooth) {
+// Quasar mueve la tira asignando scrollLeft: un brinco de un frame. Con esto ese
+// brinco arranca una animación, y el scrollTo del watcher la reapunta al centro antes
+// del primer repintado, así que se ve un solo deslizamiento.
+.mc-sidebar-tabs :deep(.q-tabs__content) {
   scroll-behavior: smooth;
+
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
 }
 
 // El lado derecho como <a>: sobre el degradado de la barra, el azul y el subrayado

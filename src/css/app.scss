@@ -355,18 +355,46 @@ h6 {
       min-height: 44px;
       border-radius: var(--radius-sm);
       margin: var(--space-xs);
-      transition: var(--transition-fast);
+      // El color del texto acompaña al recuadro mientras viaja. Sin esto el tab que
+      // lo recibe se pone blanco antes de que llegue el azul y queda ilegible un
+      // instante sobre el fondo claro.
+      transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background var(--transition-fast);
 
       &:hover:not(.q-tab--active) {
         background: var(--color-surface-variant);
       }
     }
 
-    .q-tab--active {
+    // El recuadro azul del activo NO es el fondo del tab: es el indicador de Quasar
+    // estirado a toda la pastilla.
+    //
+    // Suena rebuscado y es justo al revés. Quasar ya anima ese indicador entre tabs:
+    // lo dibuja en la posición del tab ANTERIOR y lo transita a la suya en 250ms
+    // (QTabs.js, updateActiveTab). Como fondo del tab eso no se puede: son dos cajas
+    // distintas, una se prende y la otra se apaga. Colgado del indicador, el recuadro
+    // viaja de una categoría a la siguiente sin escribir una línea de animación.
+    .q-tab__indicator {
+      position: absolute;
+      inset: 0;
+      // Quasar lo deja de 2px: alto en horizontal, ancho en vertical. Aquí ocupa todo.
+      height: auto;
+      width: auto;
       background: var(--q-primary);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent);
+      // Quasar pone solo `left`, que en la tira vertical estira desde el centro.
+      transform-origin: left top;
+      z-index: 0;
+    }
+
+    // El indicador va DESPUÉS del texto en el DOM: sin esto lo taparía.
+    .q-tab__content {
+      z-index: 1;
+    }
+
+    .q-tab--active {
       color: white;
       font-weight: 700;
-      box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent);
     }
 
     // Sin flechas: se navega arrastrando los tabs (más limpio)
