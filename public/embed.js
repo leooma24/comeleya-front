@@ -1,6 +1,6 @@
 /* ComeleYa embed.js — barra del carrito FUERA del iframe + auto-alto.
    El menú (iframe con ?isExternal=true) publica mensajes por postMessage:
-     - { type:"comeleya:cart", count, total, hasItems, color, cartImage, label }
+     - { type:"comeleya:cart", count, total, hasItems, color, cartImage, label, ctaUrl }
      - { type:"comeleya:height", height }
    Este script, incluido en la pagina contenedora, dibuja una barra sticky pegada
    al viewport real del visitante y, al tocarla, le pide al iframe abrir el carrito.
@@ -60,13 +60,26 @@
     elTotal = document.createElement("span");
     elTotal.style.cssText = "font-weight:700;font-size:18px;white-space:nowrap;";
 
-    elRight = document.createElement("span");
+    // <a> y no <span>: con enlace configurado por el negocio, este lado deja de decir
+    // "Ver pedido" y se vuelve la salida a su sitio. color/text-decoration heredados
+    // para que no se pinte azul y subrayado sobre la barra.
+    elRight = document.createElement("a");
     elRight.textContent = "Ver pedido →";
-    elRight.style.cssText = "font-weight:600;white-space:nowrap;";
+    elRight.target = "_top";
+    elRight.rel = "noopener noreferrer";
+    elRight.style.cssText =
+      "font-weight:600;white-space:nowrap;color:inherit;text-decoration:none;";
 
     bar.appendChild(left);
     bar.appendChild(elTotal);
     bar.appendChild(elRight);
+
+    // Con href, este lado navega y NADA más: sin detenerlo, el click seguiría hasta la
+    // barra y abriría además el carrito dentro del iframe. Sin href se deja subir, que
+    // es el comportamiento de siempre.
+    elRight.addEventListener("click", function (e) {
+      if (elRight.getAttribute("href")) e.stopPropagation();
+    });
 
     bar.addEventListener("click", function () {
       if (srcWin) srcWin.postMessage({ type: "comeleya:openCart" }, "*");
@@ -94,6 +107,14 @@
     elCount.textContent = d.count;
     elTotal.textContent = fmt(d.total);
     if (d.label) elRight.textContent = d.label + " →";
+    // El menú ya validó esta URL, pero el listener de abajo no verifica origen: en la
+    // página del cliente cualquier ventana puede mandar un "comeleya:cart". Un href es
+    // lo primero de este mensaje que sería ejecutable, así que se revalida aquí.
+    if (d.ctaUrl && /^https?:\/\//i.test(d.ctaUrl)) {
+      elRight.setAttribute("href", d.ctaUrl);
+    } else {
+      elRight.removeAttribute("href");
+    }
     bar.style.display = "flex";
   }
 

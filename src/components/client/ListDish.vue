@@ -68,38 +68,6 @@
               <q-tooltip>Compartir</q-tooltip>
             </q-btn>
             <span v-if="item.is_sold_out" class="dish-card__unavailable">No disponible</span>
-            <!-- El botón configurable existía solo en la vista de cuadrícula, así
-                 que un negocio que lo capturaba no veía nada si el comensal tenía
-                 guardada la vista de lista. Aquí la fila es angosta y nunca tuvo
-                 texto: la etiqueta aparece SOLO si el dueño configuró algo, para no
-                 quitarle espacio al nombre del platillo a los demás. -->
-            <q-btn
-              v-else-if="ctaUrl"
-              flat
-              dense
-              no-caps
-              size="sm"
-              color="primary"
-              icon-right="arrow_forward"
-              :label="ctaLabel"
-              type="a"
-              :href="ctaUrl"
-              target="_top"
-              rel="noopener noreferrer"
-              class="dish-card__cta"
-              @click.stop
-            />
-            <q-btn
-              v-else-if="ctaCustom"
-              flat
-              dense
-              no-caps
-              size="sm"
-              color="primary"
-              icon-right="arrow_forward"
-              :label="ctaLabel"
-              class="dish-card__cta"
-            />
             <q-icon v-else name="arrow_forward" size="18px" class="dish-card__go" />
           </div>
         </div>
@@ -113,10 +81,8 @@ defineOptions({
   name: "ListDish",
 });
 
-import { computed, toRef } from "vue";
+import { toRef } from "vue";
 import { useDish } from "src/composables/useDish";
-import { useMainStore } from "src/stores/main-store";
-import { ctaIsCustom, ctaLabelOf, ctaUrlOf } from "src/utils/cardCta";
 
 const props = defineProps({
   item: {
@@ -128,13 +94,6 @@ const props = defineProps({
 const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
-
-// El mismo botón configurable que la vista de cuadrícula, para que capturarlo una
-// vez sirva en las dos y no dependa de la vista que el comensal tenga guardada.
-const mainStore = useMainStore();
-const ctaLabel = computed(() => ctaLabelOf(mainStore.establishment));
-const ctaUrl = computed(() => ctaUrlOf(mainStore.establishment));
-const ctaCustom = computed(() => ctaIsCustom(mainStore.establishment));
 </script>
 
 <style lang="scss" scoped>

@@ -79,13 +79,21 @@
           />
         </div>
 
-        <!-- Botón de las tarjetas. La URL es para quien tiene el menú embebido en
-             su propio sitio y quiere una salida de regreso a sus categorías. -->
+        <!-- Salida de regreso al sitio del negocio, para quien tiene el menú embebido.
+             Las llaves siguen diciendo card_ porque así se guardaron cuando este botón
+             vivía en la tarjeta del platillo; renombrarlas borraría lo capturado. -->
         <div class="mc-theme-section">
-          <h4 class="mc-section-title">Botón de los platillos</h4>
+          <h4 class="mc-section-title">Botón de la barra del pedido</h4>
           <p class="mc-cart-hint">
-            Es el botón que cierra cada tarjeta del menú. Si lo dejas vacío dice
-            <strong>Ver más</strong> y abre el detalle del platillo.
+            Es el lado derecho de la barra azul que aparece abajo cuando el cliente ya
+            tiene platillos: el que dice <strong>Ver pedido</strong>. Puedes cambiarlo
+            por un enlace a tu propia página. El resto de la barra —el carrito y el
+            total— sigue abriendo el pedido.
+          </p>
+          <p class="mc-cart-hint">
+            <strong>Solo funciona con el menú insertado en tu sitio web</strong> (el
+            código de "Insertar en web"). Abierto en comeleya.com no cambia nada, porque
+            ahí no hay página tuya a la cual volver.
           </p>
           <q-input
             filled dense rounded
@@ -93,18 +101,18 @@
             label="Texto del botón"
             maxlength="40"
             counter
-            placeholder="Ver más"
+            placeholder="Volver a las categorías"
           />
           <q-input
             filled dense rounded
             v-model="theme.card_cta_url"
-            label="Enlace del botón (opcional)"
+            label="Enlace del botón"
             placeholder="https://tusitio.com/categorias"
             class="q-mt-sm"
           >
             <template v-slot:hint>
-              Con un enlace, el botón deja de abrir el detalle y lleva a esa página.
-              Debe empezar con https://
+              Se necesitan los dos campos: si dejas uno vacío, la barra se queda como
+              está. Debe empezar con https://
             </template>
           </q-input>
         </div>
@@ -194,7 +202,7 @@ const defaultTheme = () => ({
   show_banner: false,
   banner_text: "",
   cart_image: "",
-  // Vacíos: el botón dice "Ver más" y abre el detalle, como siempre.
+  // Vacíos: la barra dice "Ver pedido" y toda ella abre el pedido, como siempre.
   card_cta_label: "",
   card_cta_url: "",
 });

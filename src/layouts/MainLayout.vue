@@ -136,6 +136,7 @@ import PaymentDrawer from "src/components/client/PaymentDrawer.vue";
 import ValidationDialog from "src/components/client/ValidationDialog.vue";
 
 import { useMainStore } from "src/stores/main-store";
+import { cartBarCta } from "src/utils/cartBarCta";
 
 const mainStore = useMainStore();
 mainStore.checkColor();
@@ -207,6 +208,9 @@ onMounted(() => {
       const tc = est.theme_config || {};
       const raw = tc.primary_color || est.color || "";
       const color = raw ? (raw[0] === "#" ? raw : "#" + raw) : "#1976D2";
+      // Este bloque entero ya está detrás del guard de iframe de arriba, así que aquí
+      // `embedded` es un hecho. Sin enlace configurado sale la barra de siempre.
+      const cta = cartBarCta(est, { embedded: true });
       window.parent.postMessage(
         {
           type: "comeleya:cart",
@@ -215,7 +219,8 @@ onMounted(() => {
           hasItems: mainStore.cart.length > 0,
           color,
           cartImage: tc.cart_image || "",
-          label: "Ver pedido",
+          label: cta ? cta.label : "Ver pedido",
+          ctaUrl: cta ? cta.url : "",
         },
         "*"
       );
@@ -226,6 +231,10 @@ onMounted(() => {
         mainStore.cart.length,
         mainStore.total,
         mainStore.establishment?.theme_config?.cart_image,
+        // El establecimiento llega por red DESPUÉS del primer postCart: sin observar
+        // estas dos, la barra de allá afuera se quedaría con el "Ver pedido" inicial.
+        mainStore.establishment?.theme_config?.card_cta_label,
+        mainStore.establishment?.theme_config?.card_cta_url,
       ],
       postCart,
       { deep: true }

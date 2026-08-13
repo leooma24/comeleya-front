@@ -210,7 +210,26 @@
           >${{ Number(mainStore.total).toFixed(2) }}</span>
         </div>
 
-        <div class="mc-cart-bar-right">
+        <!-- Con enlace configurado este lado deja de decir "Ver pedido" y se vuelve la
+             salida al sitio del negocio. El pedido sigue abriéndose desde el resto de
+             la barra (el carrito y el total), que es donde vive el @click.
+
+             `@click.stop` es lo que separa las dos cosas: el click que abre el cajón
+             está en el <div> de TODA la barra, así que sin detenerlo pasarían las dos
+             a la vez. `target="_top"` porque esto solo aparece embebido: un enlace
+             normal metería el sitio del negocio dentro de su propio iframe. -->
+        <a
+          v-if="cta"
+          class="mc-cart-bar-right mc-cart-bar-link"
+          :href="cta.url"
+          target="_top"
+          rel="noopener noreferrer"
+          @click.stop
+        >
+          <span class="mc-cart-bar-label">{{ cta.label }}</span>
+          <q-icon name="arrow_forward" size="20px" />
+        </a>
+        <div v-else class="mc-cart-bar-right">
           <span class="mc-cart-bar-label">Ver pedido</span>
           <q-icon name="arrow_forward" size="20px" />
         </div>
@@ -275,6 +294,7 @@ import ReviewDialog from "./ReviewDialog.vue";
 import ReviewsDrawer from "./ReviewsDrawer.vue";
 import ReservationDialog from "./ReservationDialog.vue";
 import LoyaltyBanner from "./LoyaltyBanner.vue";
+import { cartBarCta } from "src/utils/cartBarCta";
 
 const $q = useQuasar();
 const mainStore = useMainStore();
@@ -308,6 +328,12 @@ const hasReservations = computed(() => {
   const features = mainStore.company?.features ?? [];
   return features.some((f) => (f.name === "reservations" || f.slug === "reservations") && f.value === "1");
 });
+
+// Enlace propio del negocio para el lado derecho de la barra. Null en el caso normal
+// (y siempre fuera del iframe), que deja "Ver pedido".
+const cta = computed(() =>
+  cartBarCta(mainStore.establishment, { embedded: mainStore.isEmbedded })
+);
 
 // Unidades totales en el carrito (suma de cantidades)
 const cartUnits = computed(() =>
@@ -573,6 +599,13 @@ $mc-cart-bar-z: 2500;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+}
+
+// El lado derecho como <a>: sobre el degradado de la barra, el azul y el subrayado
+// de un enlace se ven como un error. Hereda el blanco de .mc-cart-bar.
+.mc-cart-bar-link {
+  color: inherit;
+  text-decoration: none;
 }
 
 .mc-cart-bar-label {

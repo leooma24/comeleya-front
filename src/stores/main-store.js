@@ -242,6 +242,24 @@ export const useMainStore = defineStore("main", {
       if (!Array.isArray(features) || !features.length) return true;
       return this.hasService(12);
     },
+    /**
+     * ¿El menú va DENTRO de un iframe de verdad?
+     *
+     * `isExternal` sale de `?isExternal=true`, que es la intención de quien pegó el
+     * código; `window.parent !== window` es el hecho. Cualquiera puede abrir esa URL
+     * con el flag en una pestaña normal de comeleya.com, y ahí no hay página
+     * contenedora ni marco del que salir.
+     */
+    isEmbedded() {
+      if (!this.isExternal) return false;
+      if (typeof window === "undefined") return false;
+      try {
+        return window.parent !== window;
+      } catch {
+        // Un throw de origen cruzado al leer window.parent ya es prueba de que hay marco.
+        return true;
+      }
+    },
     ordersPaused() {
       return !!this.establishment?.orders_paused;
     },
