@@ -23,11 +23,11 @@
     <q-scroll-area style="height: calc(100% - 130px)">
       <div class="mc-form-drawer__body">
         <!-- Services section -->
-        <div class="mc-config-section">
-          <div class="mc-config-section__header">
-            <q-icon name="tune" size="xs" color="primary" />
-            <span class="mc-config-section__title">Servicios</span>
-          </div>
+        <admin-section
+          icon="tune"
+          title="Servicios"
+          description="Prende y apaga lo que ofreces. Lo que apagues aquí deja de aparecerle al cliente en el menú."
+        >
 
           <div
             v-for="item in adminStore.companyConfiguration.features"
@@ -43,14 +43,15 @@
               dense
             />
           </div>
-        </div>
+        </admin-section>
 
         <!-- Orders section: mínimo + pausar -->
-        <div class="mc-config-section q-mt-md">
-          <div class="mc-config-section__header">
-            <q-icon name="receipt_long" size="xs" color="primary" />
-            <span class="mc-config-section__title">Pedidos</span>
-          </div>
+        <admin-section
+          class="q-mt-md"
+          icon="receipt_long"
+          title="Pedidos"
+          description="El mínimo de compra y el botón para dejar de recibir pedidos cuando ya no te da la cocina."
+        >
 
           <q-input
             v-model.number="adminStore.companyConfiguration.min_order"
@@ -85,14 +86,15 @@
           <p v-if="adminStore.companyConfiguration.orders_paused" class="mc-config-hint">
             Mientras esté activo, los clientes verán un aviso y no podrán completar pedidos.
           </p>
-        </div>
+        </admin-section>
 
         <!-- Envío a domicilio -->
-        <div class="mc-config-section q-mt-md">
-          <div class="mc-config-section__header">
-            <q-icon name="local_shipping" size="xs" color="primary" />
-            <span class="mc-config-section__title">Envío a domicilio</span>
-          </div>
+        <admin-section
+          class="q-mt-md"
+          icon="local_shipping"
+          title="Envío a domicilio"
+          description="Cuánto cobras por llevar el pedido: una tarifa igual para todos, o calculada por la distancia desde tu negocio."
+        >
 
           <q-btn-toggle
             v-model="adminStore.companyConfiguration.delivery_mode"
@@ -173,14 +175,15 @@
               Ver en Google Maps
             </a>
           </div>
-        </div>
+        </admin-section>
 
         <!-- Bank transfer section -->
-        <div class="mc-config-section q-mt-md">
-          <div class="mc-config-section__header">
-            <q-icon name="account_balance" size="xs" color="primary" />
-            <span class="mc-config-section__title">Transferencias</span>
-          </div>
+        <admin-section
+          class="q-mt-md"
+          icon="account_balance"
+          title="Transferencias"
+          description="Los datos de tu cuenta. Se los enseñamos al cliente que elija pagar por transferencia, para que sepa a dónde depositar."
+        >
 
           <q-input
             v-model="adminStore.companyConfiguration.clabe"
@@ -211,14 +214,15 @@
           <p v-if="!adminStore.hasService(9)" class="mc-config-hint">
             Activa el servicio de transferencias para configurar estos datos.
           </p>
-        </div>
+        </admin-section>
 
         <!-- Ticket impreso -->
-        <div class="mc-config-section q-mt-md">
-          <div class="mc-config-section__header">
-            <q-icon name="receipt" size="xs" color="primary" />
-            <span class="mc-config-section__title">Ticket impreso</span>
-          </div>
+        <admin-section
+          class="q-mt-md"
+          icon="receipt"
+          title="Ticket impreso"
+          description="Los datos de tu negocio que salen impresos en el ticket que le entregas al cliente."
+        >
 
           <q-input
             v-model="adminStore.companyConfiguration.ticket_config.business_legal_name"
@@ -267,7 +271,7 @@
               dense
             />
           </div>
-        </div>
+        </admin-section>
       </div>
     </q-scroll-area>
 
@@ -294,6 +298,7 @@ import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
 import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
+import AdminSection from "./AdminSection.vue";
 const adminStore = useAdminStore();
 const $q = useQuasar();
 
@@ -362,27 +367,11 @@ const googleMapsLink = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.mc-config-section {
-  background: var(--color-surface-variant);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  border: 1px solid var(--color-border-subtle);
-
-  &__header {
-    display: flex;
-    align-items: center;
-    gap: var(--space-sm);
-    margin-bottom: var(--space-md);
-  }
-
-  &__title {
-    font-weight: 600;
-    font-size: var(--text-sm);
-    color: var(--color-text-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-}
+// De aqui salio `.mc-form-section`, que ahora vive en app.scss y la usa AdminSection.
+// Estaba encerrada en este <style scoped>, y por eso las demas pantallas del panel la
+// reinventaron cada una a su manera hasta quedarse sin fondo ni borde. Se borra para
+// que quede UNA definicion: si esta se hubiera quedado, las dos se separan con el
+// tiempo y volvemos al mismo lugar.
 
 .mc-config-toggle {
   padding: var(--space-xs) 0;

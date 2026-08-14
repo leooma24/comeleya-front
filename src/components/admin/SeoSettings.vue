@@ -29,15 +29,17 @@
     <template v-else>
       <div class="mc-seo-sections">
         <!-- Basic SEO -->
-        <div class="mc-seo-section">
-          <h4 class="mc-section-title">Información básica</h4>
+        <admin-section
+          icon="search"
+          title="Información básica"
+          description="Lo que Google enseña cuando alguien busca tu restaurante: el título azul y el texto gris de abajo."
+        >
           <q-input
             filled
             dense
             rounded
             v-model="seo.meta_title"
             label="Título SEO"
-            class="q-mb-md"
             hint="Aparece en la pestaña del navegador y resultados de Google"
             counter
             maxlength="60"
@@ -50,7 +52,6 @@
             label="Descripción SEO"
             type="textarea"
             autogrow
-            class="q-mb-md"
             hint="Descripción que aparece en resultados de búsqueda"
             counter
             maxlength="160"
@@ -61,21 +62,22 @@
             rounded
             v-model="seo.meta_keywords"
             label="Palabras clave"
-            class="q-mb-md"
             hint="Separadas por coma: restaurante, comida, delivery"
           />
-        </div>
+        </admin-section>
 
         <!-- Open Graph -->
-        <div class="mc-seo-section">
-          <h4 class="mc-section-title">Redes Sociales (Open Graph)</h4>
+        <admin-section
+          icon="share"
+          title="Redes sociales"
+          description="Lo que aparece cuando alguien pega el link de tu menú en WhatsApp o Facebook. Si lo dejas vacío se usa lo de arriba."
+        >
           <q-input
             filled
             dense
             rounded
             v-model="seo.og_title"
             label="Título para redes sociales"
-            class="q-mb-md"
             hint="Si está vacío, se usa el título SEO"
           />
           <q-input
@@ -86,7 +88,6 @@
             label="Descripción para redes sociales"
             type="textarea"
             autogrow
-            class="q-mb-md"
           />
           <q-input
             filled
@@ -94,19 +95,16 @@
             rounded
             v-model="seo.og_image"
             label="URL de imagen para compartir"
-            class="q-mb-md"
             hint="Imagen que se muestra al compartir en redes (1200x630px recomendado)"
           />
-        </div>
+        </admin-section>
 
         <!-- Schema.org Preview -->
-        <div class="mc-seo-section">
-          <h4 class="mc-section-title">Schema.org (Datos estructurados)</h4>
-          <p class="mc-seo-hint">
-            Los datos estructurados se generan automáticamente basados en la
-            información de tu establecimiento. Estos ayudan a Google a entender
-            mejor tu negocio.
-          </p>
+        <admin-section
+          icon="code"
+          title="Datos estructurados"
+          description="Se generan solos con los datos de tu establecimiento y le ayudan a Google a entender que eres un restaurante y no cualquier página. Aquí no hay nada que capturar."
+        >
           <div class="mc-schema-preview" v-if="seo.schema_org">
             <pre>{{ JSON.stringify(seo.schema_org, null, 2) }}</pre>
           </div>
@@ -114,11 +112,14 @@
             <q-icon name="code" size="32px" color="grey-4" />
             <span>Se generará al guardar</span>
           </div>
-        </div>
+        </admin-section>
 
         <!-- Google Preview -->
-        <div class="mc-seo-section">
-          <h4 class="mc-section-title">Vista previa en Google</h4>
+        <admin-section
+          icon="visibility"
+          title="Vista previa en Google"
+          description="Así te verías hoy en los resultados de búsqueda, con lo que llevas capturado arriba."
+        >
           <div class="mc-google-preview">
             <div class="mc-google-preview__url">
               {{ previewUrl }}
@@ -135,7 +136,7 @@
               }}
             </div>
           </div>
-        </div>
+        </admin-section>
       </div>
     </template>
   </q-card>
@@ -147,6 +148,7 @@ defineOptions({ name: "SeoSettingsComponent" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
@@ -205,24 +207,18 @@ onMounted(async () => {
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  // Menos aire: cada grupo ya trae su caja y su borde para separarse.
+  gap: var(--space-lg);
 }
 
-.mc-section-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-md) 0;
-}
-
-.mc-seo-hint {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-md);
-}
+// Aqui vivian .mc-section-title y .mc-seo-hint: el titulo y la descripcion de cada
+// grupo ahora los dibuja AdminSection.
 
 .mc-schema-preview {
-  background: var(--color-surface-variant);
+  // El fondo de la caja de seccion es este mismo, asi que el bloque de codigo se
+  // perdia adentro. Va sobre la superficie normal para que se despegue.
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   overflow-x: auto;

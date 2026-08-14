@@ -15,8 +15,11 @@
     <template v-else>
       <div class="mc-theme-sections">
         <!-- Colors -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Colores</h4>
+        <admin-section
+          icon="palette"
+          title="Colores"
+          description="El principal es el que más se ve: pinta los botones, la barra del pedido y los precios. Los otros tres casi nunca hace falta moverlos."
+        >
           <div class="mc-color-grid">
             <div class="mc-color-field" v-for="(label, key) in colorLabels" :key="key">
               <label>{{ label }}</label>
@@ -26,11 +29,14 @@
               </div>
             </div>
           </div>
-        </div>
+        </admin-section>
 
         <!-- Typography -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Tipografía</h4>
+        <admin-section
+          icon="text_fields"
+          title="Tipografía"
+          description="La letra de todo tu menú. Las redondeadas se sienten informales y las rectas más serias; si dudas, déjala como está."
+        >
           <q-select
             filled dense rounded
             v-model="theme.font_family"
@@ -39,11 +45,14 @@
             emit-value
             map-options
           />
-        </div>
+        </admin-section>
 
         <!-- Layout -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Diseño</h4>
+        <admin-section
+          icon="dashboard"
+          title="Diseño"
+          description="Qué tan redondeadas y con cuánta sombra se ven las tarjetas de tus platillos."
+        >
           <div class="row q-gutter-md">
             <q-select
               filled dense rounded
@@ -64,37 +73,34 @@
               class="col"
             />
           </div>
-        </div>
+        </admin-section>
 
         <!-- Banner -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Banner</h4>
+        <admin-section
+          icon="campaign"
+          title="Banner"
+          description="Una franja de aviso hasta arriba del menú, para lo del día: una promoción, que hoy cierras temprano o que no hay servicio a domicilio."
+        >
           <q-toggle v-model="theme.show_banner" label="Mostrar banner en menú" />
           <q-input
             v-if="theme.show_banner"
             filled dense rounded
             v-model="theme.banner_text"
             label="Texto del banner"
-            class="q-mt-sm"
           />
-        </div>
+        </admin-section>
 
         <!-- Salida de regreso al sitio del negocio, para quien tiene el menú embebido.
              Las llaves siguen diciendo card_ porque así se guardaron cuando este botón
              vivía en la tarjeta del platillo; renombrarlas borraría lo capturado. -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Botón de la barra del pedido</h4>
-          <p class="mc-cart-hint">
+        <admin-section icon="call_made" title="Botón de la barra del pedido">
+          <template v-slot:description>
             Es el lado derecho de la barra azul que aparece abajo cuando el cliente ya
             tiene platillos: el que dice <strong>Ver pedido</strong>. Puedes cambiarlo
-            por un enlace a tu propia página. El resto de la barra —el carrito y el
-            total— sigue abriendo el pedido.
-          </p>
-          <p class="mc-cart-hint">
-            <strong>Solo funciona con el menú insertado en tu sitio web</strong> (el
-            código de "Insertar en web"). Abierto en comeleya.com no cambia nada, porque
-            ahí no hay página tuya a la cual volver.
-          </p>
+            por un enlace a tu propia página; el resto de la barra sigue abriendo el
+            pedido. <strong>Solo funciona con el menú insertado en tu sitio web</strong>,
+            porque abierto en comeleya.com no hay página tuya a la cual volver.
+          </template>
           <q-input
             filled dense rounded
             v-model="theme.card_cta_label"
@@ -108,22 +114,20 @@
             v-model="theme.card_cta_url"
             label="Enlace del botón"
             placeholder="https://tusitio.com/categorias"
-            class="q-mt-sm"
           >
             <template v-slot:hint>
               Se necesitan los dos campos: si dejas uno vacío, la barra se queda como
               está. Debe empezar con https://
             </template>
           </q-input>
-        </div>
+        </admin-section>
 
         <!-- Ícono del carrito -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Ícono del carrito</h4>
-          <p class="mc-cart-hint">
-            Si subes una imagen, reemplazará el ícono del carrito en el menú del cliente.
-            Si no, se usa el ícono por defecto.
-          </p>
+        <admin-section
+          icon="shopping_cart"
+          title="Ícono del carrito"
+          description="Cambia el carrito de compras por tu logo o por un ícono tuyo. Si no subes nada se usa el de siempre."
+        >
           <div class="mc-cart-uploader">
             <div class="mc-cart-preview">
               <img v-if="theme.cart_image" :src="theme.cart_image" alt="" />
@@ -154,11 +158,14 @@
               />
             </div>
           </div>
-        </div>
+        </admin-section>
 
         <!-- Preview -->
-        <div class="mc-theme-section">
-          <h4 class="mc-section-title">Vista previa</h4>
+        <admin-section
+          icon="visibility"
+          title="Vista previa"
+          description="Así le va a quedar a tu cliente. Se actualiza solo conforme cambias lo de arriba, pero nada se aplica de verdad hasta que le des Guardar."
+        >
           <div class="mc-theme-preview" :style="previewStyles">
             <div class="mc-preview-header" :style="{ background: theme.primary_color, color: '#fff' }">
               {{ adminStore.company.name || 'Mi Restaurante' }}
@@ -173,7 +180,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </admin-section>
       </div>
     </template>
   </q-card>
@@ -185,6 +192,7 @@ defineOptions({ name: "ThemeCustomizerComponent" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
@@ -306,21 +314,13 @@ onMounted(() => {
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--space-xl);
+  // Menos aire que antes: ahora cada grupo tiene su propia caja, y el borde ya separa.
+  // Con el hueco de antes las secciones se veian sueltas unas de otras.
+  gap: var(--space-lg);
 }
 
-.mc-section-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-md) 0;
-}
-
-.mc-cart-hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
-  margin: 0 0 var(--space-md);
-}
+// Aqui vivian .mc-section-title y .mc-cart-hint, que este archivo ya no usa: el titulo
+// y la descripcion de cada grupo los dibuja AdminSection.
 
 .mc-cart-uploader {
   display: flex;

@@ -649,6 +649,67 @@ h6 {
 }
 
 // ============================================
+// GRUPO DE CAMPOS DEL PANEL (AdminSection.vue)
+// ============================================
+//
+// La caja que agrupa campos con su titulo y su descripcion. Es la regla que ya existia
+// como `.mc-config-section` dentro del <style scoped> de ConfigurationDrawer: ahi
+// encerrada, cada pantalla la reinvento a su manera y varias acabaron sin fondo ni
+// borde, que es por lo que el panel se veia todo blanco.
+//
+// Vive aqui y no en el componente para que el marcado que se migre a mano tambien la
+// pueda usar. Todo sale de tokens, asi que la paleta oscura la sigue sin tocar nada.
+
+.mc-form-section {
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+
+  &__header {
+    display: flex;
+    // flex-start y no center: con descripcion el encabezado tiene dos lineas y un
+    // icono centrado contra las dos queda flotando a media altura.
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  &__icon {
+    color: var(--q-primary);
+    // Baja el icono lo justo para que su centro coincida con el de la primera linea.
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--color-text-tertiary);
+    // Sin margen abajo: el aire hasta los campos lo pone __header.
+    margin: var(--space-xs) 0 0;
+    // El titulo va en mayusculas y apretado; la descripcion es texto normal y necesita
+    // un ancho de lectura, no el del panel completo.
+    max-width: 62ch;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+}
+
+// ============================================
 // DELIVERY / PAYMENT OPTION CARDS
 // ============================================
 

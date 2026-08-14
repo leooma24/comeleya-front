@@ -12,10 +12,13 @@
     </div>
 
     <template v-else>
+      <div class="mc-loyalty-sections">
       <!-- Config section -->
-      <div class="mc-loyalty-config">
-        <h4 class="mc-section-title">Configuración de puntos</h4>
-
+      <admin-section
+        icon="stars"
+        title="Configuración de puntos"
+        description="Cuántos puntos gana tu cliente y desde cuántos te los puede cambiar por descuento. Aplica a los pedidos nuevos, no a los que ya pasaron."
+      >
         <!-- Earn mode selector -->
         <div class="q-mb-md">
           <div class="text-caption text-grey-6 q-mb-xs">¿Cómo ganan puntos tus clientes?</div>
@@ -67,14 +70,17 @@
           />
         </div>
 
-        <q-btn unelevated no-caps color="primary" label="Guardar configuración" @click="saveConfig" :loading="savingConfig" size="sm" />
-      </div>
-
-      <q-separator class="q-my-md" />
+        <div>
+          <q-btn unelevated no-caps color="primary" label="Guardar configuración" @click="saveConfig" :loading="savingConfig" size="sm" />
+        </div>
+      </admin-section>
 
       <!-- Lookup -->
-      <div class="mc-loyalty-lookup">
-        <h4 class="mc-section-title">Buscar cliente</h4>
+      <admin-section
+        icon="person_search"
+        title="Buscar cliente"
+        description="Cuando alguien te pida su descuento en caja, busca su teléfono aquí para ver cuántos puntos lleva y canjeárselos en el momento."
+      >
         <div class="row q-gutter-sm items-center">
           <q-input
             filled dense rounded
@@ -110,13 +116,14 @@
             </p>
           </div>
         </div>
-      </div>
-
-      <q-separator class="q-my-md" />
+      </admin-section>
 
       <!-- Recent transactions -->
-      <div class="mc-loyalty-list">
-        <h4 class="mc-section-title">Clientes con puntos</h4>
+      <admin-section
+        icon="loyalty"
+        title="Clientes con puntos"
+        description="Quiénes vuelven. Los que más puntos traen son los que ya te compraron varias veces."
+      >
         <div v-if="customers.length">
           <div
             class="mc-loyalty-row"
@@ -136,6 +143,7 @@
           <q-icon name="loyalty" size="48px" color="grey-4" />
           <p>Aún no hay clientes con puntos</p>
         </div>
+      </admin-section>
       </div>
     </template>
   </q-card>
@@ -147,6 +155,7 @@ defineOptions({ name: "LoyaltyComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
@@ -250,17 +259,14 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-.mc-section-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-md) 0;
-}
-
-.mc-loyalty-config,
-.mc-loyalty-lookup,
-.mc-loyalty-list {
+// Los tres bloques iban sueltos, con su propio padding y separados por <q-separator>.
+// Ahora cada uno es una caja de AdminSection, asi que el padding y la separacion los
+// pone el contenedor y las lineas divisorias sobran: el borde de cada caja ya divide.
+.mc-loyalty-sections {
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 .mc-points-card {
@@ -324,9 +330,7 @@ onMounted(async () => {
 }
 
 @media screen and (max-width: 600px) {
-  .mc-loyalty-config,
-  .mc-loyalty-lookup,
-  .mc-loyalty-list {
+  .mc-loyalty-sections {
     padding: var(--space-md);
   }
 }
