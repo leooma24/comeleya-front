@@ -88,6 +88,25 @@
           </p>
         </admin-section>
 
+        <!-- Zona horaria -->
+        <admin-section
+          class="q-mt-md"
+          icon="schedule"
+          title="Zona horaria"
+          description="Con qué hora se decide si estás abierto. Solo hace falta si algún cliente ve mal tu horario: normalmente usamos la hora de su propio teléfono."
+        >
+          <q-select
+            v-model="adminStore.companyConfiguration.timezone"
+            :options="timezoneOptions"
+            label="Zona del negocio"
+            emit-value
+            map-options
+            clearable
+            filled
+            dense
+          />
+        </admin-section>
+
         <!-- Envío a domicilio -->
         <admin-section
           class="q-mt-md"
@@ -299,6 +318,17 @@ import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
 import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
 import AdminSection from "./AdminSection.vue";
+
+// Las zonas de Mexico, con la ciudad que el dueño reconoce. Es una lista corta a
+// proposito: enseñarle las 400 de la base de datos de zonas no le ayuda a elegir.
+const timezoneOptions = [
+  { label: "Tijuana / Baja California", value: "America/Tijuana" },
+  { label: "Hermosillo / Sonora", value: "America/Hermosillo" },
+  { label: "Mazatlán / Sinaloa, Nayarit", value: "America/Mazatlan" },
+  { label: "Chihuahua", value: "America/Chihuahua" },
+  { label: "Ciudad de México / centro y sur", value: "America/Mexico_City" },
+  { label: "Cancún / Quintana Roo", value: "America/Cancun" },
+];
 const adminStore = useAdminStore();
 const $q = useQuasar();
 

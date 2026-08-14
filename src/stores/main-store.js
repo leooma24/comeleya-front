@@ -10,6 +10,20 @@ import { useOrderStore } from "./order-store";
 import { useMessageStore } from "./message-store";
 import { initPixel, trackFb } from "src/utils/fbpixel";
 import { initMessenger } from "src/utils/fbchat";
+import { describeRequestError } from "src/utils/requestError";
+
+/**
+ * Cuánto esperar antes de cada reintento del menú.
+ *
+ * Antes eran 900ms fijos dos veces: los tres intentos cabían en 1.8 segundos, así que
+ * solo sobrevivía a fallas más cortas que eso. Un cambio de antena en el celular, un
+ * reinicio del servidor o una racha de 429 duran más, y el comensal acababa en la
+ * pantalla de error por algo que se iba a componer solo.
+ *
+ * Creciente y no plano por la misma razón: si el servidor viene saturado, tres golpes
+ * seguidos lo empujan más. Es un GET, así que reintentar es seguro.
+ */
+const ESPERAS_DE_REINTENTO = [1000, 3000];
 
 export const useMainStore = defineStore("main", {
   state: () => ({
@@ -39,6 +53,8 @@ export const useMainStore = defineStore("main", {
     // true cuando la carga del establecimiento falló tras reintentar (para mostrar
     // un estado de "reintentar" en vez de skeletons pegados).
     loadError: false,
+    // Qué falló exactamente, de describeRequestError. Null mientras no haya fallado.
+    loadErrorInfo: null,
     // Vista del menú: "Tarjeta" (cuadrícula) o "Lista" (recordada entre visitas)
     viewType:
       (typeof localStorage !== "undefined" &&
@@ -490,15 +506,22 @@ export const useMainStore = defineStore("main", {
     async getEstablishment(slug) {
       this.setSlug(slug);
       this.loadError = false;
+      this.loadErrorInfo = null;
 
       let establisment;
       try {
         establisment = await this.getEstablishmentFromApi(slug);
       } catch (error) {
         this.loadError = true;
-        // Solo mostramos el toast si es un 404 real (negocio inexistente); para
-        // fallos de red el estado de "Reintentar" en pantalla es más claro.
-        if (error?.response?.status === 404) {
+        // Aquí se perdía el error. Durante quién sabe cuánto tiempo el menú respondió
+        // 500 por una zona horaria rota del teléfono y la pantalla decía "Revisa tu
+        // conexión": nadie —ni el comensal, ni el dueño, ni nosotros— tenía forma de
+        // saber que la falla era de este lado. Ahora se guarda y se reporta.
+        this.loadErrorInfo = describeRequestError(error);
+        this.reportarFalla(slug, this.loadErrorInfo);
+        // El toast solo para el 404 real (negocio inexistente); en lo demás el estado
+        // de "Reintentar" en pantalla es más claro.
+        if (this.loadErrorInfo.status === 404) {
           this.messageStore.error("Restaurante no encontrado");
         }
         this.productStore.clear();
@@ -546,17 +569,42 @@ export const useMainStore = defineStore("main", {
       }
       return true;
     },
-    async getEstablishmentFromApi(slug, retries = 2) {
+    /**
+     * Avisa al servidor que el menú no cargó.
+     *
+     * Sin esto, la única forma de enterarse de una falla es que un cliente se queje
+     * por WhatsApp y que alguien baje el log por FTP. No espera respuesta ni le
+     * importa fallar: si la API es justo lo que está caído, el reporte no llega y no
+     * pasa nada — pero un 500, un 429 o un timeout sí dejan rastro, que son la mayoría.
+     *
+     * Va sin `await` a propósito: el comensal ya está viendo la pantalla de error y no
+     * tiene por qué esperar a que terminemos de anotar.
+     */
+    reportarFalla(slug, info) {
+      try {
+        api
+          .post(`/establishment/${slug}/client-error`, {
+            codigo: info.codigo,
+            status: info.status,
+            url: typeof window !== "undefined" ? window.location.href : "",
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          })
+          .catch(() => {});
+      } catch {
+        // Reportar una falla no puede provocar otra.
+      }
+    },
+
+    async getEstablishmentFromApi(slug, intento = 0) {
       try {
         const { data } = await api.get(`/establishment/${slug}`);
         return data;
       } catch (error) {
-        // Reintenta ante fallos transitorios (red móvil/5G, timeouts). No reintenta
-        // en 404 (negocio inexistente): no tiene caso.
-        const status = error?.response?.status;
-        if (retries > 0 && status !== 404) {
-          await new Promise((resolve) => setTimeout(resolve, 900));
-          return this.getEstablishmentFromApi(slug, retries - 1);
+        // No reintenta en 404 (negocio inexistente): la respuesta no va a cambiar.
+        const espera = ESPERAS_DE_REINTENTO[intento];
+        if (espera !== undefined && error?.response?.status !== 404) {
+          await new Promise((resolve) => setTimeout(resolve, espera));
+          return this.getEstablishmentFromApi(slug, intento + 1);
         }
         throw error;
       }

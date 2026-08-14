@@ -63,9 +63,12 @@ describe("admin-store", () => {
   });
 
   describe("setSlug", () => {
-    it("sets tab to establecimientos when slug is empty", () => {
+    // Sin slug estamos en el super-admin, cuya pestana de entrada se llamo
+    // "establecimientos" y hoy es "inicio" (AdminPage la resuelve a SuperAdminHome).
+    // La prueba se quedo con el nombre viejo y llevaba tiempo en rojo por eso.
+    it("sets tab to inicio when slug is empty", () => {
       store.setSlug("");
-      expect(store.tab).toBe("establecimientos");
+      expect(store.tab).toBe("inicio");
     });
 
     it("sets tab to dashboard when slug is set", () => {

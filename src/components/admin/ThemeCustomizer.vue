@@ -229,6 +229,8 @@ const onCartFile = async (file) => {
     form.append("type", "company");
     const { data } = await api.post(`/admin/${adminStore.slug}/uploadImage`, form, {
       headers: { "Content-Type": "multipart/form-data" },
+      // Sin límite: una foto en conexión lenta tarda más que el timeout general.
+      timeout: 0,
     });
     theme.value.cart_image = data.ruta;
     adminStore.messageStore.success("Imagen subida. No olvides Guardar.");

@@ -508,6 +508,8 @@ export const useAdminStore = defineStore({
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            // Sin límite: una foto en conexión lenta tarda más que el timeout general.
+            timeout: 0,
           }
         );
         this.productForm.photo = data.ruta;
@@ -533,6 +535,8 @@ export const useAdminStore = defineStore({
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            // Sin límite: una foto en conexión lenta tarda más que el timeout general.
+            timeout: 0,
           }
         );
         this.companyStore.companyForm.logo = data.ruta;

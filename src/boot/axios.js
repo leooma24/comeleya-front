@@ -2,8 +2,19 @@ import { boot } from "quasar/wrappers";
 import axios from "axios";
 import { useUserStore } from "src/stores/user-store";
 
+// Sin límite, una conexión colgada gira para siempre: el comensal se queda viendo el
+// spinner, no aparece el botón de Reintentar y nadie se entera de que algo fallo.
+// Veinte segundos es holgado —el endpoint del menú tarda entre 150ms y 1.1s medido
+// contra producción— y aun así acota la espera.
+//
+// OJO: las subidas de imagen mandan `timeout: 0` a mano. Una foto en una conexión
+// lenta tarda más que cualquier número razonable, y cortarla a la mitad sí sería un
+// problema nuevo.
+const TIMEOUT_MS = 20000;
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "https://app.comeleya.com/api/",
+  timeout: TIMEOUT_MS,
 });
 
 export default boot(({ app, router }) => {

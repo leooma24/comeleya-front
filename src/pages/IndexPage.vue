@@ -71,9 +71,18 @@
             v-if="mainStore.loadError && !mainStore.categories.length"
             class="mc-load-error"
           >
-            <q-icon name="wifi_off" size="52px" color="grey-5" />
+            <!-- El ícono ya no es siempre el de "sin wifi": decirle "no hay internet"
+                 a alguien cuyo internet funciona fue justo lo que escondió el bug de
+                 la zona horaria durante quién sabe cuánto tiempo. -->
+            <q-icon
+              :name="mainStore.loadErrorInfo?.nuestra ? 'error_outline' : 'wifi_off'"
+              size="52px"
+              color="grey-5"
+            />
             <p class="mc-load-error__title">No pudimos cargar el menú</p>
-            <p class="mc-load-error__desc">Revisa tu conexión e inténtalo de nuevo.</p>
+            <p class="mc-load-error__desc">
+              {{ mainStore.loadErrorInfo?.mensaje || "Revisa tu conexión e inténtalo de nuevo." }}
+            </p>
             <q-btn
               unelevated
               no-caps
@@ -83,6 +92,11 @@
               :loading="retrying"
               @click="retryLoad"
             />
+            <!-- Chiquito y al final: al comensal no le dice nada, pero es lo que
+                 convierte un screenshot de WhatsApp en un diagnóstico. -->
+            <p v-if="mainStore.loadErrorInfo?.codigo" class="mc-load-error__code">
+              {{ mainStore.loadErrorInfo.codigo }}
+            </p>
           </div>
 
           <!-- Skeleton Loading -->
@@ -564,6 +578,16 @@ onBeforeUnmount(() => {
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
     margin: 0 0 var(--space-sm);
+  }
+
+  // El dato tecnico: tiene que estar, pero no tiene que competir con el boton de
+  // Reintentar, que es lo unico que el comensal puede hacer.
+  &__code {
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    margin: var(--space-md) 0 0;
+    opacity: 0.75;
   }
 }
 
