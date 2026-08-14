@@ -387,6 +387,10 @@ const getStatus = (tab, orderTab) => {
         return 4;
       case "pedidos_cancelados":
         return 5;
+      // El Historial no es un estado: es su propia vista y trae sus propios filtros.
+      // El 0 le dice a Orders.vue que no consulte ni sondee ningun estado.
+      case "pedidos_historial":
+        return 0;
     }
   }
   return "0";

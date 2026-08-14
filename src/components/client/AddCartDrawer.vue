@@ -210,7 +210,7 @@
               @click="handleAdd"
             >
               <div class="row items-center justify-between full-width q-px-sm">
-                <span>{{ mainStore.btnType }} {{ mainStore.product?.qty }}</span>
+                <span>{{ mainStore.cartButtonLabel }}</span>
                 <span class="mc-add-btn-price">${{ mainStore.totalPrice }}</span>
               </div>
             </q-btn>

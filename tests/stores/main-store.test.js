@@ -182,6 +182,26 @@ describe("main-store", () => {
       expect(store.btnType).toBe("Agregar");
     });
 
+    // El boton decia solo "Agregar 1", que se lee como una cantidad suelta. Nombrar el
+    // carrito es lo que lo vuelve la accion que remata el cajon.
+    it("cartButtonLabel nombra el carrito al agregar", () => {
+      store.productStore.product = { qty: 2 };
+      expect(store.cartButtonLabel).toBe("Agregar 2 al carrito");
+    });
+
+    // Editando NO dice "al carrito": ese platillo ya esta adentro, y "Actualizar 1 al
+    // carrito" haria pensar que se va a agregar uno mas.
+    it("cartButtonLabel cambia la preposicion al editar", () => {
+      store.cartStore.editing = 0;
+      store.productStore.product = { qty: 3 };
+      expect(store.cartButtonLabel).toBe("Actualizar 3 en el carrito");
+    });
+
+    it("cartButtonLabel sin cantidad asume 1", () => {
+      store.productStore.product = {};
+      expect(store.cartButtonLabel).toBe("Agregar 1 al carrito");
+    });
+
     it("btnType returns 'Actualizar' when editing", () => {
       store.cartStore.editing = 0;
       expect(store.btnType).toBe("Actualizar");

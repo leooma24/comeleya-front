@@ -37,11 +37,16 @@ export const useOrderStore = defineStore("order", {
     // desaparece) y el error se propaga para mostrar aviso.
     async transitionOrder(order, slug, toStatus) {
       const data = await this.updateStatusOrder(order, slug, toStatus);
+      // Number() y no confiar en lo que venga: el conteo llegaba como la cadena
+      // "1847.00" —el backend lo aliaseaba como `total` y le caia el cast del dinero—
+      // y "1847.00" + 1 en JavaScript no suma, concatena: el badge pasaba a 1847.001.
+      // El backend ya manda enteros; esto evita que el mismo tipo de dato vuelva a
+      // colarse desde otro lado.
       const from = order.status?.id ?? order.current_status_id;
       if (from != null) {
-        this.counts[from] = (this.counts[from] ?? 0) - 1;
+        this.counts[from] = Number(this.counts[from] ?? 0) - 1;
       }
-      this.counts[toStatus] = (this.counts[toStatus] ?? 0) + 1;
+      this.counts[toStatus] = Number(this.counts[toStatus] ?? 0) + 1;
       this.orders = this.orders.filter((o) => o.id !== order.id);
       return data;
     },

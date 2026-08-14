@@ -285,6 +285,21 @@ export const useMainStore = defineStore("main", {
     btnType() {
       return this.cartStore.isEditing ? "Actualizar" : "Agregar";
     },
+    /**
+     * El texto completo del botón grande del platillo.
+     *
+     * Decía solo "Agregar 1", que se lee como una cantidad suelta y no como la acción
+     * que remata todo el cajón. Nombrar el carrito es lo que lo vuelve un destino.
+     *
+     * Editando NO dice "al carrito": ese platillo ya está adentro, y "Actualizar 1 al
+     * carrito" haría pensar que se va a agregar uno más.
+     */
+    cartButtonLabel() {
+      const qty = Number(this.productStore.product?.qty) || 1;
+      return this.cartStore.isEditing
+        ? `Actualizar ${qty} en el carrito`
+        : `Agregar ${qty} al carrito`;
+    },
     orderHistory() {
       return this.orderStore.orderHistory.filter(
         (o) => o.establishment === this.companyStore.slug
