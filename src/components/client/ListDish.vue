@@ -44,6 +44,12 @@
           <p class="dish-card__description q-mb-none">
             {{ item.description }}
           </p>
+
+          <!-- La fila es angosta, así que aquí va el ahorro compacto: el sello del
+               porcentaje no cabe sin quitarle espacio al nombre del platillo. -->
+          <p v-if="savings" class="dish-card__savings">
+            −{{ savings.porcentaje }}% · ahorras ${{ savings.ahorro }}<span v-if="urgency"> · {{ urgency }}</span>
+          </p>
         </div>
 
         <!-- Precio + acción (consistente en móvil y desktop) -->
@@ -81,8 +87,9 @@ defineOptions({
   name: "ListDish",
 });
 
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import { useDish } from "src/composables/useDish";
+import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
   item: {
@@ -94,6 +101,10 @@ const props = defineProps({
 const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
+
+// Misma regla que la vista de tarjeta: se calla si el descuento no se puede afirmar.
+const savings = computed(() => offerSavings(props.item));
+const urgency = computed(() => offerUrgency(props.item));
 </script>
 
 <style lang="scss" scoped>
@@ -212,6 +223,16 @@ const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
     opacity: 0.5;
     font-size: var(--text-sm);
     margin-right: 4px;
+  }
+
+  // Rojo fijo, igual que en la vista de tarjeta: es el color que se lee como
+  // "oferta" sin pensarlo, aunque la marca del negocio sea otra.
+  &__savings {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: #e53935;
+    line-height: 1.3;
   }
 
   &__price-text {

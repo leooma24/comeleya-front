@@ -9,11 +9,17 @@
     <!-- Imagen con overlay de precio -->
     <div class="dish-card__image-wrapper">
       <!-- Etiquetas -->
-      <!-- Prioridad: agotado > (oferta, que ya se ve en el precio rojo) > nuevo -->
+      <!-- Prioridad: agotado > oferta > nuevo. La oferta le gana a NUEVO porque un
+           descuento mueve más que una novedad, y dos sellos encimados no se leen. -->
       <div v-if="item.is_sold_out" class="dish-card__badge dish-card__badge--sold-out">
         AGOTADO
       </div>
-      <div v-else-if="isNew && !hasSpecialPrice" class="dish-card__badge dish-card__badge--new">
+      <!-- El descuento en número. Antes solo se tachaba el precio anterior, y tachar
+           obliga a restar de cabeza: casi nadie lo hace. -->
+      <div v-else-if="savings" class="dish-card__badge dish-card__badge--offer">
+        -{{ savings.porcentaje }}%
+      </div>
+      <div v-else-if="isNew" class="dish-card__badge dish-card__badge--new">
         NUEVO
       </div>
       <q-img
@@ -59,6 +65,13 @@
       <p class="dish-card__description">
         {{ item.description }}
       </p>
+
+      <!-- El ahorro en pesos, que es como la gente decide. La urgencia solo aparece
+           cuando la oferta tiene un límite de verdad: inventársela a una permanente
+           funciona una vez y a la tercera el cliente deja de creerle al menú. -->
+      <p v-if="savings" class="dish-card__savings">
+        Ahorras ${{ savings.ahorro }}<span v-if="urgency"> · {{ urgency }}</span>
+      </p>
     </q-card-section>
 
     <!-- Footer con indicador de acción -->
@@ -103,8 +116,9 @@ defineOptions({
   name: "CardDish",
 });
 
-import { toRef } from "vue";
+import { computed, toRef } from "vue";
 import { useDish } from "src/composables/useDish";
+import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
   item: {
@@ -116,6 +130,12 @@ const props = defineProps({
 const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
+
+// Null cuando no hay oferta vigente o cuando el descuento no se puede afirmar (precio
+// mal capturado). El template usa eso para decidir si habla: es más barato callarse
+// que anunciar "-0%".
+const savings = computed(() => offerSavings(props.item));
+const urgency = computed(() => offerUrgency(props.item));
 </script>
 
 <style lang="scss" scoped>
@@ -213,6 +233,28 @@ const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
     &--new {
       background: var(--q-positive, #43A047);
     }
+
+    // Rojo fijo y NO el color del negocio: el rojo se lee como "oferta" sin pensarlo,
+    // aunque la marca sea verde. Más grande que los otros dos sellos porque es el
+    // único que da una razón para comprar; los otros solo informan.
+    &--offer {
+      background: #e53935;
+      font-size: var(--text-sm);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      padding: 5px 12px;
+      box-shadow: 0 3px 12px rgba(229, 57, 53, 0.45);
+    }
+  }
+
+  // El ahorro en pesos, debajo de la descripción: es donde la vista ya está cuando
+  // termina de leer qué es el platillo.
+  &__savings {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: #e53935;
+    line-height: 1.3;
   }
 
   &__image {

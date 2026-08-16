@@ -63,6 +63,39 @@
               <span class="text-caption">{{ props.row.photo_pct }}%</span>
             </div>
           </q-td>
+          <!-- Cero ofertas no es un número neutro: significa que a los clientes de
+               ese negocio NUNCA les aparece el bloque de arriba del menú. -->
+          <q-td key="offers" :props="props">
+            <q-chip
+              v-if="props.row.offers"
+              dense size="sm" color="red-6" text-color="white"
+              :label="props.row.offers"
+            />
+            <span v-else class="text-caption text-grey-5">
+              ninguna
+              <q-tooltip>Su menú nunca enseña el bloque "Ofertas del día"</q-tooltip>
+            </span>
+          </q-td>
+
+          <!-- El 100% es la señal: marcar todo es igual que no marcar nada, y ahí el
+               carrusel repite la carta completa. -->
+          <q-td key="featured_pct" :props="props">
+            <span v-if="!props.row.featured" class="text-caption text-grey-5">ninguno</span>
+            <q-chip
+              v-else-if="props.row.featured_pct >= 100"
+              dense size="sm" color="negative" text-color="white"
+              label="todo el menú"
+            >
+              <q-tooltip>
+                Los {{ props.row.featured }} platillos están marcados: "Recomendados"
+                repite la carta completa
+              </q-tooltip>
+            </q-chip>
+            <span v-else class="text-caption">
+              {{ props.row.featured }} ({{ props.row.featured_pct }}%)
+            </span>
+          </q-td>
+
           <q-td key="actions" :props="props">
             <q-btn flat dense round size="sm" icon="open_in_new" color="primary" @click="openPanel(props.row)">
               <q-tooltip>Abrir panel</q-tooltip>
@@ -109,6 +142,11 @@ const columns = [
   { name: "orders_month", label: "Pedidos (mes)", align: "center", field: "orders_month", sortable: true },
   { name: "last_order", label: "Última actividad", align: "left", field: "last_order_at", sortable: true },
   { name: "photo_pct", label: "Menú con foto", align: "left", field: "photo_pct", sortable: true },
+  // Adopción: qué funciones está usando de verdad. Ninguna de las dos se notaba, y
+  // por eso ninguno de los negocios tenía ofertas y casi todos tenían el menú
+  // completo marcado como "Recomendado".
+  { name: "offers", label: "Ofertas", align: "center", field: "offers", sortable: true },
+  { name: "featured_pct", label: "Destacados", align: "center", field: "featured_pct", sortable: true },
   { name: "actions", label: "", align: "right" },
 ];
 
