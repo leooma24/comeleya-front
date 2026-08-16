@@ -910,6 +910,14 @@ export const useAdminStore = defineStore({
           if (p.id === product.id) return data.product;
           return p;
         });
+        // El cajón del platillo también enseña su oferta, y ahora puede ser quien abrió
+        // el diálogo. Sin esto, al cerrarlo seguiría diciendo lo de antes: el dueño
+        // pensaría que no se guardó y lo volvería a intentar.
+        if (this.productForm?.id === product.id) {
+          this.productForm.special_price = data.product.special_price;
+          this.productForm.special_until = data.product.special_until;
+          this.productForm.special_days = data.product.special_days;
+        }
         this.messageStore.success(
           specialPrice ? "Oferta especial activada" : "Oferta especial removida"
         );

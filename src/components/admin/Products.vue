@@ -328,7 +328,10 @@
       />
     </div>
   </q-card>
-  <form-drawer />
+  <!-- El formulario del platillo tambien puede abrir la oferta: es donde el dueño ya
+       esta cuando piensa en el precio, y en el menu de los tres puntitos nadie la
+       encontraba. Es el MISMO dialogo de abajo. -->
+  <form-drawer @offer="openOfferDialog" />
 
   <!-- Special Offer Dialog -->
   <q-dialog v-model="offerDialog" backdrop-filter="blur(8px)">

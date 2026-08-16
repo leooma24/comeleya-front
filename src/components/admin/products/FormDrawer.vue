@@ -163,6 +163,43 @@
       </div>
       <p class="mc-availability__hint">Déjalo vacío para que esté disponible siempre.</p>
     </div>
+
+    <!-- Oferta.
+         Estaba SOLO en el menú de los tres puntitos del renglón, y por eso nadie la
+         usaba: de 25 negocios revisados en producción, cero tenían una oferta puesta,
+         asi que el bloque "Ofertas del día" del menú no le aparecía a ningún cliente.
+         Aquí es donde el dueño ya está parado cuando piensa en el precio.
+
+         El botón abre el MISMO diálogo del renglón, no un formulario nuevo: la oferta
+         se guarda por su propio endpoint y el platillo por otro, así que meterla en
+         este "Guardar" seria una peticion que puede fallar a la mitad y dejar el
+         platillo y su oferta en desacuerdo. -->
+    <div class="mc-offer" v-if="adminStore.productForm.id">
+      <div class="mc-offer__label">
+        <q-icon name="local_offer" size="18px" :color="tieneOferta ? 'red-6' : 'primary'" />
+        Oferta
+      </div>
+
+      <p class="mc-offer__estado" v-if="tieneOferta">
+        Con oferta a <strong>${{ adminStore.productForm.special_price }}</strong>
+        <span v-if="textoVigencia"> · {{ textoVigencia }}</span>
+      </p>
+      <p class="mc-offer__estado" v-else>
+        Sin oferta. Al ponerle una, el platillo sube al bloque
+        <strong>Ofertas del día</strong>, hasta arriba del menú, con su precio anterior
+        tachado.
+      </p>
+
+      <q-btn
+        unelevated
+        no-caps
+        size="sm"
+        :color="tieneOferta ? 'grey-7' : 'primary'"
+        :icon="tieneOferta ? 'edit' : 'local_offer'"
+        :label="tieneOferta ? 'Editar oferta' : 'Crear oferta'"
+        @click="$emit('offer', adminStore.productForm)"
+      />
+    </div>
   </BaseFormDrawer>
 </template>
 
@@ -175,9 +212,36 @@ import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
-import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
+import { DIAS_LUNES_PRIMERO, diasValidos, textoDeDias } from "src/utils/weekDays";
+
+// La oferta la abre el padre (Products.vue), que ya tiene ese diálogo montado.
+defineEmits(["offer"]);
+
 const adminStore = useAdminStore();
 const $q = useQuasar();
+
+// --- Oferta ---
+const tieneOferta = computed(() => Number(adminStore.productForm.special_price) > 0);
+
+/** "Lunes y martes · hasta el 20 ago", o vacío si la oferta no tiene límites. */
+const textoVigencia = computed(() => {
+  const partes = [];
+
+  const dias = textoDeDias(adminStore.productForm.special_days);
+  if (dias) partes.push(dias);
+
+  const hasta = adminStore.productForm.special_until;
+  if (hasta) {
+    const fecha = new Date(hasta);
+    if (!Number.isNaN(fecha.getTime())) {
+      partes.push(
+        "hasta el " + fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" })
+      );
+    }
+  }
+
+  return partes.join(" · ");
+});
 
 const fileInput = ref(null);
 const imgUsage = reactive({ used: 0, limit: 0, remaining: 0 });
@@ -332,6 +396,25 @@ const onFileSelected = (event) => {
   &__hint {
     font-size: var(--text-xs); color: var(--color-text-tertiary);
     margin: var(--space-xs) 0 0;
+  }
+}
+
+// Mismo marco que Disponibilidad: son las dos cosas del platillo que no son "el dato",
+// sino cuando y a que precio se vende, y conviene que se lean como hermanas.
+.mc-offer {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: var(--text-sm);
+    color: var(--color-text-primary); margin-bottom: var(--space-sm);
+  }
+  &__estado {
+    font-size: var(--text-xs); color: var(--color-text-tertiary);
+    line-height: 1.5; margin: 0 0 var(--space-sm);
   }
 }
 

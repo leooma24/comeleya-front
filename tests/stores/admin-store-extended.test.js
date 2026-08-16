@@ -769,6 +769,77 @@ describe("admin-store - extended coverage", () => {
       await store.setSpecialOffer({ id: 1 }, 50, null);
       // Should not crash
     });
+
+    // La oferta se puede abrir desde el cajon del platillo, que tambien la enseña.
+    // Sin refrescar productForm, al cerrar el dialogo el cajon seguiria diciendo lo de
+    // antes y el dueño pensaria que no se guardo.
+    describe("el cajon del platillo se entera", () => {
+      it("refresca el formulario si es el mismo platillo", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1, name: "Tacos" }];
+        store.productForm = { id: 1, name: "Tacos", special_price: null };
+
+        api.put.mockResolvedValueOnce({
+          data: {
+            product: {
+              id: 1,
+              name: "Tacos",
+              special_price: 50,
+              special_until: "2026-12-31 23:59:00",
+              special_days: [1, 2],
+            },
+          },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, 50, "2026-12-31");
+
+        expect(store.productForm.special_price).toBe(50);
+        expect(store.productForm.special_days).toEqual([1, 2]);
+      });
+
+      it("quitar la oferta tambien lo refresca", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1, special_price: 50 }];
+        store.productForm = { id: 1, special_price: 50, special_days: [1] };
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: null, special_until: null, special_days: null } },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, null, null, null);
+
+        expect(store.productForm.special_price).toBeNull();
+        expect(store.productForm.special_days).toBeNull();
+      });
+
+      // Si el cajon tiene OTRO platillo abierto, no se le puede pisar lo suyo.
+      it("no toca el formulario si es otro platillo", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1 }, { id: 2 }];
+        store.productForm = { id: 2, name: "Otro", special_price: null };
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: 50 } },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, 50, null);
+
+        expect(store.productForm.id).toBe(2);
+        expect(store.productForm.special_price).toBeNull();
+      });
+
+      it("sin formulario abierto no revienta", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1 }];
+        store.productForm = {};
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: 50 } },
+        });
+
+        await expect(store.setSpecialOffer({ id: 1 }, 50, null)).resolves.not.toThrow();
+      });
+    });
   });
 
   describe("saveCategory", () => {
