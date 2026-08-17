@@ -19,6 +19,13 @@
       <div v-else-if="savings" class="dish-card__badge dish-card__badge--offer">
         -{{ savings.porcentaje }}%
       </div>
+      <!-- El platillo que ES la promoción sube al bloque de ofertas con su propio
+           precio, sin descuento que anunciar. Sin sello quedaba ahí como un platillo
+           cualquiera bajo un letrero que dice "Ofertas del día", que se lee como un
+           error del menú. Va antes que NUEVO: es la razón por la que está arriba. -->
+      <div v-else-if="item.is_promo" class="dish-card__badge dish-card__badge--promo">
+        PROMO
+      </div>
       <div v-else-if="isNew" class="dish-card__badge dish-card__badge--new">
         NUEVO
       </div>
@@ -244,6 +251,13 @@ const urgency = computed(() => offerUrgency(props.item));
       letter-spacing: 0.02em;
       padding: 5px 12px;
       box-shadow: 0 3px 12px rgba(229, 57, 53, 0.45);
+    }
+
+    // Mismo rojo que la oferta -es la misma promesa para el cliente- pero del tamaño
+    // de los sellos informativos: sin porcentaje que gritar, no compite con un -30%
+    // de la tarjeta de al lado.
+    &--promo {
+      background: #e53935;
     }
   }
 

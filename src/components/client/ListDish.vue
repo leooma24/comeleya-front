@@ -13,6 +13,12 @@
         <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
           AGOTADO
         </div>
+        <!-- El platillo que ES la promoción: en la lista el descuento se cuenta abajo
+             con el ahorro, así que el sello solo hace falta cuando no hay descuento
+             que contar. Mismo criterio que la vista de tarjeta. -->
+        <div v-else-if="item.is_promo && !savings" class="dish-card__sold-out-badge dish-card__promo-badge">
+          PROMO
+        </div>
         <div v-else-if="isNew && !hasSpecialPrice" class="dish-card__sold-out-badge dish-card__new-badge">
           NUEVO
         </div>
@@ -168,6 +174,12 @@ const urgency = computed(() => offerUrgency(props.item));
 
   &__new-badge {
     background: var(--q-positive, #43A047);
+  }
+
+  // Rojo fijo, como el sello de oferta de la tarjeta: se lee como "promoción" sin
+  // pensarlo, aunque la marca del negocio sea de otro color.
+  &__promo-badge {
+    background: #e53935;
   }
 
   &__image {
