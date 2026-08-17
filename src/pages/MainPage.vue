@@ -34,6 +34,11 @@
                   icon="visibility"
                 />
               </div>
+
+              <p class="mc-hero-note q-mt-md">
+                <q-icon name="check_circle" size="18px" color="positive" />
+                15 días gratis con todas las funciones · Sin tarjeta · Sin comisiones
+              </p>
             </div>
           </div>
           <div class="col-md-6 col-xs-12 relative-position">
@@ -178,20 +183,20 @@
       <div class="container">
         <div class="row justify-center q-col-gutter-xl">
           <div class="col-auto text-center">
-            <div class="mc-counter">500+</div>
-            <div class="mc-counter-label">Restaurantes activos</div>
-          </div>
-          <div class="col-auto text-center">
-            <div class="mc-counter">50,000+</div>
-            <div class="mc-counter-label">Pedidos procesados</div>
-          </div>
-          <div class="col-auto text-center">
-            <div class="mc-counter">4.8/5</div>
-            <div class="mc-counter-label">Satisfaccion del cliente</div>
-          </div>
-          <div class="col-auto text-center">
             <div class="mc-counter">0%</div>
-            <div class="mc-counter-label">Comisiones por pedido</div>
+            <div class="mc-counter-label">Comisión por pedido</div>
+          </div>
+          <div class="col-auto text-center">
+            <div class="mc-counter">15 días</div>
+            <div class="mc-counter-label">Gratis con todas las funciones</div>
+          </div>
+          <div class="col-auto text-center">
+            <div class="mc-counter">20+</div>
+            <div class="mc-counter-label">Herramientas incluidas</div>
+          </div>
+          <div class="col-auto text-center">
+            <div class="mc-counter">15 min</div>
+            <div class="mc-counter-label">Para dejar tu menú listo</div>
           </div>
         </div>
       </div>
@@ -202,9 +207,9 @@
       <div class="container">
         <div class="row q-col-gutter-xl items-center">
           <div class="col-12 col-md-5">
-            <h4 class="q-mb-sm">Calcula cuanto ahorras</h4>
+            <h4 class="q-mb-sm">Calcula cuánto ahorras</h4>
             <p class="mc-text-secondary q-mb-lg">
-              Las plataformas de delivery como UberEats y Rappi cobran entre el 15% y 30% de comision por cada pedido. Con ComeleYa pagas una mensualidad fija y 0% de comision.
+              Las plataformas de delivery como UberEats y Rappi cobran entre el 15% y 30% de comisión por cada pedido. Con ComeleYa pagas una mensualidad fija y 0% de comisión.
             </p>
             <div class="mc-calc-platforms">
               <div class="mc-calc-platform">
@@ -217,14 +222,14 @@
               </div>
               <div class="mc-calc-platform">
                 <span class="mc-calc-platform__name">ComeleYa</span>
-                <span class="mc-calc-platform__rate mc-calc-platform__rate--free">0% comision</span>
+                <span class="mc-calc-platform__rate mc-calc-platform__rate--free">0% comisión</span>
               </div>
             </div>
           </div>
           <div class="col-12 col-md-7">
             <q-card flat bordered class="mc-calc-card">
               <q-card-section>
-                <div class="text-subtitle1 text-weight-bold q-mb-md">Cuanto vendes al mes por delivery?</div>
+                <div class="text-subtitle1 text-weight-bold q-mb-md">¿Cuánto vendes al mes por delivery?</div>
                 <q-slider
                   v-model="calcSales"
                   :min="5000"
@@ -237,7 +242,7 @@
                 />
                 <div class="row q-col-gutter-md q-mb-md">
                   <div class="col-6">
-                    <div class="text-caption text-grey-6">Plataforma de comparacion</div>
+                    <div class="text-caption text-grey-6">Plataforma de comparación</div>
                     <q-select v-model="calcPlatform" :options="calcPlatforms" emit-value map-options filled dense rounded />
                   </div>
                   <div class="col-6">
@@ -252,7 +257,7 @@
                   <div class="col-4">
                     <div class="text-caption text-grey-6">Pagas en {{ calcPlatformLabel }}</div>
                     <div class="text-h6 text-negative text-weight-bold">${{ calcCommission.toLocaleString('es-MX') }}</div>
-                    <div class="text-caption text-grey-5">{{ calcRate }}% de comision</div>
+                    <div class="text-caption text-grey-5">{{ calcRate }}% de comisión</div>
                   </div>
                   <div class="col-4">
                     <div class="text-caption text-grey-6">Pagas en ComeleYa</div>
@@ -318,7 +323,7 @@
               <div class="mc-pkg-limits q-mb-sm" v-if="pkg.max_products > 0 || pkg.max_categories > 0">
                 <q-chip v-if="pkg.max_products > 0" dense size="sm" color="blue-1" text-color="blue-8">{{ pkg.max_products }} productos</q-chip>
                 <q-chip v-if="pkg.max_products === 0" dense size="sm" color="green-1" text-color="green-8">Productos ilimitados</q-chip>
-                <q-chip v-if="pkg.max_categories > 0" dense size="sm" color="purple-1" text-color="purple-8">{{ pkg.max_categories }} categorias</q-chip>
+                <q-chip v-if="pkg.max_categories > 0" dense size="sm" color="purple-1" text-color="purple-8">{{ pkg.max_categories }} categorías</q-chip>
               </div>
 
               <ul class="text-left">
@@ -476,7 +481,7 @@
       <div class="container">
         <div class="row q-col-gutter-xl">
           <div class="col-12 col-md-5">
-            <h4 class="q-mb-md">Contactanos</h4>
+            <h4 class="q-mb-md">Contáctanos</h4>
             <p class="mc-text-secondary q-mb-lg">
               ¿Tienes dudas o quieres una demo personalizada? Escríbenos y te responderemos lo antes posible.
             </p>
@@ -509,10 +514,10 @@
                     <q-input v-model="contactForm.email" filled dense label="Email" type="email" />
                   </div>
                   <div class="col-12 col-sm-6">
-                    <q-input v-model="contactForm.phone" filled dense label="Telefono / WhatsApp" />
+                    <q-input v-model="contactForm.phone" filled dense label="Teléfono / WhatsApp" />
                   </div>
                   <div class="col-12">
-                    <q-select v-model="contactForm.interest" filled dense label="¿Que te interesa?" :options="interestOptions" />
+                    <q-select v-model="contactForm.interest" filled dense label="¿Qué te interesa?" :options="interestOptions" />
                   </div>
                   <div class="col-12">
                     <q-input v-model="contactForm.message" filled dense label="Mensaje" type="textarea" autogrow />
@@ -609,8 +614,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useMeta } from "quasar";
 import { api } from "boot/axios";
 import EmailCheckoutDialog from "src/components/EmailCheckoutDialog.vue";
+
+// El <title> del index es "ComeleYa" a secas. La description NO va aqui: la estatica
+// de index.html (productDescription en package.json) ya dice lo correcto y Quasar no
+// reemplaza tags ajenos, asi que ponerla aqui deja dos meta description en la pagina.
+// El OG para WhatsApp/Facebook lo pone metadata.php del lado del servidor.
+useMeta({
+  title: "ComeleYa | Menú digital con pedidos por WhatsApp, sin comisiones",
+});
 
 // Reset any establishment theme that may have been applied
 const resetTheme = () => {
@@ -653,7 +667,7 @@ const calcPlanOptions = computed(() => {
   if (packages.value.length) {
     return packages.value.map(p => ({ label: `${p.name} ($${formatPrice(p.monthly_price)}/mes)`, value: parseFloat(p.monthly_price) }));
   }
-  return [{ label: "Basico ($299/mes)", value: 299 }];
+  return [{ label: "Básico ($299/mes)", value: 299 }];
 });
 const calcRate = computed(() => calcPlatform.value);
 const calcPlatformLabel = computed(() => calcPlatforms.find(p => p.value === calcPlatform.value)?.label?.split(" (")[0] || "plataforma");
@@ -666,13 +680,16 @@ const getPkgFeatures = (pkg) => {
   const features = [
     "Menú digital + QR para imprimir",
     "Pedidos por WhatsApp",
+    "Seguimiento del pedido para tu cliente",
+    "Envío por distancia o tarifa fija",
+    "Menú para insertar en tu web",
     "Cupones de descuento",
     "Dashboard inteligente",
     "Lista de clientes automática",
     "Asistente paso a paso",
   ];
   if (pkg.has_online_payments) features.push("Pagos en línea (MercadoPago)");
-  if (pkg.has_notifications) features.push("Notificaciones automáticas");
+  if (pkg.has_notifications) features.push("Avisos por email + WhatsApp a un clic");
   if (pkg.has_loyalty) features.push("Programa de lealtad");
   if (pkg.has_reservations) features.push("Reservaciones");
   if (pkg.has_drivers) features.push("Gestión de repartidores");
@@ -680,7 +697,7 @@ const getPkgFeatures = (pkg) => {
   if (pkg.has_analytics) features.push("Analíticas avanzadas + CSV");
   if (pkg.has_ticket_printing) features.push("Impresión de tickets");
   if (pkg.has_seo) features.push("SEO dinámico");
-  if (pkg.has_google_business) features.push("Google Business");
+  if (pkg.has_facebook) features.push("Pixel y catálogo de Facebook");
   if (pkg.max_image_improvements > 0) features.push(`Mejora de fotos con IA (${pkg.max_image_improvements}/mes)`);
   return features;
 };
@@ -708,9 +725,9 @@ const loadPackages = async () => {
   } catch (e) {
     // Fallback hardcoded if API fails
     packages.value = [
-      { name: "Basico", monthly_price: 299, yearly_price: 2990, max_products: 20, max_categories: 5, has_notifications: false, has_online_payments: false, has_loyalty: false, has_reservations: false, has_drivers: false, has_theme_customization: false, has_analytics: false, has_ticket_printing: false, has_seo: false, has_google_business: false },
-      { name: "Pro", monthly_price: 399, yearly_price: 3990, max_products: 50, max_categories: 10, has_notifications: true, has_online_payments: false, has_loyalty: false, has_reservations: false, has_drivers: false, has_theme_customization: false, has_analytics: false, has_ticket_printing: true, has_seo: true, has_google_business: false },
-      { name: "Premium", monthly_price: 599, yearly_price: 5990, max_products: 0, max_categories: 0, has_notifications: true, has_online_payments: true, has_loyalty: true, has_reservations: true, has_drivers: true, has_theme_customization: true, has_analytics: true, has_ticket_printing: true, has_seo: true, has_google_business: true, is_featured: true },
+      { name: "Básico", monthly_price: 299, yearly_price: 2990, max_products: 20, max_categories: 5, has_notifications: false, has_online_payments: false, has_loyalty: false, has_reservations: false, has_drivers: false, has_theme_customization: false, has_analytics: false, has_ticket_printing: false, has_seo: false, has_facebook: false },
+      { name: "Pro", monthly_price: 399, yearly_price: 3990, max_products: 50, max_categories: 10, has_notifications: true, has_online_payments: false, has_loyalty: false, has_reservations: false, has_drivers: false, has_theme_customization: false, has_analytics: false, has_ticket_printing: true, has_seo: true, has_facebook: false },
+      { name: "Premium", monthly_price: 599, yearly_price: 5990, max_products: 0, max_categories: 0, has_notifications: true, has_online_payments: true, has_loyalty: true, has_reservations: true, has_drivers: true, has_theme_customization: true, has_analytics: true, has_ticket_printing: true, has_seo: true, has_facebook: true, is_featured: true },
     ];
   }
 };
@@ -722,8 +739,8 @@ const contactSent = ref(false);
 const interestOptions = [
   "Quiero una demo",
   "Tengo dudas sobre los planes",
-  "Necesito una solucion personalizada",
-  "Soporte tecnico",
+  "Necesito una solución personalizada",
+  "Soporte técnico",
   "Otro",
 ];
 
@@ -751,7 +768,11 @@ const newFeatures = ref([
   { icon: "local_fire_department", title: "Ofertas flash", desc: "Crea ofertas temporales en segundos. Elige un platillo, ponle precio especial y define la duración." },
   { icon: "credit_score", title: "Pagos en línea", desc: "Acepta pagos con MercadoPago directamente desde tu menú. Tu cliente paga y tú recibes el dinero." },
   { icon: "fab fa-whatsapp", title: "Pedidos por WhatsApp", desc: "Cada pedido llega directo a tu WhatsApp con todos los detalles. Sin instalar apps adicionales." },
-  { icon: "notifications_active", title: "Notificaciones automáticas", desc: "Email y WhatsApp automático a tus clientes con cada pedido y cambio de estado." },
+  { icon: "share_location", title: "Seguimiento del pedido", desc: "Tu cliente sigue su pedido con un link: confirmado, en preparación, en camino y entregado. Se acabó el \"¿ya salió?\"." },
+  { icon: "route", title: "Envío cobrado por distancia", desc: "Tarifa base, kilómetros incluidos, costo por km extra, radio máximo y envío gratis desde el monto que tú decidas." },
+  { icon: "fab fa-facebook", title: "Facebook e Instagram", desc: "Pixel de Meta para medir tus anuncios y catálogo automático de tus platillos para vender en Facebook e Instagram." },
+  { icon: "code", title: "Tu menú dentro de tu web", desc: "Insértalo en tu sitio con un iframe que ajusta su altura solo, o comparte el enlace directo a una categoría." },
+  { icon: "notifications_active", title: "Avisos a tus clientes", desc: "Email automático con cada pedido y cambio de estado, y mensajes de WhatsApp listos para enviar a un clic desde tu panel." },
   { icon: "delivery_dining", title: "Gestión de repartidores", desc: "Da de alta repartidores, asigna pedidos y rastrea entregas desde tu panel." },
   { icon: "loyalty", title: "Programa de lealtad", desc: "Fideliza clientes con puntos canjeables por descuentos. Tú decides las reglas." },
   { icon: "event_seat", title: "Reservaciones", desc: "Tus clientes reservan mesa desde tu menú digital. Tú confirmas o rechazas." },
@@ -764,7 +785,6 @@ const newFeatures = ref([
   { icon: "search", title: "SEO dinámico", desc: "Tu restaurante aparece en Google con meta tags y Schema.org automático." },
   { icon: "print", title: "Impresión de tickets", desc: "Imprime tickets de pedidos directamente en tu impresora térmica." },
   { icon: "rocket_launch", title: "Configuración en 15 minutos", desc: "Wizard de configuración que te guía paso a paso. Logo, horario, categorías y platillos listos rápido." },
-  { icon: "mail", title: "Campañas de email", desc: "Envía correos a tus clientes con ofertas y novedades. Plantillas profesionales incluidas." },
 ]);
 
 const faqs = ref([
@@ -779,6 +799,22 @@ const faqs = ref([
   {
     q: "¿Cómo recibo los pedidos de mis clientes?",
     a: "Los pedidos llegan directo a tu WhatsApp y a tu panel de administración con todos los detalles: productos, extras, dirección de entrega y método de pago. También puedes recibir notificaciones por email."
+  },
+  {
+    q: "¿Mi cliente puede ver en qué va su pedido?",
+    a: "Sí. Cada pedido genera un link de seguimiento con su código. Tu cliente ve si está confirmado, en preparación, en camino o entregado, y al final puede dejarte una reseña. Tú sólo cambias el estado desde tu panel y, si dejó su correo, le llega el aviso por email."
+  },
+  {
+    q: "¿Cómo cobro el envío a domicilio?",
+    a: "Como te convenga: una tarifa fija o cobro por distancia. Defines una tarifa base con kilómetros incluidos, cuánto cobras por km extra, un radio máximo de entrega y desde qué monto el envío es gratis. El sistema ubica la dirección del cliente y calcula el costo solo."
+  },
+  {
+    q: "¿Puedo poner el menú dentro de mi página web?",
+    a: "Sí. Te damos un código para insertarlo en tu sitio; el menú ajusta su altura solo y puedes enlazar directo a una categoría. Si prefieres, comparte el enlace o el QR sin tocar tu web."
+  },
+  {
+    q: "¿Sirve para vender en Facebook e Instagram?",
+    a: "Sí. Puedes conectar tu Pixel de Meta para medir tus anuncios y generar el catálogo de tus platillos, con precios y disponibilidad actualizados, para usarlo en Facebook e Instagram."
   },
   {
     q: "¿Puedo aceptar pagos en línea?",
@@ -873,6 +909,15 @@ const faqs = ref([
   font-weight: 700;
   letter-spacing: 0.02em;
   padding: var(--space-sm) var(--space-xl);
+}
+
+.mc-hero-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: 0;
 }
 
 .options {

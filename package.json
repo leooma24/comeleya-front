@@ -1,7 +1,7 @@
 {
   "name": "delivery-food",
   "version": "0.0.1",
-  "description": "Ahorra en impresiones. Comparte tu menú de manera digital Imprime tu QR y comparte con tus comensales ¿Menús impresos en época de coronavirus? !Ya no más! Imprime tu QR dinámica y compártela en tu restaurante. URL Personalizada Obtén tu dirección web con el nombre de tu restaurante y compártelo con tus clientes. Platillos ilimitados Agregar platillos, portres, bebidas, etc. a placer. Cuentas con un espacio virtualmente ilimitado para subir tus platillos. Comparte en todas partes Utiliza los canales de comunicación más populares para compartir de manera dinámica tu menú y platillos de forma individual. Tu menú indexado en Google Todos tus platillos tienen una URL única que les permite ser indexados de manera única en google y generar ¡rich snippets¡. Nuestro menú para tí El entremés Gratuito QR para acceso directo. Gestor de contenido. Monitoreo de estadísticas Posicionamiento orgánico en google. Acceso desde la nube. Publicación de platillos. Imágenes en platillos. URL Personalizada. Remover Google Ads. La especialidad de la casa Premium QR para acceso directo. Gestor de contenido. Monitoreo de estadísticas Posicionamiento orgánico en google. Acceso desde la nube. Publicación de platillos. Imágenes en platillos. URL Personalizada. Remover Google Ads. ¿Por qué hacerte premium? Sin anuncios Hay una razón porque a nadie le gustan los comerciales. Obtén tu propia URL Tú página web personalizada, fácil de recordar.",
+  "description": "Menú QR con pedidos por WhatsApp, pagos en línea, seguimiento del pedido, lealtad y analíticas para tu restaurante. Mensualidad fija y 0% de comisión.",
   "productName": "ComeleYa",
   "author": "Omar Lerma <leooma24@gmail.com>",
   "private": true,
