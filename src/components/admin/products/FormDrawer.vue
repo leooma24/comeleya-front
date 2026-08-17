@@ -162,6 +162,23 @@
         <q-input class="col-6" v-model="availUntil" type="time" filled dense label="Hasta" />
       </div>
       <p class="mc-availability__hint">Déjalo vacío para que esté disponible siempre.</p>
+
+      <!-- El platillo que ES la promoción. Vive aquí, pegado a los días y horas,
+           porque es la misma conversación: "esto es la promo del lunes". La Oferta
+           de abajo es otra cosa -rebajar un platillo normal- y mezclarlas fue lo que
+           llevó a que en producción se guardara un 4x3 con special_price igual al
+           precio: un descuento de cero para poder salir arriba. -->
+      <q-toggle
+        v-model="adminStore.productForm.is_promo"
+        color="primary"
+        class="q-mt-sm"
+        label="Es una promoción"
+      />
+      <p class="mc-availability__hint">
+        Sube al bloque <strong>Ofertas del día</strong>, hasta arriba del menú, en los
+        días y horas de aquí arriba. No necesita precio anterior: el precio que pusiste
+        ya es el de la promoción.
+      </p>
     </div>
 
     <!-- Oferta.
@@ -183,6 +200,15 @@
       <p class="mc-offer__estado" v-if="tieneOferta">
         Con oferta a <strong>${{ adminStore.productForm.special_price }}</strong>
         <span v-if="textoVigencia"> · {{ textoVigencia }}</span>
+      </p>
+
+      <!-- Una oferta guardada NO es una oferta que se ve. El menú la calla si ya
+           venció, si hoy no es uno de sus días, o si no es más barata que el precio
+           normal, y desde aquí eso era invisible: el cajón decía "Con oferta a $330"
+           mientras el cliente no veía nada. -->
+      <p class="mc-offer__alerta" v-if="motivoOculta">
+        <q-icon name="warning" size="16px" class="q-mr-xs" />
+        {{ motivoOculta }}
       </p>
       <p class="mc-offer__estado" v-else>
         Sin oferta. Al ponerle una, el platillo sube al bloque
@@ -212,7 +238,7 @@ import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
-import { DIAS_LUNES_PRIMERO, diasValidos, textoDeDias } from "src/utils/weekDays";
+import { DIAS_LUNES_PRIMERO, aplicaHoy, diasValidos, textoDeDias } from "src/utils/weekDays";
 
 // La oferta la abre el padre (Products.vue), que ya tiene ese diálogo montado.
 defineEmits(["offer"]);
@@ -222,6 +248,40 @@ const $q = useQuasar();
 
 // --- Oferta ---
 const tieneOferta = computed(() => Number(adminStore.productForm.special_price) > 0);
+
+/**
+ * Por qué la oferta guardada no le aparece al cliente, o vacío si sí le aparece.
+ *
+ * Se revisa en el mismo orden en que el menú descarta: primero la fecha, luego los
+ * días, y al final el descuento -que el menú sí muestra, pero como un tachado de
+ * $330 a $330 que no le dice nada a nadie-.
+ */
+const motivoOculta = computed(() => {
+  if (!tieneOferta.value) return "";
+
+  const hasta = adminStore.productForm.special_until;
+  if (hasta) {
+    const fecha = new Date(hasta);
+    if (!Number.isNaN(fecha.getTime()) && fecha <= new Date()) {
+      return `Esta oferta venció el ${fecha.toLocaleDateString("es-MX", {
+        day: "numeric",
+        month: "short",
+      })} y el menú ya no la muestra. Edítala con una fecha futura para revivirla.`;
+    }
+  }
+
+  if (!aplicaHoy(adminStore.productForm.special_days)) {
+    return `Hoy no aplica: corre ${textoDeDias(adminStore.productForm.special_days)}. El resto de los días el menú cobra el precio normal.`;
+  }
+
+  const oferta = Number(adminStore.productForm.special_price);
+  const normal = Number(adminStore.productForm.price);
+  if (normal > 0 && oferta >= normal) {
+    return `El precio de oferta no es menor al normal ($${normal}), así que no hay descuento que anunciar.`;
+  }
+
+  return "";
+});
 
 /** "Lunes y martes · hasta el 20 ago", o vacío si la oferta no tiene límites. */
 const textoVigencia = computed(() => {
@@ -415,6 +475,18 @@ const onFileSelected = (event) => {
   &__estado {
     font-size: var(--text-xs); color: var(--color-text-tertiary);
     line-height: 1.5; margin: 0 0 var(--space-sm);
+  }
+
+  // Ambar y no rojo: no esta roto, esta guardado y callado. El rojo aqui competiria
+  // con el sello de oferta del propio cajon.
+  &__alerta {
+    display: flex; align-items: flex-start;
+    font-size: var(--text-xs); line-height: 1.5;
+    margin: 0 0 var(--space-sm);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    color: #8a5300;
+    background: var(--color-warning-bg);
   }
 }
 

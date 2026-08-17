@@ -622,7 +622,29 @@ const openOfferDialog = (product) => {
   offerDialog.value = true;
 };
 
+// Las dos formas de guardar una oferta que nace muerta. Las dos se vieron en
+// produccion en el MISMO platillo: precio de oferta igual al normal y fecha ya
+// pasada. Se guardaba sin chistar, el panel decia "Con oferta a $330" y el menu
+// no mostraba nada, que es imposible de entender desde afuera.
 const saveOffer = async () => {
+  const precio = Number(offerPrice.value);
+  const normal = Number(offerProduct.value?.price);
+
+  if (precio > 0 && normal > 0 && precio >= normal) {
+    adminStore.messageStore.error(
+      `El precio de oferta debe ser MENOR a $${normal}. Si el platillo YA es la promoción, ` +
+        `no le pongas oferta: enciende "Es una promoción" en el platillo y sube solo.`
+    );
+    return;
+  }
+
+  if (offerUntil.value && new Date(offerUntil.value) <= new Date()) {
+    adminStore.messageStore.error(
+      "Esa fecha ya pasó: la oferta no se mostraría ni un minuto. Elige una fecha futura o déjala vacía."
+    );
+    return;
+  }
+
   await adminStore.setSpecialOffer(
     offerProduct.value,
     offerPrice.value,

@@ -265,6 +265,33 @@ describe("main-store - extended coverage", () => {
       expect(store.specialOffers).toHaveLength(1);
     });
 
+    // El platillo que ES la promoción: no tiene precio anterior que tachar, así que
+    // antes la única forma de subirlo arriba era ponerle un descuento de cero.
+    it("specialOffers incluye la promo sin precio de oferta", () => {
+      store.productStore.setProducts([
+        { id: 1, name: "4x3 de tacos", price: 330, is_promo: true },
+        { id: 2, name: "Normal", price: 100 },
+      ]);
+      expect(store.specialOffers.map((p) => p.id)).toEqual([1]);
+    });
+
+    it("la promo respeta sus días y horas", () => {
+      const manana = (new Date().getDay() + 1) % 7;
+      store.productStore.setProducts([
+        { id: 1, name: "Solo mañana", price: 330, is_promo: true, available_days: [manana] },
+      ]);
+      expect(store.specialOffers).toHaveLength(0);
+    });
+
+    it("la promo no se repite en Recomendados", () => {
+      store.productStore.setProducts([
+        { id: 1, name: "Promo", price: 330, is_promo: true, is_featured: true },
+        { id: 2, name: "Destacado normal", price: 100, is_featured: true },
+      ]);
+      expect(store.featuredProducts.map((p) => p.id)).toEqual([2]);
+      expect(store.specialOffers.map((p) => p.id)).toEqual([1]);
+    });
+
     it("getHours returns company hours", () => {
       store.companyStore.company = { hours: [{ day: "lunes" }] };
       expect(store.getHours).toHaveLength(1);

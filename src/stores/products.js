@@ -43,12 +43,26 @@ export const useProductStore = defineStore("products", {
   persist: true,
   getters: {
     featuredProducts() {
-      return this.items.filter((item) => item.is_featured && isAvailableNow(item));
+      // Una promo NO se repite aquí. Ya sale hasta arriba en Ofertas y abajo en su
+      // categoría; meterla también en Recomendados la pone tres veces en la misma
+      // pantalla y el menú empieza a parecer un menú de tres platillos.
+      return this.items.filter(
+        (item) => item.is_featured && !item.is_promo && isAvailableNow(item)
+      );
     },
     specialOffers() {
-      // Misma regla que el carrito y el servidor: una oferta sin fecha de fin no
-      // es oferta, así que tampoco debe aparecer en la vitrina de ofertas.
-      return this.items.filter((item) => isSpecialActive(item) && isAvailableNow(item));
+      // Dos cosas distintas viven en este bloque:
+      //
+      //   - El platillo REBAJADO: tiene precio anterior que tachar. Misma regla que
+      //     el carrito y el servidor.
+      //   - El platillo que ES la promoción ("4x3 a $330"): no hay precio anterior,
+      //     nace siendo la oferta. Sin esto, la unica forma de subirlo aqui era
+      //     ponerle un special_price igual al precio, o sea un descuento de cero.
+      //
+      // Los dias y horas los sigue mandando la disponibilidad del platillo.
+      return this.items.filter(
+        (item) => (item.is_promo || isSpecialActive(item)) && isAvailableNow(item)
+      );
     },
   },
   actions: {
