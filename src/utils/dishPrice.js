@@ -21,8 +21,14 @@
 
 import { aplicaHoy, textoDeDias } from "./weekDays";
 
-/** ¿La oferta del platillo está vigente ahora mismo? */
-export function isSpecialActive(dish) {
+/**
+ * ¿La oferta del platillo está vigente ahora mismo?
+ *
+ * `ahora` se puede inyectar para poder probar la regla sin depender del reloj:
+ * antes offerUrgency recibía la fecha pero esta función seguía preguntándole al
+ * sistema, así que su test pasaba el día que se escribió y fallaba al siguiente.
+ */
+export function isSpecialActive(dish, ahora = new Date()) {
   if (!dish) return false;
 
   const precio = Number(dish.special_price);
@@ -30,7 +36,7 @@ export function isSpecialActive(dish) {
 
   // Días de la semana: "los martes el ceviche a $99". Sin días capturados aplica
   // todos, que es como se comportaron siempre las ofertas.
-  if (!aplicaHoy(dish.special_days)) return false;
+  if (!aplicaHoy(dish.special_days, ahora)) return false;
 
   // SIN fecha de fin la oferta corre hasta que la quiten.
   //
@@ -44,7 +50,7 @@ export function isSpecialActive(dish) {
   // Una fecha ilegible no puede cancelar una oferta que el dueño sí capturó.
   if (Number.isNaN(hasta.getTime())) return true;
 
-  return hasta > new Date();
+  return hasta > ahora;
 }
 
 /** Precio que se debe usar para cobrar: el de oferta si aplica, si no el normal. */
@@ -97,7 +103,7 @@ export function offerSavings(dish) {
  * existe: la primera vez funciona y a la tercera el cliente deja de creer nada.
  */
 export function offerUrgency(dish, ahora = new Date()) {
-  if (!isSpecialActive(dish)) return "";
+  if (!isSpecialActive(dish, ahora)) return "";
 
   const hasta = dish?.special_until ? new Date(dish.special_until) : null;
   if (hasta && !Number.isNaN(hasta.getTime())) {
