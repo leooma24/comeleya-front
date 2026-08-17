@@ -371,7 +371,19 @@ useMeta(metaData);
 // un iframe): en cada scroll, la categoría activa es la última cuyo encabezado ya
 // pasó la línea de fijado (justo debajo del header/tabs).
 let spyRaf = false;
-const updateActiveCategory = () => {
+
+// ¿Ya no queda a dónde bajar? El scroll puede venir del documento o de un contenedor
+// interno (el iframe embebido), así que se mide sobre el que disparó el evento.
+const sinMasScroll = (target) => {
+  const el =
+    target && target.scrollHeight && target !== document
+      ? target
+      : document.scrollingElement || document.documentElement;
+  // 2px de holgura: con zoom o densidades raras el fondo no cae en un entero exacto.
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+};
+
+const updateActiveCategory = (enElFondo = false) => {
   // Mientras hay un scroll por click en un tab, el spy NO cambia el tab (evita que
   // el movimiento pise la categoría que el usuario eligió).
   if (Date.now() < mainStore.spyLockUntil) return;
@@ -389,16 +401,24 @@ const updateActiveCategory = () => {
   headings.forEach((h) => {
     if (h.getBoundingClientRect().top <= threshold) id = h.dataset.id;
   });
+  // Tocando fondo mandan las últimas: una categoría corta al final -Postres con dos
+  // platillos- nunca alcanza a subir su título arriba de la línea, así que su tab no
+  // se prendía JAMÁS por más que el cliente estuviera viéndola. Y no hay más scroll
+  // que darle. Meterle un hueco vacío al final lo taparía a costa de una pantalla en
+  // blanco que el cliente sí ve; esto lo resuelve donde está la falla.
+  if (enElFondo) id = headings[headings.length - 1].dataset.id;
   if (mainStore.tab !== parseInt(id)) {
     mainStore.tab = parseInt(id);
   }
 };
-const onScrollSpy = () => {
+const onScrollSpy = (e) => {
   if (spyRaf) return;
   spyRaf = true;
+  // El target se lee AHORA: dentro del rAF el evento ya no sirve.
+  const enElFondo = sinMasScroll(e?.target);
   requestAnimationFrame(() => {
     spyRaf = false;
-    updateActiveCategory();
+    updateActiveCategory(enElFondo);
   });
 };
 
