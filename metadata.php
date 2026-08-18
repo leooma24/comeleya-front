@@ -20,9 +20,33 @@ $ownRoutes = [
 ];
 $isLanding = in_array($company, $ownRoutes, true);
 
-$data = $isLanding
-    ? null
-    : @json_decode(@file_get_contents($path . rawurlencode($company)), true);
+// Interesa el CODIGO de la respuesta, no solo el contenido: no es lo mismo que el
+// negocio no exista -404, la pagina esta mal y hay que decirlo- a que el API este
+// caido -y entonces el menu si existe y no hay que desindexarlo-.
+$statusApi = 0;
+$data = null;
+if (!$isLanding) {
+    $crudo = @file_get_contents($path . rawurlencode($company));
+    // file_get_contents deja aqui las cabeceras de la respuesta.
+    if (isset($http_response_header[0]) && preg_match('#\s(\d{3})\s#', $http_response_header[0], $m)) {
+        $statusApi = (int) $m[1];
+    }
+    if ($crudo !== false) {
+        $data = json_decode($crudo, true);
+    }
+}
+
+// Un slug que no existe respondia 200 con la cascara de la aplicacion. Google lo
+// llama soft 404: la trata como pagina de mala calidad y de paso la deja indexada,
+// compitiendo con las que si existen. El visitante igual ve el mensaje correcto
+// -"No encontramos este restaurante"-, esto es para el buscador.
+//
+// Solo cuando el API dijo 404. Si esta caido o tardo, el menu SI existe y sacarlo del
+// indice por una falla nuestra de cinco minutos costaria semanas de recuperar.
+$noExiste = !$isLanding && $statusApi === 404;
+if ($noExiste) {
+    http_response_code(404);
+}
 
 $restName = !empty($data['name']) ? $data['name'] : 'ComeleYa';
 $logo = !empty($data['logo']) ? $data['logo'] : 'https://comeleya.com/logo.png';
@@ -59,6 +83,14 @@ if ($isLanding) {
     $image = !empty($dish['photo']) ? $dish['photo'] : $logo;
     $ogUrl = 'https://' . $host . '/' . rawurlencode($company) . '?dish=' . rawurlencode($dishId);
     $ogType = 'product';
+} elseif ($noExiste) {
+    $title = 'Este menú no está disponible - ComeleYa';
+    $desc = 'No encontramos este restaurante. Puede que haya cambiado de dirección o '
+        . 'que ya no esté publicado en ComeleYa.';
+    $image = 'https://' . $host . '/og-comeleya.png';
+    $ogUrl = 'https://' . $host . '/' . rawurlencode($company);
+    $ogType = 'website';
+    $restName = 'ComeleYa';
 } else {
     // Lo que el dueño escribió en la pestaña SEO de su panel manda. Es la funcion
     // que le cobramos: si la lleno, tiene que salir. Mismos textos de respaldo que
@@ -88,6 +120,12 @@ $e = function ($s) {
 // paginas de menu, asi que un crawler que no ejecuta JavaScript -y varios no lo
 // hacen- nunca veia el nombre del restaurante. Justo lo contrario de lo que le
 // prometemos al negocio.
+if ($noExiste) {
+    // Que no se quede en el indice mientras Google vuelve a pasar.
+    echo '<meta name="robots" content="noindex, follow" />' . "
+";
+}
+
 echo '<title>' . $e($title) . '</title>
 <meta name="description" content="' . $e($desc) . '" />
 <meta property="og:title" content="' . $e($title) . '" />
