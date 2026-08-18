@@ -136,7 +136,20 @@ $e = function ($s) {
 // servidor manda charset en la cabecera HTTP y esa gana, pero es una red que no
 // controlamos: basta un cambio de configuracion, o que alguien guarde la pagina, para
 // que los acentos se conviertan en simbolos.
+// La misma pagina responde en comeleya.com, www.comeleya.com y sin cifrar: cuatro
+// direcciones para un solo menu. Sin canonical, Google adivina cual es la buena y
+// reparte la fuerza entre todas -y las que tiene indexadas del sitio viejo son las
+// de www, mientras el sitemap declara las de sin www-.
+//
+// Se fija a comeleya.com, el mismo dominio del sitemap, para que las dos señales
+// digan lo mismo. Ojo: es el ogUrl pero SIN el host de la peticion, a proposito.
+$canonical = 'https://comeleya.com' . ($isLanding && $company === ''
+    ? '/'
+    : '/' . rawurlencode($company))
+    . ($dish ? '?dish=' . rawurlencode($dishId) : '');
+
 echo '<!DOCTYPE html><html><head><meta charset="utf-8" />';
+echo '<link rel="canonical" href="' . $e($canonical) . '" />';
 
 if ($noExiste) {
     // Que no se quede en el indice mientras Google vuelve a pasar.
