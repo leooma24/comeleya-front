@@ -306,7 +306,7 @@ import CardDish from "src/components/client/CardDish.vue";
 import ListDish from "src/components/client/ListDish.vue";
 import { useRoute } from "vue-router";
 import { useMainStore } from "src/stores/main-store";
-import { spyThresholdFor } from "src/utils/categoryScroll";
+import { estaEnElFondo, spyThresholdFor } from "src/utils/categoryScroll";
 
 const mainStore = useMainStore();
 const route = useRoute();
@@ -372,17 +372,6 @@ useMeta(metaData);
 // pasó la línea de fijado (justo debajo del header/tabs).
 let spyRaf = false;
 
-// ¿Ya no queda a dónde bajar? El scroll puede venir del documento o de un contenedor
-// interno (el iframe embebido), así que se mide sobre el que disparó el evento.
-const sinMasScroll = (target) => {
-  const el =
-    target && target.scrollHeight && target !== document
-      ? target
-      : document.scrollingElement || document.documentElement;
-  // 2px de holgura: con zoom o densidades raras el fondo no cae en un entero exacto.
-  return el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
-};
-
 const updateActiveCategory = (enElFondo = false) => {
   // Mientras hay un scroll por click en un tab, el spy NO cambia el tab (evita que
   // el movimiento pise la categoría que el usuario eligió).
@@ -415,7 +404,10 @@ const onScrollSpy = (e) => {
   if (spyRaf) return;
   spyRaf = true;
   // El target se lee AHORA: dentro del rAF el evento ya no sirve.
-  const enElFondo = sinMasScroll(e?.target);
+  const enElFondo = estaEnElFondo(
+    e?.target,
+    document.scrollingElement || document.documentElement
+  );
   requestAnimationFrame(() => {
     spyRaf = false;
     updateActiveCategory(enElFondo);

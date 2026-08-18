@@ -74,3 +74,35 @@ export function centerTabScroll({ tabStart, tabSize, viewSize, contentSize }) {
 
   return Math.max(0, Math.min(destino, maximo));
 }
+
+/**
+ * ¿El scroll ya tocó fondo? Decide si mandan "las últimas".
+ *
+ * Existe porque una categoría corta al final -Postres con dos platillos- nunca sube
+ * su título arriba de la línea de fijado: el cliente la está viendo y el menú sigue
+ * marcando la anterior, sin manera de corregirlo porque ya no hay scroll.
+ *
+ * El cuidado está en QUIÉN se mide. `target` viene del evento y muchas veces no es
+ * quien scrollea:
+ *
+ *   - En touchmove es el elemento tocado, una tarjeta de platillo.
+ *   - La tira de categorías scrollea en horizontal y dispara su propio evento.
+ *
+ * Ninguno de los dos baja verticalmente -scrollHeight igual a clientHeight-, y darlos
+ * por buenos hacía que "ya llegué al fondo" fuera verdad SIEMPRE: en móvil el menú
+ * abría marcando la última categoría y volvía a ella con cada arrastre.
+ *
+ * Recibe medidas, no elementos, para poder probarse sin un navegador.
+ */
+export function estaEnElFondo(target, documento) {
+  const bajaDeVerdad = (el) => !!el && el.scrollHeight > el.clientHeight + 1;
+
+  const el = bajaDeVerdad(target) ? target : documento;
+
+  // Si nada se puede bajar, no hay fondo al que llegar: la página entera cabe y las
+  // categorías se ven todas. Forzar la última ahí sería inventarse una lectura.
+  if (!bajaDeVerdad(el)) return false;
+
+  // 2px de holgura: con zoom o densidades raras el fondo no cae en un entero exacto.
+  return el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   centerTabScroll,
+  estaEnElFondo,
   scrollOffsetFor,
   spyThresholdFor,
 } from "src/utils/categoryScroll.js";
@@ -163,5 +164,47 @@ describe("centerTabScroll", () => {
         }
       });
     });
+  });
+});
+
+// Lo que reportaron: en móvil el menú abría marcando la última categoría y volvía a
+// ella con cada arrastre. La causa no era el cálculo del fondo sino QUIÉN se medía.
+describe("estaEnElFondo", () => {
+  // Un elemento que no baja: scrollHeight igual a clientHeight.
+  const plano = (alto = 400) => ({ scrollTop: 0, clientHeight: alto, scrollHeight: alto });
+  const doc = (scrollTop, alto = 800, total = 3000) => ({
+    scrollTop,
+    clientHeight: alto,
+    scrollHeight: total,
+  });
+
+  it("la tarjeta que toca el dedo en touchmove no cuenta como scroller", () => {
+    // El target es la tarjeta; el documento apenas va empezando.
+    expect(estaEnElFondo(plano(), doc(0))).toBe(false);
+  });
+
+  it("la tira de categorías, que scrollea en horizontal, tampoco", () => {
+    const tira = { scrollTop: 0, clientHeight: 48, scrollHeight: 48 };
+    expect(estaEnElFondo(tira, doc(500))).toBe(false);
+  });
+
+  it("con el documento abajo del todo, sí", () => {
+    expect(estaEnElFondo(plano(), doc(2200))).toBe(true);
+  });
+
+  it("un contenedor propio que sí baja manda sobre el documento", () => {
+    // El caso del iframe embebido: scrollea el contenedor, no la página.
+    const caja = { scrollTop: 900, clientHeight: 600, scrollHeight: 1500 };
+    expect(estaEnElFondo(caja, doc(0))).toBe(true);
+  });
+
+  it("si la página entera cabe, no hay fondo que valga", () => {
+    // Todas las categorías están a la vista: marcar la última sería inventar.
+    expect(estaEnElFondo(null, plano(700))).toBe(false);
+  });
+
+  it("perdona 2px de holgura", () => {
+    expect(estaEnElFondo(null, { scrollTop: 2199, clientHeight: 800, scrollHeight: 3000 })).toBe(true);
+    expect(estaEnElFondo(null, { scrollTop: 2100, clientHeight: 800, scrollHeight: 3000 })).toBe(false);
   });
 });
