@@ -60,9 +60,21 @@ if ($isLanding) {
     $ogUrl = 'https://' . $host . '/' . rawurlencode($company) . '?dish=' . rawurlencode($dishId);
     $ogType = 'product';
 } else {
-    $title = !empty($data['logo']) ? $restName : 'ComeleYa';
-    $desc = 'Menú Digital, Carta Digital, QR, Plataforma para restaurantes, Restaurantes, Platillos en línea, Carta en línea';
-    $image = $logo;
+    // Lo que el dueño escribió en la pestaña SEO de su panel manda. Es la funcion
+    // que le cobramos: si la lleno, tiene que salir. Mismos textos de respaldo que
+    // usa IndexPage del lado del cliente, para que el HTML del servidor y lo que
+    // pinta el SPA digan lo mismo.
+    $seo = isset($data['seo']) && is_array($data['seo']) ? $data['seo'] : [];
+
+    $title = !empty($seo['meta_title'])
+        ? $seo['meta_title']
+        : $restName . ' - Menú Digital';
+
+    $desc = !empty($seo['meta_description'])
+        ? $seo['meta_description']
+        : 'Ordena en línea en ' . $restName . '. Menú digital, pedidos rápidos y entrega a domicilio.';
+
+    $image = !empty($seo['og_image']) ? $seo['og_image'] : $logo;
     $ogUrl = 'https://' . $host . '/' . rawurlencode($company);
     $ogType = 'website';
 }
@@ -71,7 +83,13 @@ $e = function ($s) {
     return htmlspecialchars($s === null ? '' : $s, ENT_QUOTES, 'UTF-8');
 };
 
-echo '
+// El <title> sale de aqui y de ningun otro lado: deploy.ps1 borra el estatico del
+// build al inyectar este archivo. Antes ese estatico decia "ComeleYa" en las 375
+// paginas de menu, asi que un crawler que no ejecuta JavaScript -y varios no lo
+// hacen- nunca veia el nombre del restaurante. Justo lo contrario de lo que le
+// prometemos al negocio.
+echo '<title>' . $e($title) . '</title>
+<meta name="description" content="' . $e($desc) . '" />
 <meta property="og:title" content="' . $e($title) . '" />
 <meta property="og:description" content="' . $e($desc) . '" />
 <meta property="og:image" content="' . $e($image) . '" />

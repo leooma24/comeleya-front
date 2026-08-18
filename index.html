@@ -4,7 +4,10 @@
     <title><%= productName %></title>
 
     <meta charset="utf-8" />
-    <meta name="description" content="<%= productDescription %>" />
+    <!-- El title y la description los pone metadata.php del lado del servidor:
+         sabe si es la landing o el menu de un negocio, y en ese caso respeta el
+         SEO que el dueño configuro en su panel. Aqui quedarian fijos para las
+         375 paginas. Ver el bloque "Preparando index.php" de deploy.ps1. -->
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
     <meta
