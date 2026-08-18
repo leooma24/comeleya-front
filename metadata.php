@@ -120,6 +120,16 @@ $e = function ($s) {
 // paginas de menu, asi que un crawler que no ejecuta JavaScript -y varios no lo
 // hacen- nunca veia el nombre del restaurante. Justo lo contrario de lo que le
 // prometemos al negocio.
+// El principio del documento lo emite ESTE archivo, no el build.
+//
+// Antes el orden era al reves -el build abria <head> y despues incluia esto-, y con
+// eso la respuesta ya iba en camino cuando llegabamos aqui: http_response_code() no
+// podia cambiar nada y un negocio inexistente seguia respondiendo 200. Emitiendo la
+// cabecera desde aqui, el codigo se decide antes de que salga el primer byte.
+//
+// deploy.ps1 quita el <!DOCTYPE html><html><head> del build al inyectar este include.
+echo '<!DOCTYPE html><html><head>';
+
 if ($noExiste) {
     // Que no se quede en el indice mientras Google vuelve a pasar.
     echo '<meta name="robots" content="noindex, follow" />' . "
