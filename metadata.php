@@ -128,7 +128,15 @@ $e = function ($s) {
 // cabecera desde aqui, el codigo se decide antes de que salga el primer byte.
 //
 // deploy.ps1 quita el <!DOCTYPE html><html><head> del build al inyectar este include.
-echo '<!DOCTYPE html><html><head>';
+// El charset va PEGADO a <head>, antes que nada.
+//
+// La norma pide que se declare dentro de los primeros 1024 bytes, y este archivo
+// escribe titulo, description, OG y JSON-LD: en la portada eso son 4 KB, asi que el
+// <meta charset> del build quedaba en el byte 4455. Hoy no se nota porque el
+// servidor manda charset en la cabecera HTTP y esa gana, pero es una red que no
+// controlamos: basta un cambio de configuracion, o que alguien guarde la pagina, para
+// que los acentos se conviertan en simbolos.
+echo '<!DOCTYPE html><html><head><meta charset="utf-8" />';
 
 if ($noExiste) {
     // Que no se quede en el indice mientras Google vuelve a pasar.
