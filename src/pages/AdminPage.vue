@@ -1,228 +1,11 @@
 <template>
   <q-page class="mc-admin-page">
     <div class="mc-admin-content">
-      <!-- Setup Banners -->
-      <!-- En celular estos avisos no van en Pedidos: es la pantalla de servicio y
-           empujaban la comanda hacia abajo. Su contenido pertenece a "Hoy", donde el
-           diseño los vuelve alertas con su accion. En el resto de las secciones y en
-           escritorio siguen igual. -->
-      <div
-        class="mc-setup-banners"
-        v-if="!isAdmin && adminStore.showBanners && !(modoApp && enPedidos)"
-      >
-        <!-- Active plan banner -->
-        <div
-          class="mc-setup-banner"
-          v-if="trialDaysLeft !== null && trialDaysLeft > 3"
-          :style="{ borderLeftColor: '#2196F3' }"
-        >
-          <div class="mc-setup-banner__icon" style="background: #E3F2FD;">
-            <q-icon name="card_membership" size="20px" color="primary" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'día' : 'días' }} restantes</strong>
-            <span>Tu plan vence el {{ new Date(adminStore.company?.active_subscription?.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
-          </div>
-        </div>
-
-        <!-- Plan about to expire banner (3 days or less) -->
-        <div
-          class="mc-setup-banner mc-setup-banner--trial"
-          v-if="trialDaysLeft !== null && trialDaysLeft <= 3 && trialDaysLeft > 0"
-        >
-          <div class="mc-setup-banner__icon" style="background: #FFF3E0;">
-            <q-icon name="hourglass_top" size="20px" color="orange" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft === 1 ? 'Vence mañana' : `Vence en ${trialDaysLeft} días` }}</strong>
-            <span>Renueva tu plan para no perder acceso a las funciones premium.</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="orange"
-            text-color="white"
-            size="sm"
-            label="Ver planes"
-            icon="rocket_launch"
-            class="mc-setup-banner__btn"
-            @click="scrollToPlanes"
-          />
-        </div>
-
-        <!-- Plan expires today -->
-        <div
-          class="mc-setup-banner mc-setup-banner--trial"
-          v-if="trialDaysLeft === 0"
-        >
-          <div class="mc-setup-banner__icon" style="background: #FFF3E0;">
-            <q-icon name="warning" size="20px" color="orange" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — Vence hoy</strong>
-            <span>Renueva ahora para no perder acceso.</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="orange"
-            text-color="white"
-            size="sm"
-            label="Renovar"
-            icon="rocket_launch"
-            class="mc-setup-banner__btn"
-            @click="scrollToPlanes"
-          />
-        </div>
-
-        <!-- Plan expired / no plan banner -->
-        <div
-          class="mc-setup-banner mc-setup-banner--expired"
-          v-if="trialExpired"
-        >
-          <div class="mc-setup-banner__icon" style="background: #FFEBEE;">
-            <q-icon name="error" size="20px" color="negative" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>No tienes un plan activo</strong>
-            <span>Elige un plan para disfrutar de todas las funciones premium como repartidores, reservaciones, lealtad y mas.</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="negative"
-            text-color="white"
-            size="sm"
-            label="Elegir plan"
-            icon="rocket_launch"
-            class="mc-setup-banner__btn"
-            @click="scrollToPlanes"
-          />
-        </div>
-
-        <div
-          class="mc-setup-banner"
-          v-if="!adminStore?.categories.length"
-        >
-          <div class="mc-setup-banner__icon">
-            <q-icon name="category" size="20px" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>Categorías pendientes</strong>
-            <span>Agrega al menos una categoría para organizar tus productos</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            size="sm"
-            label="Agregar"
-            icon="add"
-            class="mc-setup-banner__btn"
-            @click="addCategory"
-          />
-        </div>
-
-        <div
-          class="mc-setup-banner"
-          v-if="!adminStore?.products.length"
-        >
-          <div class="mc-setup-banner__icon">
-            <q-icon name="restaurant_menu" size="20px" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>Productos pendientes</strong>
-            <span>Agrega productos para que tus clientes puedan realizar pedidos</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            size="sm"
-            label="Agregar"
-            icon="add"
-            class="mc-setup-banner__btn"
-            @click="addProduct"
-          />
-        </div>
-
-        <div
-          class="mc-setup-banner"
-          v-if="
-            !adminStore?.company ||
-            !adminStore.company.hours ||
-            !adminStore.company.hours.length
-          "
-        >
-          <div class="mc-setup-banner__icon">
-            <q-icon name="schedule" size="20px" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>Horario no configurado</strong>
-            <span>Establece tu horario de atención para que los clientes sepan cuándo pueden ordenar</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            size="sm"
-            label="Configurar"
-            icon="settings"
-            class="mc-setup-banner__btn"
-            @click="adminStore.setScheduleDrawer(true)"
-          />
-        </div>
-
-        <div
-          class="mc-setup-banner"
-          v-if="!adminStore?.company.address"
-        >
-          <div class="mc-setup-banner__icon">
-            <q-icon name="location_on" size="20px" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>Dirección no registrada</strong>
-            <span>Agrega la dirección de tu establecimiento</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            size="sm"
-            label="Agregar"
-            icon="add"
-            class="mc-setup-banner__btn"
-            @click="adminStore.addressDrawer = true"
-          />
-        </div>
-
-        <div
-          class="mc-setup-banner"
-          v-if="
-            !adminStore.company ||
-            !adminStore.company.features ||
-            !adminStore.company?.features.length
-          "
-        >
-          <div class="mc-setup-banner__icon">
-            <q-icon name="tune" size="20px" />
-          </div>
-          <div class="mc-setup-banner__text">
-            <strong>Servicios no configurados</strong>
-            <span>Configura los servicios que ofrece tu establecimiento</span>
-          </div>
-          <q-btn
-            unelevated
-            no-caps
-            color="primary"
-            size="sm"
-            label="Configurar"
-            icon="settings"
-            class="mc-setup-banner__btn"
-            @click="adminStore.configurationDrawer = true"
-          />
-        </div>
-      </div>
+      <!-- Los avisos de plan y de configuracion pendiente. En celular NO van aqui:
+           dibujados antes de la cabecera la empujaban hacia abajo y le cortaban el
+           titulo, asi que la pantalla empezaba con un aviso a medias. Ahi los pone la
+           propia banda, pegados abajo, donde no mueven nada. -->
+      <admin-avisos v-if="!isAdmin && !modoApp" />
 
       <!-- La banda de arriba para las secciones que no traen la suya.
            Antes cada una empezaba con su propia cabecera blanca y una pastilla suelta
@@ -268,6 +51,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "src/components/admin/movil/McIcon.vue";
 import McEncabezado from "src/components/admin/movil/Encabezado.vue";
+import AdminAvisos from "src/components/admin/Avisos.vue";
 import { useOrderAlerts } from "src/composables/useOrderAlerts";
 
 // Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
@@ -359,34 +143,6 @@ const volverAMas = () => {
 const route = useRoute();
 const isAdmin = ref(false);
 
-// Trial/subscription days calculation
-const trialDaysLeft = computed(() => {
-  const sub = adminStore.company?.active_subscription;
-  if (!sub || !sub.end_date) return null;
-  const end = new Date(sub.end_date);
-  const now = new Date();
-  const days = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
-  return Math.max(0, days);
-});
-
-// Subscription package name
-const planName = computed(() => {
-  return adminStore.company?.active_subscription?.package?.name || 'Plan temporal';
-});
-
-// Trial expired detection (no active subscription at all)
-const trialExpired = computed(() => {
-  const sub = adminStore.company?.active_subscription;
-  if (sub) return false;
-  // No active subscription
-  if (!adminStore.company?.created_at) return false;
-  return true;
-});
-
-const scrollToPlanes = () => {
-  adminStore.tab = "mi_plan";
-};
-
 const slug = route.params.slug ?? "";
 adminStore.setSlug(slug);
 adminStore.getEstablishment();
@@ -398,16 +154,6 @@ if (route.path === "/admin") {
 // Alerta global de pedidos nuevos (suena en cualquier pestaña). Solo aplica al
 // panel de un establecimiento (no en el super-admin, donde no hay slug).
 useOrderAlerts(() => slug);
-
-const addCategory = () => {
-  adminStore.tab = "categorias";
-  adminStore.categoryFormDrawer = true;
-};
-
-const addProduct = () => {
-  adminStore.tab = "productos";
-  adminStore.productFormDrawer = true;
-};
 
 const getComponentName = (tab) => {
   if (tab === "dashboard") {

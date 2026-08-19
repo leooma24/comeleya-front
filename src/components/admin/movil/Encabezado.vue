@@ -31,12 +31,16 @@
     </div>
 
     <slot name="pie" />
+
+    <!-- Los avisos del panel, dentro de la banda. Antes iban encima y la empujaban. -->
+    <admin-avisos compacto />
   </header>
 </template>
 
 <script setup>
 defineOptions({ name: "McEncabezado" });
 import McIcon from "./McIcon.vue";
+import AdminAvisos from "../Avisos.vue";
 
 defineEmits(["atras"]);
 

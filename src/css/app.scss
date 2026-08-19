@@ -1601,41 +1601,7 @@ body.mc-modo-app {
     flex: 1 1 140px;
   }
 
-  // Los avisos de plan y de configuracion pendiente: en celular dejan de ser tarjetas
-  // sueltas y pasan a ser una franja de sistema pegada al borde, como la que usan las
-  // aplicaciones para avisar de una prueba por vencer. Siguen diciendo lo mismo.
-  .mc-setup-banners {
-    margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0;
-  }
-
-  // Pegada a la banda: la franja de aviso y la cabecera son el mismo bloque de arriba.
-  .mc-setup-banners:not(:empty) {
-    margin-bottom: 0;
-  }
-
-  .mc-setup-banner {
-    border-radius: 0;
-    border-left: 0;
-    border-bottom: 0.5px solid var(--color-border);
-    padding: 9px var(--mc-lado);
-    gap: 10px;
-
-    &__icon {
-      width: 26px;
-      height: 26px;
-      min-width: 26px;
-      border-radius: 8px;
-
-      .q-icon { font-size: 15px !important; }
-    }
-
-    &__text {
-      strong { font-size: 12.5px; }
-      span { font-size: 11px; }
-    }
-
-    .q-btn { font-size: 11px; }
-  }
+  // Los avisos ya no se dibujan aqui en celular: los lleva la banda por dentro.
 }
 
 // ============================================
@@ -1762,4 +1728,61 @@ body.mc-modo-app {
   cursor: pointer;
 
   &:active { background: rgba(13, 16, 21, 0.06); }
+}
+
+// ============================================
+// AVISOS DENTRO DE LA BANDA (Avisos.vue)
+// ============================================
+//
+// Un renglon por aviso, pegado abajo de la banda y sobre su mismo fondo oscuro. Antes
+// eran tarjetas blancas dibujadas ENCIMA de la cabecera: empujaban la banda hacia
+// abajo y le cortaban el titulo, asi que la pantalla abria con un aviso a medias y el
+// nombre de la seccion quedaba de segundas.
+.mc-avisos {
+  margin: 11px calc(-1 * var(--mc-lado, 14px)) calc(-13px);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.1);
+}
+
+.mc-avisos__fila {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  background: none;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px var(--mc-lado, 14px);
+  cursor: pointer;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.75);
+
+  & + & { border-top: 0.5px solid rgba(255, 255, 255, 0.08); }
+  &:active { background: rgba(255, 255, 255, 0.06); }
+
+  // El tono dice que tan urgente es sin gastar una palabra en decirlo.
+  &--urgente .q-icon,
+  &--malo .q-icon { color: #ff8f6b; }
+  &--info .q-icon { color: rgba(255, 255, 255, 0.5); }
+  &--pendiente .q-icon { color: rgba(255, 255, 255, 0.5); }
+}
+
+.mc-avisos__txt {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 520;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-avisos__cta {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 650;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  padding: 4px 9px;
 }
