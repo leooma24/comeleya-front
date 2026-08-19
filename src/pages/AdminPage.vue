@@ -2,7 +2,14 @@
   <q-page class="mc-admin-page">
     <div class="mc-admin-content">
       <!-- Setup Banners -->
-      <div class="mc-setup-banners" v-if="!isAdmin && adminStore.showBanners">
+      <!-- En celular estos avisos no van en Pedidos: es la pantalla de servicio y
+           empujaban la comanda hacia abajo. Su contenido pertenece a "Hoy", donde el
+           diseño los vuelve alertas con su accion. En el resto de las secciones y en
+           escritorio siguen igual. -->
+      <div
+        class="mc-setup-banners"
+        v-if="!isAdmin && adminStore.showBanners && !(modoApp && enPedidos)"
+      >
         <!-- Active plan banner -->
         <div
           class="mc-setup-banner"
@@ -233,6 +240,7 @@ defineOptions({
 import { ref, computed, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
 import { useOrderAlerts } from "src/composables/useOrderAlerts";
 
 // Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
@@ -267,6 +275,8 @@ const MySubscription = lazy("MySubscription");
 const Reviews = lazy("Reviews");
 
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
+const enPedidos = computed(() => String(adminStore.tab || "").startsWith("pedidos"));
 const route = useRoute();
 const isAdmin = ref(false);
 

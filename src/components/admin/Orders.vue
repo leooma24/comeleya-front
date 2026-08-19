@@ -736,7 +736,10 @@ const esperaPromedio = computed(() => {
   const lista = filteredOrders.value.filter((o) => o?.created_at);
   if (!lista.length) return "—";
   const mins = Math.max(...lista.map((o) => minutesSince(o.created_at)));
-  return mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h`;
+  if (mins < 60) return `${mins} min`;
+  const horas = Math.floor(mins / 60);
+  // Mas de un dia rompia la reticula de la cabecera: "17309 h" no cabe en tres cifras.
+  return horas < 24 ? `${horas} h` : `${Math.floor(horas / 24)} d`;
 });
 
 /** Lo que suman los pedidos de esta pestaña, no la venta del dia. */
@@ -1012,6 +1015,24 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
   }
   &.mc-t-medio::before { background: #b06f00; }
   &.mc-t-tarde::before { background: var(--q-negative); }
+}
+
+/* --- Densidad: en el diseño entran tres pedidos por pantalla, no uno --- */
+.mc-order-card--app {
+  /* La fecha completa sobra: el encabezado ya trae la hora y el anillo el tiempo. */
+  .mc-order-info-row:last-child { display: none; }
+
+  /* Cliente y tipo de entrega en renglones apretados, no como lista con sangria. */
+  .mc-order-card__body { padding: 9px 13px 0; gap: 3px; }
+  .mc-order-info-row { font-size: 12.5px; gap: 7px; }
+
+  .mc-order-items { padding: 8px 13px 0; }
+  /* "PRODUCTOS" gastaba un renglon entero para decir lo evidente. */
+  .mc-order-items__title { display: none; }
+  .mc-order-item { padding: 2px 0; }
+
+  .mc-order-card__header { padding: 11px 48px 9px 13px; }
+  .mc-order-card__footer { padding: 9px 13px 11px; }
 }
 
 .mc-anillo {

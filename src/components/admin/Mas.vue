@@ -1,5 +1,17 @@
 <template>
   <div class="mc-mas">
+    <!-- Cabecera propia: al quitar la barra de ComeleYa en celular, cada pantalla
+         necesita decir dónde está uno. -->
+    <div class="mc-mas__top">
+      <div>
+        <div class="mc-mas__tit">Más</div>
+        <div class="mc-mas__sub">{{ adminStore.company?.name || "Tu negocio" }}</div>
+      </div>
+      <button type="button" class="mc-mas__vermenu" @click="verMenu">
+        <mc-icon name="mundo" :size="15" /> Ver menú
+      </button>
+    </div>
+
     <!-- El plan vive aquí y no encabezando Pedidos, que es donde menos importa:
          nadie revisa cuántos días le quedan al plan en plena hora pico. -->
     <div class="mc-mas__plan" v-if="plan">
@@ -12,7 +24,7 @@
       <div class="mc-mas__lista" v-if="grupo.items.length">
         <button
           v-for="item in grupo.items"
-          :key="item.tab"
+          :key="item.tab || item.cajon"
           type="button"
           class="mc-mas__fila"
           @click="abrir(item)"
@@ -23,6 +35,23 @@
             <span v-if="item.dato" class="mc-mas__dato">{{ item.dato }}</span>
             <mc-icon name="flecha" :size="16" />
           </span>
+        </button>
+      </div>
+    </template>
+
+    <template v-if="otrosNegocios.length">
+      <div class="mc-mas__rotulo">Tus establecimientos</div>
+      <div class="mc-mas__lista">
+        <button
+          v-for="negocio in otrosNegocios"
+          :key="negocio.id"
+          type="button"
+          class="mc-mas__fila"
+          @click="irANegocio(negocio)"
+        >
+          <span class="mc-mas__gi"><mc-icon name="caja" :size="17" /></span>
+          <span class="mc-mas__nom">{{ negocio.name }}</span>
+          <span class="mc-mas__der"><mc-icon name="flecha" :size="16" /></span>
         </button>
       </div>
     </template>
@@ -102,13 +131,41 @@ const grupos = computed(() => [
     ].filter(Boolean),
   },
   {
+    // Estos cuatro vivían en el menú del avatar, que en celular ya no existe. Son
+    // cajones que ya estaban montados en el layout: aquí solo se abren.
+    titulo: "Tu negocio",
+    items: [
+      { cajon: "establecimiento", texto: "Datos del establecimiento", icono: "caja" },
+      { cajon: "horario", texto: "Horario", icono: "reloj" },
+      { cajon: "direccion", texto: "Dirección", icono: "pin" },
+      { cajon: "configuracion", texto: "Configuración", icono: "engrane" },
+    ],
+  },
+  {
     titulo: "Tu cuenta",
     items: [
+      { cajon: "perfil", texto: "Mi perfil", icono: "gente" },
       { tab: "mi_plan", texto: "Mi plan", icono: "tarjeta" },
-      { tab: "mc_configuracion", texto: "Configuración del negocio", icono: "engrane" },
     ],
   },
 ]);
+
+/** Los otros negocios del mismo dueño: en la barra vieja estaban al final del menú. */
+const otrosNegocios = computed(() => {
+  if (adminStore.user.isSuperAdmin) return [];
+  const lista = adminStore.user.user?.establishments ?? [];
+  return lista.length > 1 ? lista : [];
+});
+
+const verMenu = () => window.open(`/${adminStore.slug}`, "_blank");
+
+const CAJONES = {
+  perfil: (v) => adminStore.setProfileDrawer(v),
+  horario: (v) => adminStore.setScheduleDrawer(v),
+  establecimiento: (v) => adminStore.setEstablishmentDrawer(v),
+  direccion: (v) => adminStore.setAddressDrawer(v),
+  configuracion: (v) => adminStore.setConfigurationDrawer(v),
+};
 
 const plan = computed(() => {
   const sub = adminStore.company?.active_subscription;
@@ -128,9 +185,9 @@ const plan = computed(() => {
 });
 
 const abrir = (item) => {
-  // La configuración no es una pestaña: vive en su propio cajón, que ya existe.
-  if (item.tab === "mc_configuracion") {
-    adminStore.configurationDrawer = true;
+  // Varias de estas no son pestañas: son cajones que el layout ya tiene montados.
+  if (item.cajon) {
+    CAJONES[item.cajon]?.(true);
     return;
   }
   if (item.tab === "pedidos_historial") {
@@ -140,6 +197,8 @@ const abrir = (item) => {
   }
   adminStore.tab = item.tab;
 };
+
+const irANegocio = (negocio) => adminStore.router.push(`/${negocio.slug}/admin`);
 
 const salir = () => {
   $q.dialog({
@@ -159,7 +218,43 @@ const salir = () => {
 
 <style lang="scss" scoped>
 .mc-mas {
-  padding: 12px 0 4px;
+  padding: 0 0 4px;
+}
+
+.mc-mas__top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 12px;
+  background: var(--color-surface);
+  border-bottom: 0.5px solid var(--color-border);
+  margin-bottom: 12px;
+}
+.mc-mas__tit {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+.mc-mas__sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+.mc-mas__vermenu {
+  appearance: none;
+  border: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 620;
+  color: #fff;
+  background: var(--q-positive);
+  border-radius: 11px;
+  padding: 8px 13px;
+  cursor: pointer;
 }
 
 .mc-mas__plan {

@@ -1,7 +1,12 @@
 <template>
   <q-layout class="mc-admin-layout">
-    <q-header class="mc-admin-header">
-      <q-toolbar class="mc-admin-toolbar">
+    <q-header class="mc-admin-header" v-if="!ocultarBarraSuperior">
+      <!-- En celular esta barra desaparece: dejaba dos cabeceras apiladas, que es el
+           problema que el rediseño viene a quitar. Todo lo que traia -Ver menu, perfil,
+           horario, establecimiento, direccion, configuracion, cambiar de negocio y
+           cerrar sesion- vive ahora en la pestaña "Mas". El super admin la conserva,
+           porque su panel no entra en el rediseño. -->
+      <q-toolbar class="mc-admin-toolbar" v-if="!ocultarBarraSuperior">
         <q-img
           src="~/src/assets/logo.svg"
           alt="ComeleYa"
@@ -278,6 +283,10 @@ import { useModoApp } from "src/composables/useModoApp";
 const adminStore = useAdminStore();
 const $q = useQuasar();
 const { modoApp } = useModoApp();
+
+const ocultarBarraSuperior = computed(
+  () => modoApp.value && adminStore.user.isAuthenticated && adminStore.isEstablishment
+);
 
 // La clase en el body es la que deja que cualquier vista reserve el espacio de la
 // barra de abajo sin tener que saber si existe.
