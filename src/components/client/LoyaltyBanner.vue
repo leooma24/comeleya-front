@@ -33,9 +33,7 @@
         <p class="mc-points-info" v-if="config.points_value">
           Equivalen a <strong>${{ (points * config.points_value).toFixed(2) }}</strong> en descuentos
         </p>
-        <p class="mc-points-info">
-          Ganas <strong>{{ config.points_per_order || 10 }}</strong> puntos por cada pedido
-        </p>
+        <p class="mc-points-info">{{ earnText }}</p>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -44,27 +42,41 @@
 <script setup>
 defineOptions({ name: "LoyaltyBanner" });
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useCompanyStore } from "src/stores/company-store";
-import { useMessageStore } from "src/stores/message-store";
 
 const companyStore = useCompanyStore();
-const messageStore = useMessageStore();
 
 const visible = ref(false);
 const showLookup = ref(false);
 const phone = ref("");
 const loading = ref(false);
 const points = ref(null);
-const config = ref({ points_per_order: 10, points_value: 1, min_points_redeem: 50 });
+const config = ref({
+  earn_mode: "per_amount",
+  points_per_amount: 1,
+  amount_step: 10,
+  points_per_order: 10,
+  points_value: 1,
+  min_points_redeem: 50,
+});
+
+const earnText = computed(() => {
+  const c = config.value;
+  if (c.earn_mode === "per_order") {
+    return `Ganas ${c.points_per_order || 0} puntos por cada pedido`;
+  }
+  const pts = c.points_per_amount || 1;
+  return `Ganas ${pts} punto${pts === 1 ? "" : "s"} por cada $${c.amount_step || 10} que gastas`;
+});
 
 const lookup = async () => {
   if (!phone.value) return;
   loading.value = true;
   points.value = null;
   try {
-    const { data } = await api.get(`/${companyStore.slug}/loyalty/lookup`, { params: { phone: phone.value } });
+    const { data } = await api.post(`/establishment/${companyStore.slug}/loyalty/lookup`, { phone: phone.value });
     points.value = data.loyalty?.points ?? 0;
   } catch (e) {
     points.value = 0;
@@ -75,7 +87,7 @@ const lookup = async () => {
 
 onMounted(async () => {
   try {
-    const { data } = await api.get(`/${companyStore.slug}/loyalty/config`);
+    const { data } = await api.get(`/establishment/${companyStore.slug}/loyalty/config`);
     if (data.config) {
       Object.assign(config.value, data.config);
       visible.value = true;

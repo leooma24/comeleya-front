@@ -28,7 +28,7 @@
         </q-card-section>
         <q-card-section>
           <q-select v-model="form.type" :options="typeOptions" emit-value map-options filled dense label="Tipo" class="q-mb-sm" />
-          <q-input v-model="form.description" filled dense autogrow type="textarea" label="Descripcion" class="q-mb-sm" />
+          <q-input v-model="form.description" filled dense autogrow type="textarea" label="Descripción" class="q-mb-sm" />
           <q-input v-model="form.scheduled_at" filled dense type="datetime-local" label="Agendar para (opcional)" class="q-mb-sm" />
           <div class="row q-gutter-sm">
             <q-btn unelevated no-caps color="primary" label="Agregar" icon="add" size="sm" @click="addActivity" :loading="saving" />
@@ -39,10 +39,10 @@
                     <q-item-section>Bienvenida (2 emails)</q-item-section>
                   </q-item>
                   <q-item clickable @click="launchSequence('nurture')">
-                    <q-item-section>Nutricion (2 emails)</q-item-section>
+                    <q-item-section>Nutrición (2 emails)</q-item-section>
                   </q-item>
                   <q-item clickable @click="launchSequence('reactivation')">
-                    <q-item-section>Reactivacion (3 emails)</q-item-section>
+                    <q-item-section>Reactivación (3 emails)</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -79,13 +79,29 @@
 
 <script setup>
 defineOptions({ name: "ActivityDrawer" });
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 const adminStore = useAdminStore();
 
 const saving = ref(false);
 const form = ref({ type: "nota", description: "", scheduled_at: "" });
+
+// Al abrir el drawer: si viene un prefill (p. ej. "Agendar llamada"), lo aplicamos;
+// si no, dejamos el formulario en limpio.
+watch(
+  () => adminStore.activityDrawer,
+  (open) => {
+    if (!open) return;
+    const pre = adminStore.activityPrefill;
+    form.value = {
+      type: pre?.type || "nota",
+      description: "",
+      scheduled_at: pre?.scheduled_at || "",
+    };
+    adminStore.activityPrefill = null;
+  }
+);
 
 const typeOptions = [
   { label: "Llamada", value: "llamada" },
@@ -97,7 +113,7 @@ const typeOptions = [
 ];
 
 const segColor = (s) => ({ pedidos_sin_pago: "red", menu_sin_pedidos: "orange", sin_configurar: "blue", inactivo: "grey" })[s] || "grey";
-const segLabel = (s) => ({ pedidos_sin_pago: "Pedidos sin pago", menu_sin_pedidos: "Menu sin pedidos", sin_configurar: "Sin configurar", inactivo: "Inactivo" })[s] || s;
+const segLabel = (s) => ({ pedidos_sin_pago: "Pedidos sin pago", menu_sin_pedidos: "Menú sin pedidos", sin_configurar: "Sin configurar", inactivo: "Inactivo" })[s] || s;
 const scoreColor = (score) => score >= 60 ? "positive" : score >= 30 ? "warning" : "negative";
 
 const iconFor = (type) => {
@@ -130,7 +146,7 @@ const launchSequence = async (type) => {
 };
 
 const addActivity = async () => {
-  if (!form.value.description) return adminStore.messageStore.error("La descripcion es requerida");
+  if (!form.value.description) return adminStore.messageStore.error("La descripción es requerida");
   saving.value = true;
   try {
     const { data } = await api.post(`/admin/prospects/${adminStore.activeProspect.id}/activity`, form.value);

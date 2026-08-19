@@ -1,21 +1,26 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header class="mc-header">
+    <q-header :class="['mc-header', scrolled ? 'mc-header--scrolled' : '']">
       <q-toolbar
         v-if="!mainStore.isExternal"
         class="q-py-sm q-px-md"
       >
         <q-img
           src="~/src/assets/logo.svg"
-          alt="ComeleYa"
-          class="q-mr-sm mc-logo"
+          alt="ComeleYa — ir al inicio"
+          class="q-mr-sm mc-logo cursor-pointer"
           width="44px"
+          role="button"
+          tabindex="0"
+          @click="scrollTop"
+          @keyup.enter="scrollTop"
         />
         <q-space />
         <div v-if="showSearch" class="mc-search-wrapper">
           <q-input
             v-model="mainStore.search"
             :placeholder="searchExpanded ? 'Buscar platillo...' : ''"
+            aria-label="Buscar platillo"
             dense
             rounded
             filled
@@ -31,6 +36,8 @@
                 color="grey-6"
                 size="20px"
                 class="cursor-pointer"
+                role="button"
+                aria-label="Buscar"
                 @click="searchExpanded = true"
               />
             </template>
@@ -40,12 +47,63 @@
                 color="grey-6"
                 size="16px"
                 class="cursor-pointer mc-search-clear"
+                role="button"
+                aria-label="Limpiar búsqueda"
                 @click="mainStore.search = ''; searchExpanded = false"
               />
             </template>
           </q-input>
         </div>
+
+        <!-- Toggle de vista: cuadrícula / lista -->
+        <div
+          v-if="showSearch && mainStore.categories.length"
+          class="mc-view-toggle q-ml-sm"
+        >
+          <q-btn
+            flat
+            dense
+            round
+            size="sm"
+            :color="mainStore.viewType === 'Tarjeta' ? 'primary' : 'grey-6'"
+            icon="grid_view"
+            aria-label="Vista cuadrícula"
+            @click="mainStore.setViewType('Tarjeta')"
+          >
+            <q-tooltip>Vista cuadrícula</q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            dense
+            round
+            size="sm"
+            :color="mainStore.viewType === 'Lista' ? 'primary' : 'grey-6'"
+            icon="view_list"
+            aria-label="Vista lista"
+            @click="mainStore.setViewType('Lista')"
+          >
+            <q-tooltip>Vista lista</q-tooltip>
+          </q-btn>
+        </div>
+
+        <!-- Toggle modo claro/oscuro -->
+        <q-btn
+          flat
+          round
+          dense
+          :icon="isDark ? 'light_mode' : 'dark_mode'"
+          :color="isDark ? 'amber-6' : 'grey-8'"
+          class="q-ml-sm"
+          :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+          @click="toggleTheme"
+        >
+          <q-tooltip>{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</q-tooltip>
+        </q-btn>
       </q-toolbar>
+
+      <!-- Embebido el selector NO va aquí: la tira de categorías se fija en top:0
+           dentro del iframe y taparía esta barra. Vive junto a las categorías,
+           en Sidebar.vue. -->
     </q-header>
 
     <add-cart-drawer />
@@ -68,7 +126,8 @@
 defineOptions({
   name: "MainLayout",
 });
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
+import { useQuasar } from "quasar";
 import AddCartDrawer from "src/components/client/AddCartDrawer.vue";
 import CartDrawer from "src/components/client/CartDrawer.vue";
 import DataDrawer from "src/components/client/DataDrawer.vue";
@@ -77,12 +136,135 @@ import PaymentDrawer from "src/components/client/PaymentDrawer.vue";
 import ValidationDialog from "src/components/client/ValidationDialog.vue";
 
 import { useMainStore } from "src/stores/main-store";
+import { cartBarCta } from "src/utils/cartBarCta";
 
 const mainStore = useMainStore();
-mainStore.getPositions();
 mainStore.checkColor();
 const showSearch = ref(true);
 const searchExpanded = ref(false);
+
+// Sombra del header al hacer scroll (separa el contenido del header translúcido)
+const scrolled = ref(false);
+const onScroll = () => {
+  scrolled.value = window.scrollY > 8;
+};
+
+const scrollTop = () => {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
+// Modo claro/oscuro — activo SOLO en el menú del cliente (se revierte al salir)
+const $q = useQuasar();
+const isDark = ref(false);
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  $q.dark.set(isDark.value);
+  try {
+    localStorage.setItem("mc-theme", isDark.value ? "dark" : "light");
+  } catch {
+    // ignore
+  }
+};
+let heightObserver = null;
+let heightInterval = null;
+let cartStopWatch = null;
+let onParentMessage = null;
+onMounted(() => {
+  try {
+    // Default siempre claro; solo oscuro si el usuario lo activó manualmente antes
+    isDark.value = localStorage.getItem("mc-theme") === "dark";
+  } catch {
+    isDark.value = false;
+  }
+  $q.dark.set(isDark.value);
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  // Auto-alto del iframe: cuando el menú va embebido, publica su alto al sitio
+  // contenedor para que ajuste el <iframe> y no haya scroll doble.
+  if (mainStore.router.currentRoute.value.query.isExternal && window.parent !== window) {
+    const postHeight = () => {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      window.parent.postMessage({ type: "comeleya:height", height: h }, "*");
+    };
+    postHeight();
+    try {
+      heightObserver = new ResizeObserver(() => postHeight());
+      heightObserver.observe(document.body);
+    } catch {
+      // ResizeObserver no disponible: red de seguridad por intervalo (abajo)
+    }
+    window.addEventListener("load", postHeight);
+    // Refuerzo los primeros segundos mientras cargan imágenes/datos.
+    let ticks = 0;
+    heightInterval = setInterval(() => {
+      postHeight();
+      if (++ticks > 15) clearInterval(heightInterval);
+    }, 800);
+
+    // Estado del carrito -> barra sticky que dibuja el sitio contenedor (embed.js),
+    // FUERA del iframe. Así queda pegada a la pantalla real del visitante.
+    const postCart = () => {
+      const est = mainStore.establishment || {};
+      const tc = est.theme_config || {};
+      const raw = tc.primary_color || est.color || "";
+      const color = raw ? (raw[0] === "#" ? raw : "#" + raw) : "#1976D2";
+      // Este bloque entero ya está detrás del guard de iframe de arriba, así que aquí
+      // `embedded` es un hecho. Sin enlace configurado sale la barra de siempre.
+      const cta = cartBarCta(est, { embedded: true });
+      window.parent.postMessage(
+        {
+          type: "comeleya:cart",
+          count: mainStore.cart.reduce((a, p) => a + (p.qty || 1), 0),
+          total: Number(mainStore.total) || 0,
+          hasItems: mainStore.cart.length > 0,
+          color,
+          cartImage: tc.cart_image || "",
+          label: cta ? cta.label : "Ver pedido",
+          ctaUrl: cta ? cta.url : "",
+        },
+        "*"
+      );
+    };
+    postCart();
+    cartStopWatch = watch(
+      () => [
+        mainStore.cart.length,
+        mainStore.total,
+        mainStore.establishment?.theme_config?.cart_image,
+        // El establecimiento llega por red DESPUÉS del primer postCart: sin observar
+        // estas dos, la barra de allá afuera se quedaría con el "Ver pedido" inicial.
+        mainStore.establishment?.theme_config?.card_cta_label,
+        mainStore.establishment?.theme_config?.card_cta_url,
+      ],
+      postCart,
+      { deep: true }
+    );
+
+    // Mensajes del sitio contenedor.
+    onParentMessage = (e) => {
+      const t = e && e.data && e.data.type;
+      // embed.js confirmó que dibuja la barra por fuera -> ocultamos la interna.
+      if (t === "comeleya:embed") {
+        mainStore.externalCartBar = true;
+        postCart(); // reenvía el estado por si el script cargó tarde
+      }
+      // Clic en la barra externa -> abrir el carrito por dentro.
+      if (t === "comeleya:openCart") {
+        mainStore.cartDrawer = true;
+      }
+    };
+    window.addEventListener("message", onParentMessage);
+  }
+});
+onUnmounted(() => {
+  // Al salir del menú (p. ej. al admin) volvemos a claro
+  $q.dark.set(false);
+  window.removeEventListener("scroll", onScroll);
+  if (heightObserver) heightObserver.disconnect();
+  if (heightInterval) clearInterval(heightInterval);
+  if (cartStopWatch) cartStopWatch();
+  if (onParentMessage) window.removeEventListener("message", onParentMessage);
+});
 if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
   showSearch.value = false;
 }
@@ -98,11 +280,26 @@ if (primaryColor) {
 
 <style lang="scss" scoped>
 .mc-header {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-header-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
   box-shadow: none;
+  transition: box-shadow var(--transition-normal);
+
+  &--scrolled {
+    box-shadow: var(--shadow-sm);
+  }
 }
+
+.mc-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
 
 .mc-logo {
   transition: opacity var(--transition-fast);

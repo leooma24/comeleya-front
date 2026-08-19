@@ -19,6 +19,12 @@ export default ({ router }) => {
         } else {
           next(`/${to.params.slug}/admin/iniciar-sesion`); // Redirigir al login si no está autentic
         }
+      } else if (
+        to.matched.some((record) => record.meta.role === "super_admin") &&
+        !userStore.isSuperAdmin
+      ) {
+        // Requiere super-admin y el usuario no lo es: fuera del panel global
+        next("/");
       } else {
         next(); // Continuar a la ruta solicitada si está autenticado
       }

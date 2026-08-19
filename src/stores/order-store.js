@@ -10,6 +10,9 @@ export const useOrderStore = defineStore("order", {
     orders: [],
     counts: [],
     orderHistory: [],
+    // Seguimiento GLOBAL de pendientes (para la alerta que no depende de la pestaña)
+    pendingSeenIds: null,
+    pendingCount: 0,
   }),
   getters: {
     orderCode() {
@@ -29,42 +32,35 @@ export const useOrderStore = defineStore("order", {
       });
       return newCount;
     },
-    async startOrder(order, slug) {
-      this.counts[order.current_status_id] =
-        this.counts[order.current_status_id] - 1;
-      this.counts[2] = (this.counts[2] ?? 0) + 1;
-      this.orders = this.orders.filter((o) => {
-        return o.id !== order.id;
-      });
-
-      return await this.updateStatusOrder(order, slug, 2);
+    // Transición de estado SEGURA: primero confirma con el servidor y solo si
+    // tiene éxito actualiza la UI. Si falla, no se toca nada (el pedido no
+    // desaparece) y el error se propaga para mostrar aviso.
+    async transitionOrder(order, slug, toStatus) {
+      const data = await this.updateStatusOrder(order, slug, toStatus);
+      // Number() y no confiar en lo que venga: el conteo llegaba como la cadena
+      // "1847.00" —el backend lo aliaseaba como `total` y le caia el cast del dinero—
+      // y "1847.00" + 1 en JavaScript no suma, concatena: el badge pasaba a 1847.001.
+      // El backend ya manda enteros; esto evita que el mismo tipo de dato vuelva a
+      // colarse desde otro lado.
+      const from = order.status?.id ?? order.current_status_id;
+      if (from != null) {
+        this.counts[from] = Number(this.counts[from] ?? 0) - 1;
+      }
+      this.counts[toStatus] = Number(this.counts[toStatus] ?? 0) + 1;
+      this.orders = this.orders.filter((o) => o.id !== order.id);
+      return data;
     },
-    async sendOrder(order, slug) {
-      this.counts[order.current_status_id] =
-        this.counts[order.current_status_id] - 1;
-      this.counts[3] = (this.counts[3] ?? 0) + 1;
-      this.orders = this.orders.filter((o) => {
-        return o.id !== order.id;
-      });
-      return await this.updateStatusOrder(order, slug, 3);
+    startOrder(order, slug) {
+      return this.transitionOrder(order, slug, 2);
     },
-    async deliverOrder(order, slug) {
-      this.counts[order.current_status_id] =
-        this.counts[order.current_status_id] - 1;
-      this.counts[4] = (this.counts[4] ?? 0) + 1;
-      this.orders = this.orders.filter((o) => {
-        return o.id !== order.id;
-      });
-      return await this.updateStatusOrder(order, slug, 4);
+    sendOrder(order, slug) {
+      return this.transitionOrder(order, slug, 3);
     },
-    async cancelOrder(order, slug) {
-      this.counts[order.current_status_id] =
-        this.counts[order.current_status_id] - 1;
-      this.counts[5] = (this.counts[5] ?? 0) + 1;
-      this.orders = this.orders.filter((o) => {
-        return o.id !== order.id;
-      });
-      return await this.updateStatusOrder(order, slug, 5);
+    deliverOrder(order, slug) {
+      return this.transitionOrder(order, slug, 4);
+    },
+    cancelOrder(order, slug) {
+      return this.transitionOrder(order, slug, 5);
     },
     async updateStatusOrder(order, slug, status) {
       const { data } = await api.get(
@@ -97,6 +93,21 @@ export const useOrderStore = defineStore("order", {
       const { data } = await api.get(`/admin/${slug}/orders/${status}`);
 
       this.orders = data.orders;
+    },
+    // Consulta el listado de PENDIENTES (status 1) y detecta pedidos nuevos sin
+    // tocar la lista visible del tab actual. Devuelve cuántos nuevos hay.
+    async refreshPending(slug) {
+      const { data } = await api.get(`/admin/${slug}/orders/1`);
+      const ids = (data.orders || []).map((o) => o.id);
+      let newCount = 0;
+      // En el primer sondeo solo memoriza (no alerta por pedidos ya existentes)
+      if (this.pendingSeenIds !== null) {
+        const seen = new Set(this.pendingSeenIds);
+        newCount = ids.filter((id) => !seen.has(id)).length;
+      }
+      this.pendingSeenIds = ids;
+      this.pendingCount = ids.length;
+      return { newCount };
     },
   },
 });

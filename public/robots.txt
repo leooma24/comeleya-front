@@ -1,0 +1,8 @@
+User-agent: *
+Crawl-delay: 3
+
+# El panel de cada negocio no tiene nada que hacer en un buscador.
+Disallow: /admin
+Disallow: /*/admin
+
+Sitemap: https://comeleya.com/sitemap.xml

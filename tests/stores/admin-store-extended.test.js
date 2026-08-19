@@ -464,7 +464,8 @@ describe("admin-store - extended coverage", () => {
       api.post.mockRejectedValueOnce(new Error("Upload failed"));
 
       await store.uploadDishImage("fake-image-blob");
-      expect(store.productForm.photo).toBeUndefined();
+      // En error se limpia el preview base64 a "" (para no enviarlo al backend)
+      expect(store.productForm.photo).toBe("");
     });
 
     it("uploadEstablishmentImage posts FormData and sets logo", async () => {
@@ -485,7 +486,8 @@ describe("admin-store - extended coverage", () => {
       api.post.mockRejectedValueOnce(new Error("Upload failed"));
 
       await store.uploadEstablishmentImage("fake-image-blob");
-      expect(store.companyStore.companyForm.logo).toBeUndefined();
+      // En error se limpia el preview base64 a "" (para no enviarlo al backend)
+      expect(store.companyStore.companyForm.logo).toBe("");
     });
   });
 
@@ -767,6 +769,77 @@ describe("admin-store - extended coverage", () => {
       await store.setSpecialOffer({ id: 1 }, 50, null);
       // Should not crash
     });
+
+    // La oferta se puede abrir desde el cajon del platillo, que tambien la enseña.
+    // Sin refrescar productForm, al cerrar el dialogo el cajon seguiria diciendo lo de
+    // antes y el dueño pensaria que no se guardo.
+    describe("el cajon del platillo se entera", () => {
+      it("refresca el formulario si es el mismo platillo", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1, name: "Tacos" }];
+        store.productForm = { id: 1, name: "Tacos", special_price: null };
+
+        api.put.mockResolvedValueOnce({
+          data: {
+            product: {
+              id: 1,
+              name: "Tacos",
+              special_price: 50,
+              special_until: "2026-12-31 23:59:00",
+              special_days: [1, 2],
+            },
+          },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, 50, "2026-12-31");
+
+        expect(store.productForm.special_price).toBe(50);
+        expect(store.productForm.special_days).toEqual([1, 2]);
+      });
+
+      it("quitar la oferta tambien lo refresca", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1, special_price: 50 }];
+        store.productForm = { id: 1, special_price: 50, special_days: [1] };
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: null, special_until: null, special_days: null } },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, null, null, null);
+
+        expect(store.productForm.special_price).toBeNull();
+        expect(store.productForm.special_days).toBeNull();
+      });
+
+      // Si el cajon tiene OTRO platillo abierto, no se le puede pisar lo suyo.
+      it("no toca el formulario si es otro platillo", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1 }, { id: 2 }];
+        store.productForm = { id: 2, name: "Otro", special_price: null };
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: 50 } },
+        });
+
+        await store.setSpecialOffer({ id: 1 }, 50, null);
+
+        expect(store.productForm.id).toBe(2);
+        expect(store.productForm.special_price).toBeNull();
+      });
+
+      it("sin formulario abierto no revienta", async () => {
+        store.slug = "test";
+        store.products = [{ id: 1 }];
+        store.productForm = {};
+
+        api.put.mockResolvedValueOnce({
+          data: { product: { id: 1, special_price: 50 } },
+        });
+
+        await expect(store.setSpecialOffer({ id: 1 }, 50, null)).resolves.not.toThrow();
+      });
+    });
   });
 
   describe("saveCategory", () => {
@@ -846,6 +919,85 @@ describe("admin-store - extended coverage", () => {
     });
   });
 
+  // La relación entre grupos se declara desde el que manda ("Número de piezas
+  // define el máximo de Seleccionar sushis") pero se GUARDA en el dependiente,
+  // en su qty_from_extra_id. Estas pruebas fijan esa traducción.
+  describe("relación entre grupos de extras", () => {
+    const dosGrupos = () => {
+      store.extras = [
+        { id: 667, name: "Número de piezas", qty: 1, selection_type: "radio", options: [] },
+        { id: 703, name: "Seleccionar sushis", qty: 3, selection_type: "counter", options: [] },
+      ];
+      return { tamanos: store.extras[0], sushis: store.extras[1] };
+    };
+
+    // Réplica de lo que hace el panel al elegir en el selector.
+    const setDependiente = (extra, id) => {
+      store.extras.forEach((e) => {
+        if (e.id === extra.id) return;
+        if (e.id === id) e.qty_from_extra_id = extra.id;
+        else if (e.qty_from_extra_id === extra.id) e.qty_from_extra_id = null;
+      });
+    };
+
+    it("ligar escribe la referencia en el grupo dependiente, no en el que manda", () => {
+      const { tamanos, sushis } = dosGrupos();
+
+      setDependiente(tamanos, 703);
+
+      expect(sushis.qty_from_extra_id).toBe(667);
+      expect(tamanos.qty_from_extra_id).toBeUndefined();
+    });
+
+    it("desligar devuelve al dependiente a su máximo fijo", () => {
+      const { tamanos, sushis } = dosGrupos();
+      setDependiente(tamanos, 703);
+
+      setDependiente(tamanos, null);
+
+      expect(sushis.qty_from_extra_id).toBeNull();
+      expect(sushis.qty).toBe(3); // su máximo propio sigue intacto
+    });
+
+    // Uno solo a propósito: el "36 Piezas incluye 3" no se puede repartir entre dos
+    // grupos, daría 3 rollos y 3 salsas a la vez.
+    it("cambiar de destino desliga al anterior", () => {
+      store.extras = [
+        { id: 667, name: "Piezas", qty: 1, selection_type: "radio", options: [] },
+        { id: 703, name: "Sushis", qty: 3, selection_type: "counter", options: [] },
+        { id: 704, name: "Salsas", qty: 2, selection_type: "counter", options: [] },
+      ];
+      setDependiente(store.extras[0], 703);
+
+      setDependiente(store.extras[0], 704);
+
+      expect(store.extras[1].qty_from_extra_id).toBeNull();
+      expect(store.extras[2].qty_from_extra_id).toBe(667);
+    });
+
+    it("no se liga a sí mismo", () => {
+      const { tamanos } = dosGrupos();
+      setDependiente(tamanos, 667);
+      expect(tamanos.qty_from_extra_id).toBeUndefined();
+    });
+
+    it("la relación solo puede ser entre extras del mismo platillo", () => {
+      // store.extras SIEMPRE son los del producto abierto: extraProduct los carga
+      // de product.extras. No hay forma de listar los de otro platillo.
+      store.extraProduct({
+        id: 1,
+        name: "Charola",
+        price: 425,
+        extras: [
+          { id: 667, name: "Piezas", order: 0, qty: 1, options: [] },
+          { id: 703, name: "Sushis", order: 1, qty: 3, options: [] },
+        ],
+      });
+
+      expect(store.extras.map((e) => e.id)).toEqual([667, 703]);
+    });
+  });
+
   describe("extraProduct", () => {
     it("sets product extras with types mapped", () => {
       store.extraProduct({
@@ -853,14 +1005,36 @@ describe("admin-store - extended coverage", () => {
         name: "Tacos",
         price: 50,
         extras: [
-          { id: 1, name: "Salsa", type: "price", order: 2, options: [] },
-          { id: 2, name: "Bebida", type: "plus", order: 1, options: [] },
+          { id: 1, name: "Salsa", order: 2, options: [] },
+          { id: 2, name: "Bebida", order: 1, options: [] },
         ],
       });
 
       expect(store.extraDrawer).toBe(true);
       expect(store.extras[0].name).toBe("Bebida"); // sorted by order
-      expect(store.extras[0].type.value).toBe("plus");
+    });
+
+    it("conserva la configuración guardada del extra al abrir el cajón", () => {
+      store.extraProduct({
+        id: 1,
+        name: "Promo",
+        price: 350,
+        extras: [
+          {
+            id: 9,
+            name: "Elige tus sushis",
+            order: 0,
+            qty: 3,
+            selection_type: "counter",
+            price_mode: "add",
+            options: [],
+          },
+        ],
+      });
+
+      expect(store.extras[0].selection_type).toBe("counter");
+      expect(store.extras[0].price_mode).toBe("add");
+      expect(store.extras[0].qty).toBe(3);
     });
 
     it("creates default extra for product with no extras", () => {
@@ -873,7 +1047,13 @@ describe("admin-store - extended coverage", () => {
 
       expect(store.extras).toHaveLength(1);
       expect(store.extras[0].name).toBe("Opciones");
-      expect(store.extras[0].options[0].price).toBe(50);
+      // La opción base va en $0, NO en el precio del platillo. Ponerla en $50 dejaba
+      // el extra con "todas las opciones con precio", que es justo la configuración
+      // que disparaba el reemplazo y el doble cobro. El default del panel estaba
+      // sembrando el problema.
+      expect(store.extras[0].options[0].price).toBe(0);
+      expect(store.extras[0].selection_type).toBe("radio");
+      expect(store.extras[0].price_mode).toBe("add");
     });
   });
 

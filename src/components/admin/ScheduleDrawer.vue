@@ -1,6 +1,7 @@
 <template>
   <q-drawer
-    v-model="adminStore.scheduleDrawer"
+    :model-value="adminStore.scheduleDrawer"
+    @update:model-value="onDrawerModel"
     bordered
     overlay
     side="right"
@@ -15,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="adminStore.scheduleDrawer = false"
+        @click="requestClose"
       />
     </div>
 
@@ -147,9 +148,25 @@ defineOptions({
   name: "ScheduleDrawer",
 });
 
+import { watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
+import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
 const adminStore = useAdminStore();
+
+// Aviso de cambios sin guardar al cerrar.
+const { snap, isDirty, confirmClose } = useUnsavedChanges();
+watch(() => adminStore.scheduleDrawer, (v) => { if (v) snap(adminStore.companyStore.scheduleForm); });
+const onDrawerModel = (v) => {
+  if (v) { adminStore.scheduleDrawer = true; return; }
+  requestClose();
+};
+const requestClose = () =>
+  confirmClose(
+    isDirty(adminStore.companyStore.scheduleForm),
+    () => { adminStore.saveSchedule(); adminStore.scheduleDrawer = false; },
+    () => { adminStore.scheduleDrawer = false; }
+  );
 const $q = useQuasar();
 </script>
 

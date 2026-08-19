@@ -19,7 +19,8 @@
       @click="mainStore.dataDrawer = false"
     />
 
-    <div class="q-pa-md q-pt-xl">
+    <div ref="formRef" class="q-pa-md q-pt-xl">
+      <checkout-steps :current="2" @back="mainStore.dataDrawer = false" />
       <h5 class="mc-drawer-title q-mb-md">Completa los datos</h5>
 
       <!-- Personal Data -->
@@ -37,9 +38,9 @@
           v-model="mainStore.data.name"
           label="Nombre"
           class="q-mb-sm"
-          :rules="[val => !!val || 'Campo requerido']"
-          lazy-rules
-          hide-bottom-space
+          :error="errors.name"
+          error-message="Escribe tu nombre"
+          @update:model-value="errors.name = false"
         />
         <q-input
           dense
@@ -49,9 +50,29 @@
           label="Teléfono"
           mask="(###) ###-####"
           fill-mask
+          class="q-mb-sm"
+          :error="errors.phone"
+          error-message="Escribe un teléfono de 10 dígitos"
+          @update:model-value="errors.phone = false"
         >
           <template v-slot:prepend>
             <q-icon name="phone" />
+          </template>
+        </q-input>
+        <q-input
+          dense
+          filled
+          rounded
+          v-model="mainStore.data.email"
+          label="Correo (opcional)"
+          type="email"
+          hint="Para recibir la confirmación y el estado de tu pedido"
+          :error="errors.email"
+          error-message="Escribe un correo válido"
+          @update:model-value="errors.email = false"
+        >
+          <template v-slot:prepend>
+            <q-icon name="mail" />
           </template>
         </q-input>
       </div>
@@ -109,9 +130,22 @@
         v-if="mainStore.data.delivery === 'Envio'"
       >
         <h6 class="mc-section-title">Dirección de Entrega</h6>
-        <p class="mc-delivery-charge">
+        <p class="mc-delivery-charge" v-if="mainStore.deliveryCovered">
           <q-icon name="local_shipping" size="16px" class="q-mr-xs" />
-          Costo de envío: <strong>${{ mainStore.deliveryCharge }}</strong>
+          <template v-if="mainStore.deliveryEstimated">
+            Envío estimado: <strong>${{ Number(mainStore.deliveryCharge).toFixed(2) }}</strong>
+            <span class="mc-delivery-note">
+              — el restaurante puede ajustarlo según la distancia
+            </span>
+          </template>
+          <template v-else>
+            Costo de envío: <strong>${{ Number(mainStore.deliveryCharge).toFixed(2) }}</strong>
+          </template>
+        </p>
+        <p class="mc-delivery-outofrange" v-else>
+          <q-icon name="wrong_location" size="16px" class="q-mr-xs" />
+          Tu ubicación está <strong>fuera del área de entrega</strong> de este restaurante.
+          Puedes elegir <strong>Recoger</strong> en su lugar.
         </p>
 
         <q-input
@@ -121,7 +155,8 @@
           v-model="mainStore.data.zip"
           label="Código Postal"
           class="q-mb-sm"
-          @blur="mainStore.getTowns"
+          :loading="loadingTowns"
+          @blur="loadTowns"
         />
         <q-select
           filled
@@ -131,6 +166,9 @@
           label="Colonia"
           :options="mainStore.data.towns"
           class="q-mb-sm"
+          :error="errors.town"
+          error-message="Elige tu colonia"
+          @update:model-value="errors.town = false"
         />
         <q-input
           filled
@@ -139,6 +177,9 @@
           v-model="mainStore.data.street"
           label="Calle"
           class="q-mb-sm"
+          :error="errors.street"
+          error-message="Escribe la calle"
+          @update:model-value="errors.street = false"
         />
         <div class="row q-gutter-sm">
           <div class="col">
@@ -148,6 +189,9 @@
               rounded
               v-model="mainStore.data.ext_number"
               label="Núm. Exterior"
+              :error="errors.ext"
+              error-message="Falta el número"
+              @update:model-value="errors.ext = false"
             />
           </div>
           <div class="col">
@@ -205,6 +249,9 @@
           color="primary"
           v-model="mainStore.data.table"
           label="Número de Mesa"
+          :error="errors.table"
+          error-message="Escribe el número de mesa"
+          @update:model-value="errors.table = false"
         />
       </div>
     </div>
@@ -216,7 +263,13 @@
     >
       <div class="row items-center justify-between full-width">
         <div class="mc-cart-bar-left">
-          <q-icon name="shopping_cart" size="24px" />
+          <img
+            v-if="mainStore.establishment?.theme_config?.cart_image"
+            :src="mainStore.establishment.theme_config.cart_image"
+            class="mc-cart-bar-img"
+            alt=""
+          />
+          <q-icon v-else name="shopping_cart" size="24px" />
           <q-badge color="white" text-color="primary" rounded>
             {{ mainStore.cart.length }}
           </q-badge>
@@ -239,55 +292,147 @@
 defineOptions({
   name: "DataDrawer",
 });
-import { ref } from "vue";
+import { ref, nextTick, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import CheckoutSteps from "./CheckoutSteps.vue";
 
 const mainStore = useMainStore();
+const formRef = ref(null);
+const loadingTowns = ref(false);
+
+// Errores por campo (mensajes inline en cada input)
+const errors = ref({
+  name: false,
+  phone: false,
+  email: false,
+  town: false,
+  street: false,
+  ext: false,
+  table: false,
+});
+
+// Errores por sección (resaltado del bloque completo)
 const personalDataError = ref(false);
 const deliveryDataError = ref(false);
 const addressError = ref(false);
 const personsError = ref(false);
 
-const validateData = () => {
-  personalDataError.value = false;
-  deliveryDataError.value = false;
-  addressError.value = false;
-  personsError.value = false;
+const loadTowns = async () => {
+  if (!mainStore.data.zip) return;
+  loadingTowns.value = true;
+  try {
+    await mainStore.getTowns();
+  } finally {
+    loadingTowns.value = false;
+  }
+};
 
-  if (!mainStore.data.name || mainStore.data.phone === "(___) ___-____" || !mainStore.data.phone) {
-    personalDataError.value = true;
+// Geocodifica la dirección cuando el cliente termina de escribirla, para poder
+// cobrar el envío por distancia. El debounce evita una llamada por tecla; la
+// limpieza previa impide cobrar con la coordenada de la dirección anterior
+// mientras llega la nueva.
+let geoTimer = null;
+let geoPending = null;
+
+watch(
+  () => [
+    mainStore.data.zip,
+    mainStore.data.town,
+    mainStore.data.street,
+    mainStore.data.ext_number,
+  ],
+  () => {
+    if (mainStore.data.delivery !== "Envio") return;
+    mainStore.clearGeo();
+    clearTimeout(geoTimer);
+    const d = mainStore.data;
+    if (!d.zip || !d.town || !d.street || !d.ext_number) return;
+    geoTimer = setTimeout(() => {
+      geoPending = mainStore.geocodeAddress();
+    }, 600);
   }
-  if (!mainStore.data.delivery) {
-    deliveryDataError.value = true;
+);
+
+// Resuelve el geocode pendiente (o lo fuerza si el debounce sigue corriendo).
+// El cobro debe estar decidido antes de validar si la dirección queda dentro
+// del área de entrega.
+const settleGeocode = async () => {
+  clearTimeout(geoTimer);
+  const d = mainStore.data;
+  if (!geoPending && !d.latitude && (d.zip || d.town)) {
+    geoPending = mainStore.geocodeAddress();
   }
+  if (geoPending) {
+    await geoPending;
+    geoPending = null;
+  }
+};
+
+const scrollToFirstError = () => {
+  const el = formRef.value?.querySelector(
+    ".q-field--error, .mc-form-section--error"
+  );
+  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+};
+
+const validateData = async () => {
+  const phone = mainStore.data.phone || "";
+  const email = (mainStore.data.email || "").trim();
+  const e = {
+    name: !mainStore.data.name,
+    // Con fill-mask un teléfono incompleto conserva guiones bajos
+    phone: !phone || phone.includes("_"),
+    // Email es opcional: solo se valida el formato si el cliente escribió algo
+    email: email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    town: false,
+    street: false,
+    ext: false,
+    table: false,
+  };
+
   if (mainStore.data.delivery === "Envio") {
-    if (
-      !mainStore.data.town ||
-      !mainStore.data.street ||
-      !mainStore.data.ext_number
-    ) {
+    await settleGeocode();
+    e.town = !mainStore.data.town;
+    e.street = !mainStore.data.street;
+    e.ext = !mainStore.data.ext_number;
+    // Fuera del área de entrega: no dejar continuar a domicilio.
+    if (!mainStore.deliveryCovered) {
+      mainStore.messageStore.error(
+        "Tu ubicación está fuera del área de entrega. Elige Recoger o cambia la dirección."
+      );
       addressError.value = true;
+      await nextTick();
+      scrollToFirstError();
+      return;
     }
   }
   if (mainStore.data.delivery === "Reservar") {
-    if (!mainStore.data.table) {
-      personsError.value = true;
-    }
+    e.table = !mainStore.data.table;
   }
-  if (
-    personalDataError.value ||
-    deliveryDataError.value ||
-    addressError.value ||
-    personsError.value
-  )
+  errors.value = e;
+
+  // Resaltado de secciones
+  personalDataError.value = e.name || e.phone || e.email;
+  deliveryDataError.value = !mainStore.data.delivery;
+  addressError.value = e.town || e.street || e.ext;
+  personsError.value = e.table;
+
+  const hasError =
+    Object.values(e).some(Boolean) || deliveryDataError.value;
+
+  if (hasError) {
+    await nextTick();
+    scrollToFirstError();
     return;
+  }
 
   mainStore.paymentDrawer = true;
 };
 
 const getMapDirection = () => {
-  const coordinates = mainStore.bussinessMap.replace(/\s/g, "");
-  const url = `https://www.google.com/maps/search/?api=1&query=${coordinates}`;
+  const coordinates = (mainStore.bussinessMap || "").replace(/\s/g, "");
+  if (!coordinates) return; // Sin coordenadas configuradas: no abrir un mapa vacío
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`;
   window.open(url, "_blank");
 };
 </script>
@@ -307,10 +452,37 @@ const getMapDirection = () => {
   margin: 0 0 var(--space-md);
   display: flex;
   align-items: center;
+  // El aviso de "estimado" es largo: sin wrap se saldría del ancho del cajón.
+  flex-wrap: wrap;
 
   strong {
     color: var(--q-primary);
   }
+}
+
+// Renglón propio debajo del monto, para no empujar nada fuera de vista.
+.mc-delivery-note {
+  flex-basis: 100%;
+  color: var(--color-text-tertiary);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.mc-delivery-outofrange {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--q-negative) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--q-negative) 35%, transparent);
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.4;
+
+  .q-icon { color: var(--q-negative); margin-top: 2px; }
+  strong { color: var(--q-negative); }
 }
 
 .mc-cart-bar-left {

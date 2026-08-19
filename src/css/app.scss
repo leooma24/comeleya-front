@@ -29,6 +29,8 @@ html {
   --color-surface-elevated: #ffffff;
   --color-border: #e8eaed;
   --color-border-subtle: #f1f3f4;
+  // Fondo del header translúcido (se redefine en dark)
+  --color-header-bg: rgba(255, 255, 255, 0.95);
 
   // Colors - Semantic
   --color-price: var(--q-primary);
@@ -66,6 +68,36 @@ html {
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// ============================================
+// DARK MODE (usa el dark nativo de Quasar: body.body--dark)
+// ============================================
+body.body--dark {
+  --color-text-primary: #f2f2f4;
+  --color-text-secondary: #b9bdc4;
+  --color-text-tertiary: #868b93;
+  --color-surface: #1c1c21;
+  --color-surface-variant: #26262d;
+  --color-surface-elevated: #2b2b33;
+  --color-border: #34353c;
+  --color-border-subtle: #2a2b31;
+  --color-header-bg: rgba(28, 28, 33, 0.9);
+
+  --color-success-bg: #17331c;
+  --color-error-bg: #3a1b1e;
+  --color-warning-bg: #3a2a12;
+  --color-primary-soft: color-mix(in srgb, var(--q-primary) 22%, transparent);
+
+  // Rojo de marca por defecto un poco más claro en oscuro (menos saturado).
+  // Los negocios con color propio lo fijan por estilo inline y este override no les aplica.
+  --q-primary: #ef5350;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-cart: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 
 // ============================================
@@ -188,20 +220,75 @@ h6 {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-lg) 0 var(--space-md);
+  margin: 0;
+  padding: var(--space-md) var(--space-sm);
   font-family: var(--font-display);
-  font-size: var(--text-xl);
-  font-weight: 700;
+  font-size: var(--text-2xl);
+  font-weight: 800;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
 
   &::before {
     content: "";
     width: var(--space-xs);
-    height: var(--space-lg);
+    height: var(--text-2xl);
     background: var(--q-primary);
     border-radius: var(--radius-full);
     flex-shrink: 0;
+  }
+}
+
+// Pegajoso solo en los títulos de categoría (no en "Recomendados", que vive
+// dentro de su propia tarjeta). Mantiene visible la categoría actual al scrollear.
+.mc-category-heading:not(.mc-featured-heading) {
+  scroll-margin-top: 80px;
+
+  // Pegajoso SOLO en desktop (scroll del documento, header de 56px).
+  // En móvil la barra de tabs fija ya indica la categoría, así que no se pega
+  // para no chocar con ella.
+  @media screen and (min-width: 1024px) {
+    position: sticky;
+    top: 56px;
+    z-index: 5;
+    background: var(--color-header-bg);
+    backdrop-filter: blur(12px);
+  }
+
+  @media screen and (max-width: 1023px) {
+    scroll-margin-top: var(--mc-sidebar-total-height, 230px);
+  }
+}
+
+// Embebido (iframe): en móvil NO se pega el título (la barra de tabs fija ya
+// indica la categoría, pegarlo se ve redundante). Solo se desplaza normal.
+.mc-content-external .mc-category-heading:not(.mc-featured-heading) {
+  scroll-margin-top: 64px;
+
+  // Solo en escritorio embebido se pega justo debajo de los tabs (53px).
+  // z-index 1 (por debajo de los tabs, z-index 2): el título pasa POR DETRÁS
+  // de los tabs en la transición, sin taparlos.
+  @media screen and (min-width: 1024px) {
+    position: sticky;
+    top: 53px;
+    z-index: 1;
+    background: var(--color-header-bg);
+    backdrop-filter: blur(12px);
+  }
+}
+
+// Escritorio embebido: el hueco de los tabs fijos lo reserva UNA sola vez.
+//
+// Aquí había un padding-top de 52px que se sumaba a los 56px de .mc-sidebar-external:
+// 108px de blanco para una tira de 53px. Se veía solo en escritorio (en móvil esta
+// regla ni aplica), que es justo como se reportó.
+//
+// El duplicado viene de que el sidebar ANTES iba fijo y no ocupaba lugar en el flujo,
+// así que el contenido tenía que despejar los tabs por su cuenta. Desde que el
+// sidebar es `position: static` con su propio padding, embebido los dos van apilados
+// (los dos son col-12) y ese padding ya empuja al contenido: este sobraba.
+@media screen and (min-width: 1024px) {
+  .mc-content.mc-content-external {
+    padding-top: 0;
   }
 }
 
@@ -268,19 +355,49 @@ h6 {
       min-height: 44px;
       border-radius: var(--radius-sm);
       margin: var(--space-xs);
-      transition: var(--transition-fast);
+      // El color del texto acompaña al recuadro mientras viaja. Sin esto el tab que
+      // lo recibe se pone blanco antes de que llegue el azul y queda ilegible un
+      // instante sobre el fondo claro.
+      transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1), background var(--transition-fast);
 
       &:hover:not(.q-tab--active) {
         background: var(--color-surface-variant);
       }
     }
 
-    .q-tab--active {
+    // El recuadro azul del activo NO es el fondo del tab: es el indicador de Quasar
+    // estirado a toda la pastilla.
+    //
+    // Suena rebuscado y es justo al revés. Quasar ya anima ese indicador entre tabs:
+    // lo dibuja en la posición del tab ANTERIOR y lo transita a la suya en 250ms
+    // (QTabs.js, updateActiveTab). Como fondo del tab eso no se puede: son dos cajas
+    // distintas, una se prende y la otra se apaga. Colgado del indicador, el recuadro
+    // viaja de una categoría a la siguiente sin escribir una línea de animación.
+    .q-tab__indicator {
+      position: absolute;
+      inset: 0;
+      // Quasar lo deja de 2px: alto en horizontal, ancho en vertical. Aquí ocupa todo.
+      height: auto;
+      width: auto;
       background: var(--q-primary);
-      color: white;
-      font-weight: 600;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px color-mix(in srgb, var(--q-primary) 35%, transparent);
+      // Quasar pone solo `left`, que en la tira vertical estira desde el centro.
+      transform-origin: left top;
+      z-index: 0;
     }
 
+    // El indicador va DESPUÉS del texto en el DOM: sin esto lo taparía.
+    .q-tab__content {
+      z-index: 1;
+    }
+
+    .q-tab--active {
+      color: white;
+      font-weight: 700;
+    }
+
+    // Sin flechas: se navega arrastrando los tabs (más limpio)
     .q-tabs__arrow {
       display: none !important;
     }
@@ -313,14 +430,27 @@ h6 {
   &-external {
     height: auto;
     width: 100%;
+    // En embebido el sidebar va en FLUJO normal (no fijo/estrecho como el docked de
+    // escritorio). Sin esto, la regla @media(min-width:1024){position:fixed} del modo
+    // normal se filtra y el sidebar tapa el tope del contenido (hueco gris + tarjetas
+    // cortadas en web).
+    position: static;
+    // Deja espacio para los tabs fijos (ver abajo)
+    padding-top: 56px;
 
     .mc-sidebar-tabs {
       max-width: 100%;
-      height: auto;
       width: 100%;
-      margin-bottom: var(--space-xs);
-      position: relative;
+      // Alto natural (evita el calc(100vh-340px) del modo escritorio normal)
+      height: auto !important;
+      // Embebido en iframe: se fijan al tope del iframe para que no se pierdan al
+      // hacer scroll (el iframe scrollea internamente, así que fixed queda visible).
+      position: fixed;
       top: 0;
+      left: 0;
+      z-index: 20;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
     }
   }
 }
@@ -330,7 +460,14 @@ h6 {
 // ============================================
 
 .mc-content {
-  overflow: hidden;
+  // overflow-x: clip recorta el desborde horizontal SIN crear un contenedor de
+  // scroll (a diferencia de overflow:hidden), para que position:sticky funcione.
+  overflow-x: clip;
+  // position: relative activa el z-index:1 (antes era static y NO tenía efecto),
+  // creando un contexto de apilamiento por DEBAJO del sidebar (z:2) y los tabs (z:3).
+  // Así las etiquetas "NUEVO"/"AGOTADO" (z:2 dentro de las tarjetas) ya no se pintan
+  // sobre el header/menú fijos al hacer scroll en móvil.
+  position: relative;
   z-index: 1;
   margin-left: var(--space-xs);
 
@@ -392,9 +529,25 @@ h6 {
 // FLOATING CART BAR
 // ============================================
 
+.mc-cart-bar-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
+  background: #fff;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
 .mc-cart-bar {
   padding: var(--space-md) var(--space-lg);
-  background: var(--q-primary);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(
+    135deg,
+    var(--q-primary) 0%,
+    color-mix(in srgb, var(--q-primary) 82%, #000 18%) 100%
+  );
   color: white;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-cart);
@@ -404,7 +557,7 @@ h6 {
 
   &:hover {
     filter: brightness(1.08);
-    box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.24);
   }
 
   &:active {
@@ -412,6 +565,7 @@ h6 {
     transform: scale(0.99);
   }
 }
+
 
 .mc-total {
   &-title {
@@ -495,6 +649,67 @@ h6 {
 }
 
 // ============================================
+// GRUPO DE CAMPOS DEL PANEL (AdminSection.vue)
+// ============================================
+//
+// La caja que agrupa campos con su titulo y su descripcion. Es la regla que ya existia
+// como `.mc-config-section` dentro del <style scoped> de ConfigurationDrawer: ahi
+// encerrada, cada pantalla la reinvento a su manera y varias acabaron sin fondo ni
+// borde, que es por lo que el panel se veia todo blanco.
+//
+// Vive aqui y no en el componente para que el marcado que se migre a mano tambien la
+// pueda usar. Todo sale de tokens, asi que la paleta oscura la sigue sin tocar nada.
+
+.mc-form-section {
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+
+  &__header {
+    display: flex;
+    // flex-start y no center: con descripcion el encabezado tiene dos lineas y un
+    // icono centrado contra las dos queda flotando a media altura.
+    align-items: flex-start;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  &__icon {
+    color: var(--q-primary);
+    // Baja el icono lo justo para que su centro coincida con el de la primera linea.
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: var(--text-xs);
+    line-height: 1.5;
+    color: var(--color-text-tertiary);
+    // Sin margen abajo: el aire hasta los campos lo pone __header.
+    margin: var(--space-xs) 0 0;
+    // El titulo va en mayusculas y apretado; la descripcion es texto normal y necesita
+    // un ancho de lectura, no el del panel completo.
+    max-width: 62ch;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+}
+
+// ============================================
 // DELIVERY / PAYMENT OPTION CARDS
 // ============================================
 
@@ -572,6 +787,14 @@ h6 {
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    border-top: 1px solid var(--color-border-subtle);
+  }
 }
 
 // ============================================
@@ -693,6 +916,37 @@ h6 {
   width: 100%;
   min-width: 640px;
   border-collapse: collapse;
+
+  // Evita el arrastre nativo del navegador (cursor de "no permitido" y fila
+  // difuminada). El reordenamiento real se hace solo desde .drag-handle vía JS.
+  td,
+  .q-btn,
+  img,
+  .mc-text-price,
+  .q-chip {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    user-drag: none;
+  }
+
+  // vue-draggable-next vuelca el atributo `disabled` en el <tbody> cuando el
+  // reorden esta bloqueado (p. ej. al filtrar). Quasar entonces pinta TODO como
+  // deshabilitado (opacity .6 + cursor not-allowed). Neutralizamos ese efecto:
+  // bloquear el reorden NO debe apagar ni bloquear los botones de accion.
+  tbody[disabled] {
+    opacity: 1 !important;
+    cursor: default !important;
+
+    * {
+      cursor: default !important;
+    }
+
+    .q-btn,
+    .drag-handle {
+      cursor: pointer !important;
+    }
+  }
 
   thead {
     tr {

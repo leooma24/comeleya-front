@@ -37,3 +37,9 @@ yarn-error.log*
 .env.*
 !.env.example
 deploy.ps1
+
+# Artefactos de sesiones de Playwright MCP
+.playwright-mcp/
+
+# Copia que sitemap.php escribe a un lado; se regenera sola cada 6 horas.
+public/sitemap-cache.xml

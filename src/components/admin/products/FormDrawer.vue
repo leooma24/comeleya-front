@@ -1,6 +1,8 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.productFormDrawer"
+    :form-data="adminStore.productForm"
+    :uploading="adminStore.uploadingImage"
     :title="(adminStore.productForm.id ? 'Editar' : 'Nuevo') + ' Producto'"
     save-label="Guardar Producto"
     :loading="adminStore.loading || adminStore.uploadingImage"
@@ -23,21 +25,22 @@
         </div>
       </q-img>
       <q-btn
-        v-if="imgUsage.limit > 0"
+        v-if="adminStore.productForm.id && displayedPhoto"
         round
-        :color="imgUsage.remaining > 0 ? 'primary' : 'grey-5'"
+        :color="imgBtnColor"
         icon="auto_fix_high"
         size="sm"
         class="mc-image-upload__refresh"
         :loading="adminStore.loading"
-        :disable="imgUsage.remaining <= 0"
+        :disable="imgFeatureEnabled && imgUsage.remaining <= 0"
         @click.stop="triggerImproveImage"
       >
+        <!-- Candado cuando el plan no incluye la función -->
+        <q-badge v-if="!imgFeatureEnabled" floating color="amber-8" rounded class="mc-image-upload__lock">
+          <q-icon name="lock" size="11px" color="white" />
+        </q-badge>
         <q-tooltip>
-          {{ imgUsage.remaining > 0
-            ? `Mejorar imagen con IA (${imgUsage.used}/${imgUsage.limit} usadas)`
-            : `Limite alcanzado este mes (${imgUsage.limit}/${imgUsage.limit})`
-          }}
+          {{ imgTooltip }}
         </q-tooltip>
       </q-btn>
     </div>
@@ -122,8 +125,107 @@
       label="Estado"
       filled
       dense
+      class="q-mb-md"
       :options="['Activo', 'Inactivo']"
     />
+
+    <!-- Disponibilidad por día y horario (ej. desayunos entre semana 07:00–12:00).
+         Los días extienden esta tarjeta en vez de estrenar una: su pie ya dice
+         "déjalo vacío para que esté disponible siempre", que es exactamente la
+         regla de los días. No hay concepto nuevo que explicarle al dueño.
+
+         Y son los que hacen posible la promo como producto: un "Ceviche 3x2"
+         marcado solo en lunes aparece y desaparece solo. -->
+    <div class="mc-availability">
+      <div class="mc-availability__label">
+        <q-icon name="schedule" size="18px" color="primary" />
+        Disponible solo en
+      </div>
+      <div class="mc-days">
+        <q-btn
+          v-for="dia in DIAS_LUNES_PRIMERO"
+          :key="dia.valor"
+          :label="dia.corto"
+          :color="availDays.includes(dia.valor) ? 'primary' : 'grey-4'"
+          :text-color="availDays.includes(dia.valor) ? 'white' : 'grey-8'"
+          unelevated
+          dense
+          no-caps
+          class="mc-days__btn"
+          @click="toggleAvailDay(dia.valor)"
+        >
+          <q-tooltip>{{ dia.nombre }}</q-tooltip>
+        </q-btn>
+      </div>
+      <div class="row q-col-gutter-sm">
+        <q-input class="col-6" v-model="availFrom" type="time" filled dense label="Desde" />
+        <q-input class="col-6" v-model="availUntil" type="time" filled dense label="Hasta" />
+      </div>
+      <p class="mc-availability__hint">Déjalo vacío para que esté disponible siempre.</p>
+
+      <!-- El platillo que ES la promoción. Vive aquí, pegado a los días y horas,
+           porque es la misma conversación: "esto es la promo del lunes". La Oferta
+           de abajo es otra cosa -rebajar un platillo normal- y mezclarlas fue lo que
+           llevó a que en producción se guardara un 4x3 con special_price igual al
+           precio: un descuento de cero para poder salir arriba. -->
+      <q-toggle
+        v-model="adminStore.productForm.is_promo"
+        color="primary"
+        class="q-mt-sm"
+        label="Es una promoción"
+      />
+      <p class="mc-availability__hint">
+        Sube al bloque <strong>Ofertas del día</strong>, hasta arriba del menú, en los
+        días y horas de aquí arriba. No necesita precio anterior: el precio que pusiste
+        ya es el de la promoción.
+      </p>
+    </div>
+
+    <!-- Oferta.
+         Estaba SOLO en el menú de los tres puntitos del renglón, y por eso nadie la
+         usaba: de 25 negocios revisados en producción, cero tenían una oferta puesta,
+         asi que el bloque "Ofertas del día" del menú no le aparecía a ningún cliente.
+         Aquí es donde el dueño ya está parado cuando piensa en el precio.
+
+         El botón abre el MISMO diálogo del renglón, no un formulario nuevo: la oferta
+         se guarda por su propio endpoint y el platillo por otro, así que meterla en
+         este "Guardar" seria una peticion que puede fallar a la mitad y dejar el
+         platillo y su oferta en desacuerdo. -->
+    <div class="mc-offer" v-if="adminStore.productForm.id">
+      <div class="mc-offer__label">
+        <q-icon name="local_offer" size="18px" :color="tieneOferta ? 'red-6' : 'primary'" />
+        Oferta
+      </div>
+
+      <p class="mc-offer__estado" v-if="tieneOferta">
+        Con oferta a <strong>${{ adminStore.productForm.special_price }}</strong>
+        <span v-if="textoVigencia"> · {{ textoVigencia }}</span>
+      </p>
+
+      <!-- Una oferta guardada NO es una oferta que se ve. El menú la calla si ya
+           venció, si hoy no es uno de sus días, o si no es más barata que el precio
+           normal, y desde aquí eso era invisible: el cajón decía "Con oferta a $330"
+           mientras el cliente no veía nada. -->
+      <p class="mc-offer__alerta" v-if="motivoOculta">
+        <q-icon name="warning" size="16px" class="q-mr-xs" />
+        {{ motivoOculta }}
+      </p>
+      <p class="mc-offer__estado" v-else>
+        Sin oferta. Al ponerle una, el platillo sube al bloque
+        <strong>Ofertas del día</strong>, hasta arriba del menú, con su precio anterior
+        tachado.
+      </p>
+
+      <q-btn
+        unelevated
+        no-caps
+        size="sm"
+        :color="tieneOferta ? 'grey-7' : 'primary'"
+        :icon="tieneOferta ? 'edit' : 'local_offer'"
+        :label="tieneOferta ? 'Editar oferta' : 'Crear oferta'"
+        @click="$emit('offer', adminStore.productForm)"
+      />
+    </div>
   </BaseFormDrawer>
 </template>
 
@@ -132,10 +234,74 @@ defineOptions({
   name: "ProductFormDrawer",
 });
 import { ref, reactive, watch, computed } from "vue";
+import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
+import { DIAS_LUNES_PRIMERO, aplicaHoy, diasValidos, textoDeDias } from "src/utils/weekDays";
+
+// La oferta la abre el padre (Products.vue), que ya tiene ese diálogo montado.
+defineEmits(["offer"]);
+
 const adminStore = useAdminStore();
+const $q = useQuasar();
+
+// --- Oferta ---
+const tieneOferta = computed(() => Number(adminStore.productForm.special_price) > 0);
+
+/**
+ * Por qué la oferta guardada no le aparece al cliente, o vacío si sí le aparece.
+ *
+ * Se revisa en el mismo orden en que el menú descarta: primero la fecha, luego los
+ * días, y al final el descuento -que el menú sí muestra, pero como un tachado de
+ * $330 a $330 que no le dice nada a nadie-.
+ */
+const motivoOculta = computed(() => {
+  if (!tieneOferta.value) return "";
+
+  const hasta = adminStore.productForm.special_until;
+  if (hasta) {
+    const fecha = new Date(hasta);
+    if (!Number.isNaN(fecha.getTime()) && fecha <= new Date()) {
+      return `Esta oferta venció el ${fecha.toLocaleDateString("es-MX", {
+        day: "numeric",
+        month: "short",
+      })} y el menú ya no la muestra. Edítala con una fecha futura para revivirla.`;
+    }
+  }
+
+  if (!aplicaHoy(adminStore.productForm.special_days)) {
+    return `Hoy no aplica: corre ${textoDeDias(adminStore.productForm.special_days)}. El resto de los días el menú cobra el precio normal.`;
+  }
+
+  const oferta = Number(adminStore.productForm.special_price);
+  const normal = Number(adminStore.productForm.price);
+  if (normal > 0 && oferta >= normal) {
+    return `El precio de oferta no es menor al normal ($${normal}), así que no hay descuento que anunciar.`;
+  }
+
+  return "";
+});
+
+/** "Lunes y martes · hasta el 20 ago", o vacío si la oferta no tiene límites. */
+const textoVigencia = computed(() => {
+  const partes = [];
+
+  const dias = textoDeDias(adminStore.productForm.special_days);
+  if (dias) partes.push(dias);
+
+  const hasta = adminStore.productForm.special_until;
+  if (hasta) {
+    const fecha = new Date(hasta);
+    if (!Number.isNaN(fecha.getTime())) {
+      partes.push(
+        "hasta el " + fecha.toLocaleDateString("es-MX", { day: "numeric", month: "short" })
+      );
+    }
+  }
+
+  return partes.join(" · ");
+});
 
 const fileInput = ref(null);
 const imgUsage = reactive({ used: 0, limit: 0, remaining: 0 });
@@ -144,6 +310,43 @@ const showGuide = ref(false);
 
 // Imagen a mostrar: preview local mientras sube, o la URL ya guardada
 const displayedPhoto = computed(() => localPreview.value || adminStore.productForm.photo);
+
+// Horario de disponibilidad: el input type=time usa HH:MM; la BD puede traer HH:MM:SS.
+const availFrom = computed({
+  get: () => (adminStore.productForm.available_from || "").slice(0, 5),
+  set: (v) => { adminStore.productForm.available_from = v || null; },
+});
+const availUntil = computed({
+  get: () => (adminStore.productForm.available_until || "").slice(0, 5),
+  set: (v) => { adminStore.productForm.available_until = v || null; },
+});
+
+// Días en que se vende el platillo. Se guarda NULL cuando no queda ninguno, no un
+// arreglo vacío: así la columna dice "sin restricción" de una sola forma.
+const availDays = computed(() => diasValidos(adminStore.productForm.available_days));
+
+const toggleAvailDay = (valor) => {
+  const actuales = availDays.value;
+  const nuevos = actuales.includes(valor)
+    ? actuales.filter((d) => d !== valor)
+    : [...actuales, valor].sort((a, b) => a - b);
+  adminStore.productForm.available_days = nuevos.length ? nuevos : null;
+};
+
+// ¿El plan del restaurante incluye mejoras de imagen con IA?
+const imgFeatureEnabled = computed(() => imgUsage.limit > 0);
+
+const imgBtnColor = computed(() => {
+  if (!imgFeatureEnabled.value) return "amber-8"; // premium/candado
+  return imgUsage.remaining > 0 ? "primary" : "grey-5"; // disponible / agotado
+});
+
+const imgTooltip = computed(() => {
+  if (!imgFeatureEnabled.value) return "Mejorar imagen con IA ✨ — disponible al mejorar tu plan";
+  if (imgUsage.remaining > 0)
+    return `Mejorar imagen con IA (${imgUsage.used}/${imgUsage.limit} usadas)`;
+  return `Límite alcanzado este mes (${imgUsage.limit}/${imgUsage.limit})`;
+});
 
 // Cuando la subida termina y guarda la URL real, descartar el preview base64
 watch(() => adminStore.productForm.photo, (photo) => {
@@ -168,10 +371,23 @@ const triggerFileInput = () => {
 };
 
 const triggerImproveImage = async () => {
-  await adminStore.improveImage();
-  // Update usage after improvement
-  imgUsage.used++;
-  imgUsage.remaining = Math.max(0, imgUsage.limit - imgUsage.used);
+  // Plan sin la función: no se llama a la IA, se invita a mejorar el plan.
+  if (!imgFeatureEnabled.value) {
+    $q.notify({
+      message: "Mejorar imágenes con IA es una función premium. Actualiza tu plan para activarla.",
+      color: "amber-9",
+      icon: "auto_fix_high",
+      position: "top",
+      timeout: 3500,
+    });
+    return;
+  }
+  const ok = await adminStore.improveImage();
+  // Solo descontar el cupo si la mejora tuvo éxito
+  if (ok) {
+    imgUsage.used++;
+    imgUsage.remaining = Math.max(0, imgUsage.limit - imgUsage.used);
+  }
 };
 
 const onFileSelected = (event) => {
@@ -213,12 +429,80 @@ const onFileSelected = (event) => {
     right: var(--space-sm);
     box-shadow: var(--shadow-md);
   }
+
+  &__lock {
+    padding: 2px;
+    min-height: 0;
+  }
 }
 
 .mc-upload-btn {
   border-radius: var(--radius-md);
   border-style: dashed;
   font-weight: 500;
+}
+
+.mc-availability {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: var(--text-sm);
+    color: var(--color-text-primary); margin-bottom: var(--space-sm);
+  }
+  &__hint {
+    font-size: var(--text-xs); color: var(--color-text-tertiary);
+    margin: var(--space-xs) 0 0;
+  }
+}
+
+// Mismo marco que Disponibilidad: son las dos cosas del platillo que no son "el dato",
+// sino cuando y a que precio se vende, y conviene que se lean como hermanas.
+.mc-offer {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__label {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600; font-size: var(--text-sm);
+    color: var(--color-text-primary); margin-bottom: var(--space-sm);
+  }
+  &__estado {
+    font-size: var(--text-xs); color: var(--color-text-tertiary);
+    line-height: 1.5; margin: 0 0 var(--space-sm);
+  }
+
+  // Ambar y no rojo: no esta roto, esta guardado y callado. El rojo aqui competiria
+  // con el sello de oferta del propio cajon.
+  &__alerta {
+    display: flex; align-items: flex-start;
+    font-size: var(--text-xs); line-height: 1.5;
+    margin: 0 0 var(--space-sm);
+    padding: var(--space-sm);
+    border-radius: var(--radius-sm);
+    color: #8a5300;
+    background: var(--color-warning-bg);
+  }
+}
+
+// Siete botones y no un desplegable: se ven todos de un vistazo y "fin de semana"
+// son dos toques. Se reparten el ancho para que quepan en el cajón del panel.
+.mc-days {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+
+  &__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 0;
+    font-weight: 700;
+  }
 }
 
 .mc-photo-guide {

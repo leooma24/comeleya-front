@@ -4,14 +4,23 @@
     :class="{ 'dish-card--sold-out': item.is_sold_out }"
     flat
     bordered
-    @click="mainStore.seeProduct(item)"
+    @click="seeProduct"
   >
     <div class="row no-wrap full-height">
       <!-- Imagen -->
       <div class="col-4 relative-position">
-        <!-- Etiqueta AGOTADO -->
+        <!-- Etiquetas -->
         <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
           AGOTADO
+        </div>
+        <!-- El platillo que ES la promoción: en la lista el descuento se cuenta abajo
+             con el ahorro, así que el sello solo hace falta cuando no hay descuento
+             que contar. Mismo criterio que la vista de tarjeta. -->
+        <div v-else-if="item.is_promo && !savings" class="dish-card__sold-out-badge dish-card__promo-badge">
+          PROMO
+        </div>
+        <div v-else-if="isNew && !hasSpecialPrice" class="dish-card__sold-out-badge dish-card__new-badge">
+          NUEVO
         </div>
         <q-img
           v-if="item.photo"
@@ -29,15 +38,6 @@
         <div v-else class="dish-card__image dish-card__no-image full-height">
           <q-icon name="restaurant_menu" size="28px" />
         </div>
-
-        <!-- Badge de precio flotante en móvil -->
-        <div class="dish-card__price-badge lt-md" :class="{ 'dish-card__price-badge--offer': hasSpecialPrice }">
-          <template v-if="hasSpecialPrice">
-            <span class="dish-card__old-price">${{ item.price }}</span>
-            <span>${{ item.special_price }}</span>
-          </template>
-          <span v-else>${{ item.price }}</span>
-        </div>
       </div>
 
       <!-- Contenido -->
@@ -50,10 +50,16 @@
           <p class="dish-card__description q-mb-none">
             {{ item.description }}
           </p>
+
+          <!-- La fila es angosta, así que aquí va el ahorro compacto: el sello del
+               porcentaje no cabe sin quitarle espacio al nombre del platillo. -->
+          <p v-if="savings" class="dish-card__savings">
+            −{{ savings.porcentaje }}% · ahorras ${{ savings.ahorro }}<span v-if="urgency"> · {{ urgency }}</span>
+          </p>
         </div>
 
-        <!-- Precio y compartir - visible en desktop -->
-        <div class="dish-card__footer gt-sm">
+        <!-- Precio + acción (consistente en móvil y desktop) -->
+        <div class="dish-card__footer">
           <span class="dish-card__price-text">
             <template v-if="hasSpecialPrice">
               <span class="dish-card__old-price">${{ item.price }}</span>
@@ -61,17 +67,21 @@
             </template>
             <template v-else>${{ item.price }}</template>
           </span>
-          <q-btn
-            flat
-            dense
-            round
-            size="xs"
-            icon="share"
-            color="grey-5"
-            @click.stop="shareProduct(item)"
-          >
-            <q-tooltip>Compartir</q-tooltip>
-          </q-btn>
+          <div class="dish-card__footer-actions">
+            <q-btn
+              flat
+              dense
+              round
+              size="xs"
+              icon="share"
+              color="grey-5"
+              @click.stop="shareProduct"
+            >
+              <q-tooltip>Compartir</q-tooltip>
+            </q-btn>
+            <span v-if="item.is_sold_out" class="dish-card__unavailable">No disponible</span>
+            <q-icon v-else name="arrow_forward" size="18px" class="dish-card__go" />
+          </div>
         </div>
       </q-card-section>
     </div>
@@ -83,7 +93,9 @@ defineOptions({
   name: "ListDish",
 });
 
-import { computed } from "vue";
+import { computed, toRef } from "vue";
+import { useDish } from "src/composables/useDish";
+import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
   item: {
@@ -92,24 +104,13 @@ const props = defineProps({
   },
 });
 
-const hasSpecialPrice = computed(() => {
-  return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
-});
+const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+  toRef(props, "item")
+);
 
-import { useMainStore } from "src/stores/main-store";
-const mainStore = useMainStore();
-
-const shareProduct = (item) => {
-  const url = window.location.href;
-  const text = `${item.name} - $${item.price} en ${mainStore.company.name}`;
-
-  if (navigator.share) {
-    navigator.share({ title: item.name, text, url });
-  } else {
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-    window.open(waUrl, "_blank");
-  }
-};
+// Misma regla que la vista de tarjeta: se calla si el descuento no se puede afirmar.
+const savings = computed(() => offerSavings(props.item));
+const urgency = computed(() => offerUrgency(props.item));
 </script>
 
 <style lang="scss" scoped>
@@ -158,17 +159,27 @@ const shareProduct = (item) => {
 
   &__sold-out-badge {
     position: absolute;
-    top: 6px;
-    left: 6px;
+    top: var(--space-sm);
+    left: var(--space-sm);
     z-index: 2;
     background: var(--q-negative, #D32F2F);
     color: #fff;
-    font-size: 10px;
+    font-size: var(--text-xs);
     font-weight: 800;
-    letter-spacing: 0.06em;
-    padding: 3px 8px;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
+  }
+
+  &__new-badge {
+    background: var(--q-positive, #43A047);
+  }
+
+  // Rojo fijo, como el sello de oferta de la tarjeta: se lee como "promoción" sin
+  // pensarlo, aunque la marca del negocio sea de otro color.
+  &__promo-badge {
+    background: #e53935;
   }
 
   &__image {
@@ -219,17 +230,21 @@ const shareProduct = (item) => {
     border-top: 1px dashed var(--color-border);
   }
 
-  &__price {
-    margin-top: var(--space-sm);
-    padding-top: var(--space-sm);
-    border-top: 1px dashed var(--color-border);
-  }
-
   &__old-price {
     text-decoration: line-through;
     opacity: 0.5;
     font-size: var(--text-sm);
     margin-right: 4px;
+  }
+
+  // Rojo fijo, igual que en la vista de tarjeta: es el color que se lee como
+  // "oferta" sin pensarlo, aunque la marca del negocio sea otra.
+  &__savings {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: #e53935;
+    line-height: 1.3;
   }
 
   &__price-text {
@@ -240,24 +255,20 @@ const shareProduct = (item) => {
     font-size: var(--text-lg);
   }
 
-  &__price-badge {
-    position: absolute;
-    bottom: var(--space-sm);
-    right: var(--space-sm);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: var(--space-xs) 10px;
-    border-radius: var(--radius-full);
-    box-shadow: var(--shadow-sm);
-    font-size: var(--text-sm);
-    font-weight: 700;
-    color: var(--q-primary);
-    font-variant-numeric: tabular-nums;
+  &__footer-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
 
-    &--offer {
-      background: rgba(244, 67, 54, 0.95);
-      color: white;
-    }
+  &__go {
+    color: var(--q-primary);
+  }
+
+  &__unavailable {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-text-tertiary);
   }
 }
 </style>

@@ -25,7 +25,7 @@
           <q-card-section class="text-center q-py-md">
             <q-icon name="hourglass_empty" size="28px" color="orange" />
             <div class="text-h4 text-weight-bold text-orange q-mt-xs">{{ data.counts?.stale || 0 }}</div>
-            <div class="text-caption text-grey-6">Sin actividad +3 dias</div>
+            <div class="text-caption text-grey-6">Sin actividad +3 días</div>
           </q-card-section>
         </q-card>
       </div>
@@ -53,7 +53,7 @@
             <div class="text-caption text-grey-6">{{ p.name }} · {{ p.phone || 'Sin tel.' }}</div>
           </div>
           <div class="text-right">
-            <div class="text-caption text-negative text-weight-bold">Vencio {{ timeAgo(p.next_contact_at) }}</div>
+            <div class="text-caption text-negative text-weight-bold">Venció {{ timeAgo(p.next_contact_at) }}</div>
             <q-btn flat dense size="xs" icon="fab fa-whatsapp" color="green" @click.stop="$emit('whatsapp', p)" v-if="p.phone" />
             <q-btn flat dense size="xs" icon="phone" color="blue" @click.stop="$emit('openActivities', p)" />
           </div>
@@ -119,7 +119,7 @@
     <!-- Empty state -->
     <div v-if="!loading && !data.overdue?.length && !data.today?.length && !data.stale?.length" class="text-center q-py-xl">
       <q-icon name="check_circle" size="64px" color="positive" />
-      <h6 class="q-mt-md text-grey-7">Todo al dia</h6>
+      <h6 class="q-mt-md text-grey-7">Todo al día</h6>
       <p class="text-grey-5">No tienes seguimientos pendientes.</p>
     </div>
 

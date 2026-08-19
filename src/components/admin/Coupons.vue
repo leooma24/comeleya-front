@@ -47,7 +47,7 @@
 
           <div class="mc-coupon-card__meta">
             <span v-if="coupon.min_order > 0">
-              <q-icon name="shopping_cart" size="14px" /> Min: ${{ coupon.min_order }}
+              <q-icon name="shopping_cart" size="14px" /> Mín: ${{ coupon.min_order }}
             </span>
             <span v-if="coupon.max_uses">
               <q-icon name="people" size="14px" /> {{ coupon.used_count }}/{{ coupon.max_uses }} usos
@@ -61,7 +61,9 @@
         <div class="mc-coupon-card__actions">
           <q-btn flat dense no-caps size="sm" icon="edit" label="Editar" color="primary" @click="openForm(coupon)" />
           <q-btn flat dense no-caps size="sm" :icon="coupon.is_active ? 'pause' : 'play_arrow'" :label="coupon.is_active ? 'Desactivar' : 'Activar'" :color="coupon.is_active ? 'warning' : 'positive'" @click="toggleActive(coupon)" />
-          <q-btn flat dense round size="sm" icon="delete" color="negative" @click="deleteCoupon(coupon)" />
+          <q-btn flat dense round size="sm" icon="delete" color="negative" aria-label="Eliminar cupón" @click="askDeleteCoupon(coupon)">
+            <q-tooltip>Eliminar cupón</q-tooltip>
+          </q-btn>
         </div>
       </div>
     </div>
@@ -112,8 +114,10 @@ defineOptions({
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useConfirmDialog } from "src/composables/useConfirmDialog";
 
 const adminStore = useAdminStore();
+const { confirmDelete } = useConfirmDialog();
 const coupons = ref([]);
 const showForm = ref(false);
 const saving = ref(false);
@@ -226,6 +230,10 @@ const deleteCoupon = async (coupon) => {
   } catch (error) {
     adminStore.messageStore.error("Error al eliminar cupón");
   }
+};
+
+const askDeleteCoupon = (coupon) => {
+  confirmDelete(`el cupón ${coupon.code}`, () => deleteCoupon(coupon));
 };
 
 onMounted(async () => {

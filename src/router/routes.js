@@ -33,6 +33,30 @@ const routes = [
     children: [{ path: "", component: () => import("pages/MainPage.vue") }],
   },
   {
+    path: "/privacidad",
+    component: () => import("layouts/PageLayout.vue"),
+    children: [{ path: "", component: () => import("pages/PrivacyPage.vue") }],
+  },
+  {
+    path: "/terminos",
+    component: () => import("layouts/PageLayout.vue"),
+    children: [{ path: "", component: () => import("pages/TermsPage.vue") }],
+  },
+  {
+    path: "/eliminar-datos",
+    component: () => import("layouts/PageLayout.vue"),
+    children: [{ path: "", component: () => import("pages/DataDeletionPage.vue") }],
+  },
+  {
+    path: "/guia-facebook",
+    component: () => import("layouts/PageLayout.vue"),
+    children: [{ path: "", component: () => import("pages/GuideFacebookPage.vue") }],
+  },
+  {
+    path: "/:slug/pedido/:code",
+    component: () => import("pages/OrderTrackingPage.vue"),
+  },
+  {
     path: "/:slug",
     component: () => import("layouts/MainLayout.vue"),
     children: [{ path: "", component: () => import("pages/IndexPage.vue") }],
@@ -59,7 +83,7 @@ const routes = [
       {
         path: "",
         component: () => import("pages/AdminPage.vue"),
-        meta: { requiresAuth: true },
+        meta: { requiresAuth: true, role: "super_admin" },
       },
       {
         path: "iniciar-sesion",

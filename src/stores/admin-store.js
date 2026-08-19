@@ -23,7 +23,7 @@ export const useAdminStore = defineStore({
     addressDrawer: false,
     establishmentCategoryFormDrawer: false,
     establishmentCategories: [],
-    establishmentTypesFormDrawer: false,
+    establishmentTypeFormDrawer: false,
     establishmentTypesForm: {},
     establishmentTypes: [],
     packages: [],
@@ -41,11 +41,6 @@ export const useAdminStore = defineStore({
     extras: [],
     loading: false,
     uploadingImage: false,
-    extraTypes: [
-      { value: "price", label: "Precio" },
-      { value: "plus", label: "Agregar" },
-      { value: "minus", label: "Quitar" },
-    ],
     tab: "dashboard",
     orderTab: "pedidos_pendientes",
     product: null,
@@ -60,6 +55,7 @@ export const useAdminStore = defineStore({
     prospectDrawer: false,
     activeProspect: null,
     activityDrawer: false,
+    activityPrefill: null,
   }),
   getters: {
     // Add your getters here
@@ -111,6 +107,8 @@ export const useAdminStore = defineStore({
   },
   actions: {
     async saveNewEstablishment() {
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.post(`/admin/new-establishment`, {
           company: this.companyStore.companyForm,
@@ -123,6 +121,8 @@ export const useAdminStore = defineStore({
       } catch (e) {
         console.error("Error al guardar el nuevo establecimiento", e);
         this.messageStore.error(e.response?.data?.msg ?? "Error al guardar el establecimiento");
+      } finally {
+        this.loading = false;
       }
     },
     addPackage() {
@@ -131,6 +131,7 @@ export const useAdminStore = defineStore({
         max_products: 0,
         max_categories: 0,
         max_orders_per_month: 0,
+        max_image_improvements: 0,
         has_analytics: false,
         has_loyalty: false,
         has_reservations: false,
@@ -141,6 +142,7 @@ export const useAdminStore = defineStore({
         has_seo: false,
         has_theme_customization: false,
         has_google_business: false,
+        has_facebook: false,
       };
       this.packageFormDrawer = true;
     },
@@ -157,42 +159,31 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al obtener los paquetes");
       }
     },
-    savePackage() {
-
-      if (this.packageForm.id) {
-        api
-          .put(
+    async savePackage() {
+      if (this.loading) return; // evita doble envío
+      this.loading = true;
+      try {
+        if (this.packageForm.id) {
+          const { data } = await api.put(
             `/admin/packages/${this.packageForm.id}/update`,
             this.packageForm
-          )
-          .then(({ data }) => {
-            this.packages = this.packages.map((p) => {
-              if (p.id === data.package.id) {
-                return data.package;
-              }
-              return p;
-            });
-            this.messageStore.success("Paquete actualizado");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al actualizar el paquete");
-          })
-          .finally(() => {
-            this.packageFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/packages`, this.packageForm)
-          .then(({ data }) => {
-            this.packages.push(data.package);
-            this.messageStore.success("Paquete guardado");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al guardar el paquete");
-          })
-          .finally(() => {
-            this.packageFormDrawer = false;
-          });
+          );
+          this.packages = this.packages.map((p) =>
+            p.id === data.package.id ? data.package : p
+          );
+          this.messageStore.success("Paquete actualizado");
+        } else {
+          const { data } = await api.post(`/admin/packages`, this.packageForm);
+          this.packages.push(data.package);
+          this.messageStore.success("Paquete guardado");
+        }
+        this.packageFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar el paquete"
+        );
+      } finally {
+        this.loading = false;
       }
     },
     async deletePackage(row) {
@@ -230,46 +221,34 @@ export const useAdminStore = defineStore({
           );
         });
     },
-    saveEstablishType() {
-
-      if (this.establishmentTypesForm.id) {
-        api
-          .put(
+    async saveEstablishType() {
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        if (this.establishmentTypesForm.id) {
+          const { data } = await api.put(
             `/admin/establishment/types/${this.establishmentTypesForm.id}`,
             this.establishmentTypesForm
-          )
-          .then(({ data }) => {
-            this.establishmentTypes = this.establishmentTypes.map((type) => {
-              if (type.id === data.type.id) {
-                return data.type;
-              }
-              return type;
-            });
-            this.messageStore.success("Tipo de establecimiento actualizado");
-          })
-          .catch((error) => {
-            this.messageStore.error(
-              "Error al actualizar el tipo de establecimiento"
-            );
-          })
-          .finally(() => {
-            this.establishmentTypeFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/establishment/types`, this.establishmentTypesForm)
-          .then(({ data }) => {
-            this.establishmentTypes.push(data.type);
-            this.messageStore.success("Tipo de establecimiento guardado");
-          })
-          .catch((error) => {
-            this.messageStore.error(
-              "Error al guardar el tipo de establecimiento"
-            );
-          })
-          .finally(() => {
-            this.establishmentTypeFormDrawer = false;
-          });
+          );
+          this.establishmentTypes = this.establishmentTypes.map((type) =>
+            type.id === data.type.id ? data.type : type
+          );
+          this.messageStore.success("Tipo de establecimiento actualizado");
+        } else {
+          const { data } = await api.post(
+            `/admin/establishment/types`,
+            this.establishmentTypesForm
+          );
+          this.establishmentTypes.push(data.type);
+          this.messageStore.success("Tipo de establecimiento guardado");
+        }
+        this.establishmentTypeFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar el tipo de establecimiento"
+        );
+      } finally {
+        this.loading = false;
       }
     },
     getEstablishmentTypes() {
@@ -320,44 +299,34 @@ export const useAdminStore = defineStore({
       this.categoryForm = Object.assign({}, category);
       this.establishmentCategoryFormDrawer = true;
     },
-    saveEstablishCategory() {
-
-      if (this.categoryForm.id) {
-        api
-          .put(
+    async saveEstablishCategory() {
+      if (this.loading) return;
+      this.loading = true;
+      try {
+        if (this.categoryForm.id) {
+          const { data } = await api.put(
             `/admin/establishment/categories/${this.categoryForm.id}`,
             this.categoryForm
-          )
-          .then(({ data }) => {
-            this.establishmentCategories = this.establishmentCategories.map(
-              (category) => {
-                if (category.id === data.category.id) {
-                  return data.category;
-                }
-                return category;
-              }
-            );
-            this.messageStore.success("Categoría actualizada");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al actualizar la categoría");
-          })
-          .finally(() => {
-            this.establishmentCategoryFormDrawer = false;
-          });
-      } else {
-        api
-          .post(`/admin/establishment/categories`, this.categoryForm)
-          .then(({ data }) => {
-            this.establishmentCategories.push(data.category);
-            this.messageStore.success("Categoría guardada");
-          })
-          .catch((error) => {
-            this.messageStore.error("Error al guardar la categoría");
-          })
-          .finally(() => {
-            this.establishmentCategoryFormDrawer = false;
-          });
+          );
+          this.establishmentCategories = this.establishmentCategories.map(
+            (category) => (category.id === data.category.id ? data.category : category)
+          );
+          this.messageStore.success("Categoría actualizada");
+        } else {
+          const { data } = await api.post(
+            `/admin/establishment/categories`,
+            this.categoryForm
+          );
+          this.establishmentCategories.push(data.category);
+          this.messageStore.success("Categoría guardada");
+        }
+        this.establishmentCategoryFormDrawer = false;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message ?? "Error al guardar la categoría"
+        );
+      } finally {
+        this.loading = false;
       }
     },
 
@@ -455,7 +424,7 @@ export const useAdminStore = defineStore({
         this.addressForm.state = data.d_estado;
         this.addressForm.country = "México";
       } catch (error) {
-        this.messageStore.error("No se encontraron colonias para ese codigo postal");
+        this.messageStore.error("No se encontraron colonias para ese código postal");
       }
     },
     clearDrawers() {
@@ -539,6 +508,8 @@ export const useAdminStore = defineStore({
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            // Sin límite: una foto en conexión lenta tarda más que el timeout general.
+            timeout: 0,
           }
         );
         this.productForm.photo = data.ruta;
@@ -564,6 +535,8 @@ export const useAdminStore = defineStore({
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            // Sin límite: una foto en conexión lenta tarda más que el timeout general.
+            timeout: 0,
           }
         );
         this.companyStore.companyForm.logo = data.ruta;
@@ -753,8 +726,14 @@ export const useAdminStore = defineStore({
         this.messageStore.error("La categoría es obligatoria");
         return false;
       }
-      if (!this.productForm.price) {
-        this.messageStore.error("El precio es obligatorio");
+      // Precio: 0 es válido (productos de cortesía). Solo se rechaza vacío o negativo.
+      if (
+        this.productForm.price === "" ||
+        this.productForm.price === null ||
+        this.productForm.price === undefined ||
+        Number(this.productForm.price) < 0
+      ) {
+        this.messageStore.error("El precio es obligatorio (0 o mayor)");
         return false;
       }
       if (!this.productForm.description) {
@@ -797,7 +776,8 @@ export const useAdminStore = defineStore({
       }
     },
     async cloneProduct(product) {
-
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.post(`/admin/${this.slug}/dish/clone`, {
           id: product.id,
@@ -806,6 +786,8 @@ export const useAdminStore = defineStore({
         this.messageStore.success("Platillo clonado");
       } catch (error) {
         this.messageStore.error("Error al clonar el platillo");
+      } finally {
+        this.loading = false;
       }
     },
     async toggleFeatured(product) {
@@ -826,6 +808,70 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al actualizar el platillo");
       }
     },
+    async downloadMenuPdf() {
+      const { data } = await api.get(`/admin/${this.slug}/menu-pdf`, {
+        responseType: "blob",
+      });
+      const blobUrl = URL.createObjectURL(data);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${this.slug}-menu.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    },
+    async bulkDishAction(ids, action) {
+      if (!ids || !ids.length) return;
+      try {
+        this.loading = true;
+        const { data } = await api.post(`/admin/${this.slug}/dishes/bulk`, {
+          ids,
+          action,
+        });
+        const idset = new Set(ids);
+        if (action === "delete") {
+          this.products = this.products.filter((p) => !idset.has(p.id));
+        } else {
+          const patch = {
+            feature: { is_featured: true },
+            unfeature: { is_featured: false },
+            activate: { status: "Activo" },
+            deactivate: { status: "Inactivo" },
+            sold_out: { is_sold_out: true },
+            available: { is_sold_out: false },
+          }[action];
+          if (patch) {
+            this.products = this.products.map((p) =>
+              idset.has(p.id) ? { ...p, ...patch } : p
+            );
+          }
+        }
+        this.messageStore.success(`Acción aplicada a ${data.updated} platillo(s)`);
+        return true;
+      } catch (error) {
+        this.messageStore.error("Error al aplicar la acción en lote");
+        return false;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async clearAllFeatured() {
+      try {
+        this.loading = true;
+        const { data } = await api.put(`/admin/${this.slug}/dishes/clear-featured`);
+        this.products = this.products.map((p) => ({ ...p, is_featured: false }));
+        this.messageStore.success(
+          data.updated > 0
+            ? `Se quitó el destacado a ${data.updated} platillo(s)`
+            : "No había platillos destacados"
+        );
+      } catch (error) {
+        this.messageStore.error("Error al quitar los destacados");
+      } finally {
+        this.loading = false;
+      }
+    },
     async toggleSoldOut(product) {
       try {
         const { data } = await api.put(
@@ -844,24 +890,46 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al actualizar el platillo");
       }
     },
-    async setSpecialOffer(product, specialPrice, specialUntil) {
+    async setSpecialOffer(product, specialPrice, specialUntil, specialDays = null) {
+      if (this.loading) return;
+      this.loading = true;
       try {
         const { data } = await api.put(
           `/admin/${this.slug}/${product.id}/special-offer`,
-          { special_price: specialPrice || null, special_until: specialUntil || null }
+          {
+            special_price: specialPrice || null,
+            // Sin fecha la oferta corre hasta que la quiten.
+            special_until: specialUntil || null,
+            // Vacío se manda como null: es la forma en que la columna dice "todos
+            // los días", y así "Quitar oferta" no deja días sueltos que revivan
+            // solos con la siguiente promo.
+            special_days: specialDays?.length ? specialDays : null,
+          }
         );
         this.products = this.products.map((p) => {
           if (p.id === product.id) return data.product;
           return p;
         });
+        // El cajón del platillo también enseña su oferta, y ahora puede ser quien abrió
+        // el diálogo. Sin esto, al cerrarlo seguiría diciendo lo de antes: el dueño
+        // pensaría que no se guardó y lo volvería a intentar.
+        if (this.productForm?.id === product.id) {
+          this.productForm.special_price = data.product.special_price;
+          this.productForm.special_until = data.product.special_until;
+          this.productForm.special_days = data.product.special_days;
+        }
         this.messageStore.success(
           specialPrice ? "Oferta especial activada" : "Oferta especial removida"
         );
       } catch (error) {
         this.messageStore.error("Error al actualizar la oferta");
+      } finally {
+        this.loading = false;
       }
     },
     async saveCategory() {
+      if (this.loading) return; // evita doble envío y activa el loading del botón
+      this.loading = true;
       if (this.categoryForm.id) {
         try {
           const { data } = await api.put(
@@ -1027,7 +1095,7 @@ export const useAdminStore = defineStore({
     setSlug(slug) {
       this.slug = slug;
       if (!slug) {
-        this.tab = "establecimientos";
+        this.tab = "inicio";
       } else {
         this.tab = "dashboard";
       }
@@ -1049,7 +1117,10 @@ export const useAdminStore = defineStore({
       }
     },
     async improveImage() {
-
+      if (!this.productForm.id) {
+        this.messageStore.error("Guarda el producto antes de mejorar su imagen");
+        return false;
+      }
       try {
         this.loading = true;
         const { data } = await api.post(
@@ -1057,8 +1128,10 @@ export const useAdminStore = defineStore({
         );
         this.messageStore.success("Imagen mejorada");
         this.productForm.photo = data.image;
+        return true;
       } catch (error) {
-        this.messageStore.error("Error al eliminar la opción");
+        this.messageStore.error("Error al mejorar la imagen");
+        return false;
       } finally {
         this.loading = false;
       }
@@ -1254,6 +1327,9 @@ export const useAdminStore = defineStore({
         name: "",
         qty: 1,
         is_required: 0,
+        selection_type: "radio",
+        price_mode: "add",
+        require_variety: false,
         options: [
           {
             name: "",
@@ -1269,31 +1345,31 @@ export const useAdminStore = defineStore({
       extra.options.push({
         name: "",
         price: 0,
+        // Topes dependientes: nulos salvo que el dueño los capture.
+        grants_qty: null,
+        max_qty: null,
+        lifts_caps: false,
       });
     },
     extraProduct(product) {
       this.product = product;
       this.extraDrawer = true;
       if (product.extras.length > 0) {
-        this.extras = product.extras
-          .map((e) => {
-            return {
-              ...e,
-              type: this.extraTypes.find((t) => t.value === e.type),
-            };
-          })
-          .sort((a, b) => a.order - b.order);
+        this.extras = [...product.extras].sort((a, b) => a.order - b.order);
       } else {
         this.extras = [
           {
             name: "Opciones",
-            type: this.extraTypes.find((e) => e.value === "price"),
             is_required: 0,
             qty: 1,
+            selection_type: "radio",
+            // "add" y no "replace": la opción base va en $0 y las demás llevan la
+            // diferencia. Es la forma correcta de configurar variantes.
+            price_mode: "add",
             options: [
               {
                 name: "Base",
-                price: product.price,
+                price: 0,
               },
             ],
           },
@@ -1322,6 +1398,8 @@ export const useAdminStore = defineStore({
       }
     },
     async saveProspect() {
+      if (this.loading) return;
+      this.loading = true;
       try {
         if (this.prospectForm.id) {
           const { data } = await api.put(`/admin/prospects/${this.prospectForm.id}`, this.prospectForm);
@@ -1335,6 +1413,8 @@ export const useAdminStore = defineStore({
         this.prospectDrawer = false;
       } catch (e) {
         this.messageStore.error(e.response?.data?.message ?? "Error al guardar prospecto");
+      } finally {
+        this.loading = false;
       }
     },
     async deleteProspect(prospect) {

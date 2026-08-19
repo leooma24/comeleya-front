@@ -19,6 +19,47 @@
           <q-icon name="search" size="18px" color="grey-5" />
         </template>
       </q-input>
+
+      <!-- Selector de tono de alerta de pedidos nuevos -->
+      <q-btn-dropdown
+        flat
+        no-caps
+        dense
+        icon="notifications_active"
+        label="Tono"
+        color="primary"
+        class="mc-tone-btn"
+      >
+        <q-list style="min-width: 220px">
+          <q-item-label header>Tono de aviso de pedido</q-item-label>
+          <q-item
+            v-for="t in ALERT_TONES"
+            :key="t.value"
+            clickable
+            @click="chooseTone(t.value)"
+          >
+            <q-item-section avatar>
+              <q-icon
+                :name="alertTone === t.value ? 'radio_button_checked' : 'radio_button_unchecked'"
+                :color="alertTone === t.value ? 'primary' : 'grey-5'"
+              />
+            </q-item-section>
+            <q-item-section>{{ t.label }}</q-item-section>
+            <q-item-section side>
+              <q-btn
+                flat
+                round
+                dense
+                icon="play_arrow"
+                color="primary"
+                @click.stop="previewTone(t.value)"
+              >
+                <q-tooltip>Probar</q-tooltip>
+              </q-btn>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
     </div>
 
     <!-- Order status tabs -->
@@ -61,13 +102,43 @@
             {{ adminStore.getOrderCounts(5) }}
           </q-badge>
         </q-tab>
+        <!-- Sin badge a proposito: el historial crece siempre y un contador ahi
+             volveria justo al numero que nunca baja que veniamos a quitar. -->
+        <q-tab name="pedidos_historial">
+          <span>Historial</span>
+        </q-tab>
       </q-tabs>
+    </div>
+    <!-- El Historial no es un estado mas: trae sus propios filtros y su propia
+         paginacion contra el servidor. Las pestañas siguen viviendo aqui arriba. -->
+
+    <template v-if="!esHistorial">
+
+    <!-- Cerrar el día. Solo en Entregados y Cancelados: son los únicos estados donde
+         un pedido ya termino su vida. Cerrar uno pendiente lo dejaria invisible SIN
+         haberse entregado. -->
+    <div class="mc-close-day" v-if="puedeCerrar && filteredOrders.length">
+      <div class="mc-close-day__text">
+        <strong>{{ filteredOrders.length }}</strong>
+        {{ filteredOrders.length === 1 ? "pedido sin cerrar" : "pedidos sin cerrar" }}
+      </div>
+      <q-btn
+        unelevated
+        no-caps
+        size="sm"
+        color="primary"
+        icon="inventory_2"
+        label="Cerrar el día"
+        :loading="cerrando"
+        @click="confirmarCierre"
+      />
     </div>
 
     <!-- Orders grid -->
     <div class="mc-orders-grid" v-if="filteredOrders.length">
       <div
         class="mc-order-card"
+        :class="{ 'mc-order-card--overdue': isOverdue(order) }"
         v-for="order in paginatedOrders"
         :key="order.id"
       >
@@ -78,15 +149,27 @@
             <span class="mc-order-time">
               {{ helperStore.formatDate(order.created_at, "HH:mm") }}
             </span>
+            <span
+              class="mc-order-ago"
+              :class="{ 'mc-order-ago--overdue': isOverdue(order) }"
+            >
+              · {{ agoText(order.created_at) }}
+            </span>
           </div>
           <q-chip
             dense
-            :color="getStatusColor(order.status.id)"
+            :color="isOverdue(order) ? 'negative' : getStatusColor(order.status.id)"
             text-color="white"
             size="sm"
           >
             {{ order.status.name }}
           </q-chip>
+        </div>
+
+        <!-- Pedido programado -->
+        <div v-if="order.schedule_at" class="mc-order-scheduled">
+          <q-icon name="schedule" size="16px" />
+          Programado para {{ helperStore.formatDate(order.schedule_at, "YYYY-MM-DD HH:mm") }}
         </div>
 
         <!-- Order info -->
@@ -98,6 +181,20 @@
           <div class="mc-order-info-row">
             <q-icon :name="getDeliveryIcon(order)" size="16px" color="grey-5" />
             <span>{{ getTypeDelivery(order) }}</span>
+            <!-- El envío se cobró sin poder ubicar la dirección: el dueño decide
+                 si lo ajusta antes de mandarlo. -->
+            <q-badge
+              v-if="order.delivery_estimated"
+              color="orange"
+              text-color="white"
+              class="q-ml-xs"
+            >
+              ENVÍO ESTIMADO
+              <q-tooltip>
+                No se pudo ubicar la dirección; se cobró la tarifa fija. Revisa la
+                distancia y ajusta si hace falta.
+              </q-tooltip>
+            </q-badge>
           </div>
           <div class="mc-order-info-row">
             <q-icon name="calendar_today" size="16px" color="grey-5" />
@@ -131,6 +228,13 @@
                 {{ option.name }}<span v-if="extra.extra?.qty > 1"> ({{ option.quantity * item.quantity }})</span><span v-if="optionIndex < extra.options.length - 1">, </span>
               </span>
             </div>
+
+            <!-- Nota del comensal para ESTE platillo. Se resalta: es una instrucción
+                 para la cocina, no un adorno. -->
+            <div v-if="item.notes" class="mc-order-item__note">
+              <q-icon name="chat_bubble" size="12px" />
+              <span>{{ item.notes }}</span>
+            </div>
           </div>
         </div>
 
@@ -160,7 +264,8 @@
             color="negative"
             label="Cancelar"
             size="sm"
-            @click="adminStore.cancelOrder(order)"
+            :disable="isBusy(order.id)"
+            @click="doCancel(order)"
           />
           <q-btn
             flat
@@ -184,7 +289,9 @@
             icon="restaurant"
             size="sm"
             class="mc-order-action-btn"
-            @click="adminStore.startOrder(order)"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
+            @click="doStart(order)"
           />
           <q-btn
             v-if="order.status.id == 2"
@@ -196,6 +303,8 @@
             dense
             size="sm"
             class="mc-order-action-btn"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
             @click="handleSendOrder(order)"
           />
           <q-btn
@@ -219,7 +328,9 @@
             dense
             size="sm"
             class="mc-order-action-btn"
-            @click="adminStore.deliverOrder(order)"
+            :loading="isBusy(order.id)"
+            :disable="isBusy(order.id)"
+            @click="doDeliver(order)"
           />
         </div>
       </div>
@@ -257,6 +368,10 @@
       />
     </div>
 
+
+    <orders-history v-else />
+
+    </template>
     <!-- Driver selection dialog -->
     <q-dialog v-model="driverDialog">
       <q-card style="min-width: 350px">
@@ -304,7 +419,7 @@
 defineOptions({
   name: "OrdersComponent",
 });
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onUnmounted } from "vue";
 
 const props = defineProps({
   status: {
@@ -316,9 +431,75 @@ const props = defineProps({
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useHelperStore } from "src/stores/helper";
+import { useCompanyStore } from "src/stores/company-store";
+import { useConfirmDialog } from "src/composables/useConfirmDialog";
+import { printOrderTicket } from "src/utils/orderTicket";
+import OrdersHistory from "./OrdersHistory.vue";
+import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 
 const helperStore = useHelperStore();
 const adminStore = useAdminStore();
+const companyStore = useCompanyStore();
+const { confirm } = useConfirmDialog();
+
+// Selector de tono de alerta (se guarda por dispositivo en localStorage).
+const alertTone = ref(getAlertTone());
+const chooseTone = (key) => {
+  alertTone.value = key;
+  setAlertTone(key);
+  previewTone(key); // lo reproduce para que lo escuchen al elegir
+};
+
+// Bloqueo anti-doble-clic por pedido: mientras se procesa una acción de un
+// pedido, sus botones quedan en loading/deshabilitados.
+const busyOrders = ref(new Set());
+const isBusy = (id) => busyOrders.value.has(id);
+const runOrderAction = async (order, fn, errMsg) => {
+  if (busyOrders.value.has(order.id)) return; // ya en proceso
+  busyOrders.value = new Set(busyOrders.value).add(order.id);
+  try {
+    await fn();
+  } catch (e) {
+    adminStore.messageStore.error(
+      e?.response?.data?.message ?? errMsg ?? "No se pudo actualizar el pedido"
+    );
+  } finally {
+    const s = new Set(busyOrders.value);
+    s.delete(order.id);
+    busyOrders.value = s;
+  }
+};
+
+const doStart = (order) => runOrderAction(order, () => adminStore.startOrder(order));
+const doDeliver = (order) => runOrderAction(order, () => adminStore.deliverOrder(order));
+const doCancel = (order) => {
+  confirm(
+    "Cancelar pedido",
+    `¿Seguro que quieres cancelar el pedido #${order.order_code ?? order.id}? Esta acción no se puede deshacer.`,
+    () => runOrderAction(order, () => adminStore.cancelOrder(order))
+  );
+};
+
+// Cronómetro: "hace X min" + resaltado de pedidos atrasados (SLA)
+const nowTs = ref(Date.now());
+const nowTimer = setInterval(() => {
+  nowTs.value = Date.now();
+}, 30000);
+const minutesSince = (created) => {
+  if (!created) return 0;
+  return Math.floor((nowTs.value - new Date(created).getTime()) / 60000);
+};
+const agoText = (created) => {
+  const m = minutesSince(created);
+  if (m < 1) return "recién";
+  if (m < 60) return `hace ${m} min`;
+  const h = Math.floor(m / 60);
+  return `hace ${h} h`;
+};
+// Atrasado: pendiente (1) o en preparación (2) por 15+ minutos
+const isOverdue = (order) =>
+  (order.status?.id === 1 || order.status?.id === 2) &&
+  minutesSince(order.created_at) >= 15;
 
 // Driver assignment
 const driverDialog = ref(false);
@@ -348,7 +529,7 @@ const handleSendOrder = async (order) => {
       loadingDrivers.value = false;
     }
   } else {
-    adminStore.sendOrder(order);
+    runOrderAction(order, () => adminStore.sendOrder(order));
   }
 };
 
@@ -416,145 +597,20 @@ const handleAssignDriver = async (order) => {
   }
 };
 
-const ticketStyles = `
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
-  .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
-  .item { display: flex; justify-content: space-between; padding: 2px 0; }
-  .extra { padding-left: 14px; font-size: 11px; color: #555; }
-  .row { display: flex; justify-content: space-between; padding: 2px 0; }
-  .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; margin-top: 4px; padding-top: 4px; }
-  .header { text-align: center; margin-bottom: 6px; }
-  .header strong { font-size: 14px; display: block; margin-bottom: 2px; }
-  .header span { display: block; font-size: 11px; color: #555; }
-  .order { text-align: center; font-weight: bold; font-size: 13px; margin: 4px 0; }
-  .section-title { font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 4px; margin-bottom: 2px; }
-  .info div { padding: 1px 0; font-size: 11px; }
-  .footer { text-align: center; margin-top: 8px; font-size: 11px; }
-  .footer span { display: block; }
-`;
-const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
-
-const printOrder = (order) => {
-  const f = (n) => Number(n || 0).toFixed(2);
-  const items = (order.items || [])
-    .map((item) => {
-      const name = item.dish?.name ?? "Producto";
-      let html = `<div class="item"><span>${item.quantity}x ${name}</span></div>`;
-      (item.extras || []).forEach((extra) => {
-        (extra.options || []).forEach((o) => {
-          let text = o.quantity > 1 ? `${o.quantity * item.quantity}x ${o.name}` : o.name;
-          if (o.price > 0) text += ` $${f(o.price * o.quantity * item.quantity)}`;
-          html += `<div class="extra">↳ ${text}</div>`;
-        });
-      });
-      return html;
-    })
-    .join("");
-
-  const date = order.created_at ? new Date(order.created_at).toLocaleString() : "";
-  const discount = Number(order.discount || 0);
-  const tip = Number(order.tip || 0);
-  const paymentLabels = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", mercadopago: "MercadoPago" };
-  const payment = paymentLabels[order.payment_method] || order.payment_method || "";
-
-  let deliveryInfo = "";
-  if (order.delivery === "Envio") {
-    deliveryInfo = order.delivery_address ? `<div><strong>Dirección:</strong> ${order.delivery_address}</div>` : "";
-    if (order.delivery_references) deliveryInfo += `<div><strong>Referencia:</strong> ${order.delivery_references}</div>`;
-  } else if (order.delivery === "Recoger") {
-    deliveryInfo = `<div><strong>Paso a recoger</strong></div>`;
-  } else if (order.table) {
-    deliveryInfo = `<div><strong>Mesa:</strong> ${order.table}</div>`;
-  }
-
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-  printWindow.document.write(`
-    <html><head><title>Pedido #${order.order_code}</title>
-    <style>${ticketStyles}</style></head><body>
-      <div class="header">
-        <span>${date}</span>
-      </div>
-      <div class="order">Orden #${order.order_code}</div>
-      ${SEP}
-      <div class="section-title">Productos</div>
-      ${items}
-      ${SEP}
-      ${discount > 0 ? `<div class="row"><span>Descuento:</span><span>-$${f(discount)}</span></div>` : ""}
-      ${tip > 0 ? `<div class="row"><span>Propina:</span><span>$${f(tip)}</span></div>` : ""}
-      <div class="row total"><span>TOTAL:</span><span>$${f(order.total)}</span></div>
-      ${SEP}
-      ${payment ? `<div class="section-title">Pago</div><div class="row"><span>${payment}</span></div>${SEP}` : ""}
-      <div class="section-title">Cliente</div>
-      <div class="info">
-        <div><strong>Nombre:</strong> ${order.customer_name}</div>
-        <div><strong>Tel:</strong> ${order.phone || ""}</div>
-        ${deliveryInfo}
-      </div>
-      ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${order.comments}</div></div>` : ""}
-      ${SEP}
-      <div class="footer">
-        <span>¡Gracias por su compra!</span>
-      </div>
-    </body></html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-  printWindow.close();
-};
+// El ticket se dibuja en src/utils/orderTicket.js. Se saco de aqui porque el
+// Historial tambien reimprime y no queria una copia mas: segun CLAUDE.md esta
+// impresion ya vive duplicada en tres archivos.
+const printOrder = (order) =>
+  printOrderTicket(order, {
+    company: companyStore.company || {},
+    onError: (msg) => adminStore.messageStore.error(msg),
+  });
 
 const pollingActive = ref(true);
 const filter = ref("");
 const currentPage = ref(1);
 const rowsPerPage = ref(12);
 const rowsPerPageOptions = [6, 12, 24, 48];
-
-// Notification sound using Web Audio API
-let audioCtx = null;
-const playNotificationSound = () => {
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.frequency.value = 880;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-    osc.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime + 0.5);
-    // Second beep
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.connect(gain2);
-    gain2.connect(audioCtx.destination);
-    osc2.frequency.value = 1100;
-    osc2.type = "sine";
-    gain2.gain.setValueAtTime(0.3, audioCtx.currentTime + 0.2);
-    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
-    osc2.start(audioCtx.currentTime + 0.2);
-    osc2.stop(audioCtx.currentTime + 0.7);
-  } catch (e) {
-    // Audio not supported
-  }
-};
-
-const sendBrowserNotification = (count) => {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    new Notification("Nuevo pedido", {
-      body: `Tienes ${count} nuevo${count > 1 ? "s" : ""} pedido${count > 1 ? "s" : ""} pendiente${count > 1 ? "s" : ""}`,
-      icon: "/icons/favicon-128x128.png",
-    });
-  }
-};
-
-onMounted(() => {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
-  }
-});
 
 const statusColors = {
   1: "warning",
@@ -605,30 +661,92 @@ watch(() => adminStore.orderTab, () => {
   currentPage.value = 1;
 });
 
+// status 0 = pestaña Historial (ver getStatus en AdminPage): no es un estado de
+// pedido, asi que ni se consulta ni se sondea.
+const esHistorial = computed(() => Number(props.status) === 0);
+
 const longPolling = async () => {
   if (!pollingActive.value) return;
   try {
-    const newCount = await adminStore.getMoreOrders(props.status);
-    if (newCount > 0) {
-      playNotificationSound();
-      sendBrowserNotification(newCount);
-    }
+    // Mantiene actualizada la lista visible del tab. La alerta sonora/notificación
+    // de pedidos nuevos es global (useOrderAlerts en AdminPage), no depende del tab.
+    await adminStore.getMoreOrders(props.status);
     setTimeout(longPolling, 10000);
   } catch (e) {
     setTimeout(longPolling, 10000);
   }
 };
 
-setTimeout(longPolling, 10000);
+// --- Cerrar el día ---
+//
+// Entregado (4) y Cancelado (5) son los unicos estados donde el pedido ya termino: son
+// los que se acumulaban para siempre en la pestaña. El backend valida lo mismo, porque
+// esconder aqui el boton no impide que alguien llame la ruta.
+const ESTADOS_CERRABLES = [4, 5];
+const puedeCerrar = computed(() => ESTADOS_CERRABLES.includes(Number(props.status)));
+const cerrando = ref(false);
+
+const confirmarCierre = () => {
+  const cuantos = filteredOrders.value.length;
+  confirm(
+    "Cerrar el día",
+    `Se cerrarán ${cuantos} ${cuantos === 1 ? "pedido" : "pedidos"} y esta lista quedará vacía. ` +
+      "No se borra nada: los vas a seguir viendo completos en la pestaña Historial.",
+    cerrarPedidos
+  );
+};
+
+const cerrarPedidos = async () => {
+  cerrando.value = true;
+  try {
+    const { data } = await api.post(`/admin/${adminStore.slug}/orders/close`, {
+      status: props.status,
+    });
+    const n = data.cerrados ?? 0;
+    adminStore.messageStore.success(
+      `${n} ${n === 1 ? "pedido cerrado" : "pedidos cerrados"}. Están en Historial.`
+    );
+    // El contador de la pestaña sale de otra consulta, asi que se recarga: si no, el
+    // badge seguiria enseñando los que acaba de cerrar.
+    adminStore.orderStore.counts[props.status] = 0;
+    await adminStore.getOrders(props.status);
+  } catch (error) {
+    adminStore.messageStore.error(
+      error.response?.data?.message || "No se pudieron cerrar los pedidos."
+    );
+  } finally {
+    cerrando.value = false;
+  }
+};
+
+if (!esHistorial.value) setTimeout(longPolling, 10000);
 
 onUnmounted(() => {
   pollingActive.value = false;
+  clearInterval(nowTimer);
 });
 
-adminStore.getOrders(props.status);
+if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+.mc-close-day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+
+  &__text {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+}
+
 .mc-order-tabs {
   border-bottom: 1px solid var(--color-border);
   padding: 0 var(--space-md);
@@ -650,6 +768,11 @@ adminStore.getOrders(props.status);
   padding: var(--space-lg);
 }
 
+@keyframes mcOverduePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(211, 47, 47, 0); }
+  50% { box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.18); }
+}
+
 .mc-order-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -659,6 +782,20 @@ adminStore.getOrders(props.status);
 
   &:hover {
     box-shadow: var(--shadow-md);
+  }
+
+  // Pedido atrasado (SLA): borde rojo + latido sutil para que salte a la vista
+  &--overdue {
+    border-color: var(--q-negative, #d32f2f);
+    animation: mcOverduePulse 2s ease-in-out infinite;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+
+    .mc-order-card__header {
+      background: color-mix(in srgb, var(--q-negative, #d32f2f) 8%, transparent);
+    }
   }
 
   &__header {
@@ -693,10 +830,35 @@ adminStore.getOrders(props.status);
   font-variant-numeric: tabular-nums;
 }
 
+.mc-order-scheduled {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #8a5a00;
+  background: color-mix(in srgb, #ff9800 15%, transparent);
+  border: 1px solid color-mix(in srgb, #ff9800 35%, transparent);
+}
+
 .mc-order-time {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   margin-left: var(--space-sm);
+}
+
+.mc-order-ago {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
+
+  &--overdue {
+    color: var(--q-negative, #d32f2f);
+    font-weight: 700;
+  }
 }
 
 .mc-order-info-row {
@@ -744,6 +906,22 @@ adminStore.getOrders(props.status);
   &__name {
     font-weight: 500;
     font-size: var(--text-sm);
+  }
+
+  // Instrucción de cocina: tiene que saltar a la vista entre los extras.
+  &__note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: var(--space-xs) 0 0 32px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--color-warning-bg, rgba(255, 193, 7, 0.14));
+    color: var(--color-text-primary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    width: fit-content;
+    max-width: 100%;
   }
 
   &__extra {

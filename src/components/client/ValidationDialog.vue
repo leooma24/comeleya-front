@@ -59,10 +59,18 @@
 
       <!-- ============ PASO 2: Confirmación ============ -->
       <template v-else>
-      <!-- Icono de éxito -->
+      <!-- Icono de éxito con confeti -->
       <div class="success-dialog__icon-wrapper">
-        <div class="success-dialog__icon-circle">
-          <q-icon name="check" size="24px" color="white" />
+        <div class="success-dialog__celebrate">
+          <span
+            v-for="n in 8"
+            :key="n"
+            class="success-dialog__confetti"
+            :style="{ '--i': n }"
+          ></span>
+          <div class="success-dialog__icon-circle success-dialog__icon-circle--done">
+            <q-icon name="check" size="36px" color="white" />
+          </div>
         </div>
       </div>
 
@@ -84,6 +92,15 @@
 
       <!-- ¿No se abrió WhatsApp? Reintentar (ancla nativa) -->
       <q-card-section class="success-dialog__actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="local_shipping"
+          label="Seguir mi pedido"
+          class="full-width q-mb-sm"
+          :to="`/${mainStore.companyStore.slug}/pedido/${mainStore.orderStore.orderCode}`"
+        />
         <q-btn
           type="a"
           :href="mainStore.whatsappUrl"
@@ -127,6 +144,9 @@
                   <span v-if="option.price > 0"> ${{ (option.price * option.qty * product.qty).toFixed(2) }}</span>
                 </span>
               </template>
+            </div>
+            <div v-if="product.notes" class="receipt__item-note">
+              &nbsp;&nbsp;Nota: {{ product.notes }}
             </div>
           </div>
         </div>
@@ -200,6 +220,7 @@ defineOptions({
 
 import { ref, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { fitPageToContent } from "src/utils/ticketPageSize";
 const mainStore = useMainStore();
 
 // Paso interno del diálogo: 1 = enviar por WhatsApp, 2 = confirmación
@@ -219,10 +240,14 @@ const goToConfirmation = () => {
 };
 
 const ticketStyles = `
-  body { font-family: 'Courier New', monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
+  /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; line-height: 1.35; }
+  .item, .row, .info div { font-weight: 700; }
   .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
   .item { display: flex; justify-content: space-between; padding: 2px 0; }
   .extra { padding-left: 14px; font-size: 11px; color: #555; }
+  .note { padding-left: 14px; font-size: 11px; font-weight: 700; }
   .row { display: flex; justify-content: space-between; padding: 2px 0; }
   .total { font-weight: bold; font-size: 14px; border-top: 1px solid #000; margin-top: 4px; padding-top: 4px; }
   .header { text-align: center; margin-bottom: 6px; }
@@ -238,19 +263,26 @@ const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
 
 const printOrder = () => {
   const f = (n) => Number(n || 0).toFixed(2);
+  // Escapa HTML: los nombres de producto/establecimiento vienen del backend y
+  // podrían contener markup; sin escapar se ejecutaría como HTML en el iframe.
+  const esc = (s) =>
+    String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const items = mainStore.cart
     .map((p) => {
-      let html = `<div class="item"><span>${p.qty}x ${p.name}</span><span>$${f(p.totalPrice * p.qty)}</span></div>`;
-      p.extras.forEach((extra) => {
-        extra.options.forEach((option) => {
+      let html = `<div class="item"><span>${p.qty}x ${esc(p.name)}</span><span>$${f(p.totalPrice * p.qty)}</span></div>`;
+      (p.extras || []).forEach((extra) => {
+        (extra.options || []).forEach((option) => {
           if (option.qty > 0) {
             const optTotal = option.price * option.qty * p.qty;
-            let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${option.name}` : option.name;
+            let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${esc(option.name)}` : esc(option.name);
             if (optTotal > 0) text += ` $${f(optTotal)}`;
             html += `<div class="extra">↳ ${text}</div>`;
           }
         });
       });
+      if (p.notes) {
+        html += `<div class="note">** ${esc(p.notes)}</div>`;
+      }
       return html;
     })
     .join("");
@@ -259,21 +291,19 @@ const printOrder = () => {
   let deliveryInfo = "";
   if (delivery === "Envio") {
     const addr = [mainStore.data.street, mainStore.data.ext_number ? `#${mainStore.data.ext_number}` : "", mainStore.data.town, mainStore.data.zip].filter(Boolean).join(", ");
-    deliveryInfo = `<div><strong>Dirección:</strong> ${addr}</div>`;
-    if (mainStore.data.references) deliveryInfo += `<div><strong>Referencia:</strong> ${mainStore.data.references}</div>`;
+    deliveryInfo = `<div><strong>Dirección:</strong> ${esc(addr)}</div>`;
+    if (mainStore.data.references) deliveryInfo += `<div><strong>Referencia:</strong> ${esc(mainStore.data.references)}</div>`;
   } else if (delivery === "Recoger") {
     deliveryInfo = `<div><strong>Paso a recoger</strong></div>`;
   } else {
-    deliveryInfo = `<div><strong>Mesa:</strong> ${mainStore.data.table}</div>`;
+    deliveryInfo = `<div><strong>Mesa:</strong> ${esc(mainStore.data.table)}</div>`;
   }
 
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
-  printWindow.document.write(`
+  const html = `
     <html><head><title>Pedido #${mainStore.orderStore.orderCode}</title>
     <style>${ticketStyles}</style></head><body>
       <div class="header">
-        <strong>${mainStore.establishment.name}</strong>
+        <strong>${esc(mainStore.establishment.name)}</strong>
         <span>${new Date().toLocaleString()}</span>
       </div>
       <div class="order">Orden #${mainStore.orderStore.orderCode}</div>
@@ -284,34 +314,100 @@ const printOrder = () => {
       <div class="row"><span>Subtotal:</span><span>$${f(mainStore.total)}</span></div>
       ${mainStore.deliveryCharge > 0 ? `<div class="row"><span>Envío:</span><span>$${f(mainStore.deliveryCharge)}</span></div>` : ""}
       ${mainStore.getTip > 0 ? `<div class="row"><span>Propina:</span><span>$${f(mainStore.getTip)}</span></div>` : ""}
-      ${mainStore.coupon.applied ? `<div class="row"><span>Cupón (${mainStore.coupon.code}):</span><span>-$${f(mainStore.coupon.discount)}</span></div>` : ""}
+      ${mainStore.coupon.applied ? `<div class="row"><span>Cupón (${esc(mainStore.coupon.code)}):</span><span>-$${f(mainStore.coupon.discount)}</span></div>` : ""}
       <div class="row total"><span>TOTAL:</span><span>$${f(mainStore.totalToPay)}</span></div>
       ${SEP}
       <div class="section-title">Pago</div>
-      <div class="row"><span>${mainStore.payment.type}</span></div>
+      <div class="row"><span>${esc(mainStore.payment.type)}</span></div>
       ${SEP}
       <div class="section-title">Cliente</div>
       <div class="info">
-        <div><strong>Nombre:</strong> ${mainStore.data.name}</div>
-        <div><strong>Tel:</strong> ${mainStore.data.phone}</div>
+        <div><strong>Nombre:</strong> ${esc(mainStore.data.name)}</div>
+        <div><strong>Tel:</strong> ${esc(mainStore.data.phone)}</div>
         ${deliveryInfo}
       </div>
-      ${mainStore.data.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${mainStore.data.comments}</div></div>` : ""}
+      ${mainStore.data.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(mainStore.data.comments)}</div></div>` : ""}
       ${SEP}
       <div class="footer">
-        <span>${mainStore.establishment.name}</span>
+        <span>${esc(mainStore.establishment.name)}</span>
         <span>¡Gracias por su pedido!</span>
       </div>
     </body></html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-  printWindow.close();
+  `;
+
+  // Imprime dentro de un iframe oculto. window.open queda bloqueado en móvil y en
+  // navegadores in-app (WhatsApp/Instagram), por eso antes "no pasaba nada".
+  const prev = document.getElementById("mc-print-frame");
+  if (prev) prev.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "mc-print-frame";
+  Object.assign(iframe.style, {
+    position: "fixed",
+    right: "0",
+    bottom: "0",
+    width: "0",
+    height: "0",
+    border: "0",
+  });
+  document.body.appendChild(iframe);
+
+  let printed = false;
+  const triggerPrint = () => {
+    if (printed) return;
+    printed = true;
+    try {
+      // Acota la hoja al alto del ticket antes de mandar a imprimir.
+      fitPageToContent(iframe.contentWindow.document);
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch {
+      mainStore.messageStore.error(
+        "Este navegador no permite imprimir. Abre el menú en Safari o Chrome."
+      );
+    }
+  };
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  iframe.onload = () => setTimeout(triggerPrint, 200);
+  // Respaldo por si onload no dispara en algunos navegadores
+  setTimeout(triggerPrint, 700);
 };
 
-const shareReceipt = () => {
+// Copia texto con varios respaldos (Clipboard API o execCommand)
+const copyText = async (text) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // sigue al respaldo
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    Object.assign(ta.style, { position: "fixed", top: "0", left: "0", opacity: "0" });
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+};
+
+const shareReceipt = async () => {
+  const f = (n) => Number(n || 0).toFixed(2);
   const items = mainStore.cart
-    .map((p) => `${p.qty}x ${p.name} - $${(p.totalPrice * p.qty).toFixed(2)}`)
+    .map((p) => `${p.qty}x ${p.name} - $${f(p.totalPrice * p.qty)}`)
     .join("\n");
 
   const lines = [
@@ -320,20 +416,31 @@ const shareReceipt = () => {
     ``,
     items,
     ``,
-    `Subtotal: $${mainStore.total.toFixed(2)}`,
+    `Subtotal: $${f(mainStore.total)}`,
   ];
-  if (mainStore.deliveryCharge > 0) lines.push(`Envío: $${mainStore.deliveryCharge.toFixed(2)}`);
-  if (mainStore.getTip > 0) lines.push(`Propina: $${mainStore.getTip.toFixed(2)}`);
-  if (mainStore.coupon.applied) lines.push(`Cupón (${mainStore.coupon.code}): -$${mainStore.coupon.discount.toFixed(2)}`);
-  lines.push(`Total: $${mainStore.totalToPay.toFixed(2)}`);
+  if (mainStore.deliveryCharge > 0) lines.push(`Envío: $${f(mainStore.deliveryCharge)}`);
+  if (mainStore.getTip > 0) lines.push(`Propina: $${f(mainStore.getTip)}`);
+  if (mainStore.coupon.applied) lines.push(`Cupón (${mainStore.coupon.code}): -$${f(mainStore.coupon.discount)}`);
+  lines.push(`Total: $${f(mainStore.totalToPay)}`);
   const text = lines.join("\n");
 
-  if (navigator.share) {
-    navigator.share({ title: `Pedido #${mainStore.orderStore.orderCode}`, text });
-  } else {
-    navigator.clipboard.writeText(text);
-    mainStore.messageStore.success("Resumen copiado al portapapeles");
+  // Compartir nativo si existe (se llama de forma síncrona dentro del gesto)
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: `Pedido #${mainStore.orderStore.orderCode}`,
+        text,
+      });
+      return;
+    }
+  } catch (e) {
+    if (e?.name === "AbortError") return; // el usuario canceló
+    // cualquier otro error: cae al respaldo de copiar
   }
+
+  const ok = await copyText(text);
+  if (ok) mainStore.messageStore.success("Resumen copiado al portapapeles");
+  else mainStore.messageStore.error("No se pudo compartir en este navegador");
 };
 </script>
 
@@ -370,6 +477,34 @@ const shareReceipt = () => {
       box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
       animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
         whatsappPulse 2s ease-in-out 0.5s infinite;
+    }
+
+    &--done {
+      width: 74px;
+      height: 74px;
+      box-shadow: 0 6px 18px rgba(67, 160, 71, 0.4);
+    }
+  }
+
+  &__celebrate {
+    position: relative;
+    display: inline-flex;
+  }
+
+  &__confetti {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 9px;
+    height: 9px;
+    border-radius: 2px;
+    opacity: 0;
+    background: hsl(calc(var(--i) * 45deg), 85%, 58%);
+    animation: mcConfetti 0.75s ease-out 0.25s forwards;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+      display: none;
     }
   }
 
@@ -564,6 +699,20 @@ const shareReceipt = () => {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+// Estalla cada confeti radialmente desde el centro del check
+@keyframes mcConfetti {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 45deg)) translateY(0)
+      scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 45deg))
+      translateY(-64px) scale(0.4);
   }
 }
 </style>

@@ -28,14 +28,14 @@
         <div class="col-6 col-md-3">
           <q-card flat bordered class="mc-kpi-card text-center q-py-md">
             <div class="text-h4 text-weight-bold text-blue">{{ data.avg_days_to_close }}d</div>
-            <div class="text-caption text-grey-6">Dias promedio para cerrar</div>
+            <div class="text-caption text-grey-6">Días promedio para cerrar</div>
           </q-card>
         </div>
       </div>
 
       <!-- Funnel visualization -->
       <q-card flat bordered class="q-pa-lg q-mb-lg" style="border-radius: 12px">
-        <div class="text-subtitle1 text-weight-bold q-mb-md">Embudo de conversion</div>
+        <div class="text-subtitle1 text-weight-bold q-mb-md">Embudo de conversión</div>
         <div class="mc-funnel">
           <div v-for="(conv, i) in data.conversions" :key="i" class="mc-funnel-step">
             <div class="mc-funnel-bar-row">
@@ -68,7 +68,7 @@
 
       <!-- Loss reasons -->
       <q-card v-if="data.loss_reasons?.length" flat bordered class="q-pa-lg" style="border-radius: 12px">
-        <div class="text-subtitle1 text-weight-bold q-mb-md">Razones de perdida</div>
+        <div class="text-subtitle1 text-weight-bold q-mb-md">Razones de pérdida</div>
         <div v-for="reason in data.loss_reasons" :key="reason.loss_reason" class="mc-reason-row">
           <span class="mc-reason-label">{{ reason.loss_reason }}</span>
           <q-linear-progress :value="reason.count / maxLossCount" color="negative" track-color="grey-3" rounded size="10px" class="mc-reason-bar" />

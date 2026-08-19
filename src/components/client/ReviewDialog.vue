@@ -93,6 +93,7 @@ import { useMainStore } from "src/stores/main-store";
 const mainStore = useMainStore();
 
 const showDialog = defineModel({ default: false });
+const emit = defineEmits(["submitted"]);
 
 const rating = ref(0);
 const comment = ref("");
@@ -110,6 +111,7 @@ const submitReview = async () => {
       customer_name: customerName.value,
     });
     mainStore.messageStore.success("¡Gracias por tu reseña!");
+    emit("submitted");
     showDialog.value = false;
     rating.value = 0;
     comment.value = "";

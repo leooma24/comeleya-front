@@ -22,6 +22,20 @@
           </template>
         </q-input>
 
+        <q-select
+          filled
+          dense
+          rounded
+          v-model="categoryFilter"
+          :options="categoryOptions"
+          emit-value
+          map-options
+          options-dense
+          label="Categoría"
+          class="mc-category-filter"
+          style="min-width: 160px"
+        />
+
         <div class="mc-view-toggle">
           <q-btn
             flat
@@ -44,6 +58,18 @@
             <q-tooltip>Vista tarjeta</q-tooltip>
           </q-btn>
         </div>
+
+        <q-btn
+          outline
+          color="primary"
+          icon="picture_as_pdf"
+          no-caps
+          label="Exportar PDF"
+          :loading="exportingPdf"
+          @click="exportMenuPdf"
+        >
+          <q-tooltip>Descarga el menú en PDF con tus colores y fotos</q-tooltip>
+        </q-btn>
 
         <q-btn
           unelevated
@@ -70,6 +96,35 @@
         :label="sf.label"
         @click="statusFilter = sf.value"
       />
+
+    </div>
+
+    <!-- Barra de acciones en lote (aparece al seleccionar) -->
+    <div v-if="selected.length > 0" class="mc-bulk-bar">
+      <q-btn flat round dense icon="close" color="grey-7" @click="clearSelection">
+        <q-tooltip>Cancelar selección</q-tooltip>
+      </q-btn>
+      <span class="mc-bulk-bar__count">{{ selected.length }} seleccionado(s)</span>
+      <q-space />
+      <div class="mc-bulk-bar__actions">
+        <q-btn flat dense no-caps color="amber-8" icon="star" label="Destacar"
+          :disable="adminStore.loading" @click="runBulk('feature', 'Destacar')" />
+        <q-btn flat dense no-caps color="grey-8" icon="star_border" label="Quitar destacado"
+          :disable="adminStore.loading" @click="runBulk('unfeature', 'Quitar destacado')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="positive" icon="visibility" label="Activar"
+          :disable="adminStore.loading" @click="runBulk('activate', 'Activar')" />
+        <q-btn flat dense no-caps color="grey-8" icon="visibility_off" label="Desactivar"
+          :disable="adminStore.loading" @click="runBulk('deactivate', 'Desactivar')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="deep-orange" icon="remove_shopping_cart" label="Agotado"
+          :disable="adminStore.loading" @click="runBulk('sold_out', 'Marcar agotado')" />
+        <q-btn flat dense no-caps color="teal" icon="shopping_cart_checkout" label="Disponible"
+          :disable="adminStore.loading" @click="runBulk('available', 'Marcar disponible')" />
+        <q-separator vertical inset />
+        <q-btn flat dense no-caps color="negative" icon="delete" label="Eliminar"
+          :disable="adminStore.loading" @click="runBulkDelete" />
+      </div>
     </div>
 
     <!-- Table view with drag-and-drop -->
@@ -78,6 +133,14 @@
       <table class="mc-admin-table">
         <thead>
           <tr>
+            <th style="width: 40px" class="text-center">
+              <q-checkbox
+                :model-value="allSelected"
+                :indeterminate="someSelected"
+                dense
+                @update:model-value="toggleSelectAll"
+              />
+            </th>
             <th style="width: 48px"></th>
             <th style="width: 56px">Foto</th>
             <th class="text-left">Producto</th>
@@ -96,14 +159,26 @@
           handle=".drag-handle"
           filter=".q-btn"
           :preventOnFilter="false"
+          :disabled="!canReorder"
+          :force-fallback="true"
+          :fallback-tolerance="4"
         >
           <tr
             v-for="(element, index) in filteredProducts"
             :key="element.id"
             v-show="isInPage(index)"
+            :class="{ 'mc-row-selected': isSelected(element.id) }"
           >
+            <td class="text-center">
+              <q-checkbox
+                :model-value="isSelected(element.id)"
+                dense
+                @update:model-value="toggleSelect(element.id)"
+              />
+            </td>
             <td>
               <q-icon
+                v-if="canReorder"
                 name="drag_indicator"
                 class="drag-handle cursor-pointer"
                 color="grey-5"
@@ -139,42 +214,16 @@
               <span class="mc-text-price">${{ element.price }}</span>
             </td>
             <td class="text-right">
-              <q-btn
-                flat size="sm" dense round
-                :icon="element.is_featured ? 'star' : 'star_border'"
-                :color="element.is_featured ? 'amber-8' : 'grey-5'"
-                @click="adminStore.toggleFeatured(element)"
-              >
-                <q-tooltip>{{ element.is_featured ? 'Quitar destacado' : 'Destacar' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                icon="local_offer"
-                :color="element.special_price ? 'red-6' : 'grey-5'"
-                @click="openOfferDialog(element)"
-              >
-                <q-tooltip>{{ element.special_price ? 'Editar oferta' : 'Crear oferta' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                :icon="element.is_sold_out ? 'remove_shopping_cart' : 'shopping_cart_checkout'"
-                :color="element.is_sold_out ? 'negative' : 'grey-5'"
-                @click="adminStore.toggleSoldOut(element)"
-              >
-                <q-tooltip>{{ element.is_sold_out ? 'Marcar disponible' : 'Marcar agotado' }}</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editProduct(element)">
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="add_circle_outline" color="grey-7" @click="adminStore.extraProduct(element)">
-                <q-tooltip>Agregar Extras</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="content_copy" color="grey-7" @click="cloneProduct(element)">
-                <q-tooltip>Clonar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="delete_outline" color="negative" @click="deleteProduct(element)">
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <product-actions
+                :product="element"
+                @featured="adminStore.toggleFeatured(element)"
+                @offer="openOfferDialog(element)"
+                @soldout="adminStore.toggleSoldOut(element)"
+                @edit="editProduct(element)"
+                @extras="adminStore.extraProduct(element)"
+                @clone="cloneProduct(element)"
+                @delete="deleteProduct(element)"
+              />
             </td>
           </tr>
         </draggable>
@@ -199,9 +248,16 @@
           v-show="isInPage(index)"
           class="q-pa-sm col-xs-12 col-sm-6 col-md-4"
         >
-          <q-card flat class="mc-product-card">
+          <q-card flat class="mc-product-card" :class="{ 'mc-card-selected': isSelected(product.id) }">
             <div class="mc-product-card__image">
               <q-img :src="product.photo" :ratio="16 / 9" />
+              <q-checkbox
+                :model-value="isSelected(product.id)"
+                dense
+                class="mc-product-card__check"
+                color="primary"
+                @update:model-value="toggleSelect(product.id)"
+              />
               <q-chip
                 dense
                 size="sm"
@@ -222,42 +278,16 @@
               </div>
             </q-card-section>
             <q-card-actions class="mc-product-card__actions">
-              <q-btn
-                flat size="sm" dense round
-                :icon="product.is_featured ? 'star' : 'star_border'"
-                :color="product.is_featured ? 'amber-8' : 'grey-5'"
-                @click="adminStore.toggleFeatured(product)"
-              >
-                <q-tooltip>{{ product.is_featured ? 'Quitar destacado' : 'Destacar' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                icon="local_offer"
-                :color="product.special_price ? 'red-6' : 'grey-5'"
-                @click="openOfferDialog(product)"
-              >
-                <q-tooltip>{{ product.special_price ? 'Editar oferta' : 'Crear oferta' }}</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat size="sm" dense round
-                :icon="product.is_sold_out ? 'remove_shopping_cart' : 'shopping_cart_checkout'"
-                :color="product.is_sold_out ? 'negative' : 'grey-5'"
-                @click="adminStore.toggleSoldOut(product)"
-              >
-                <q-tooltip>{{ product.is_sold_out ? 'Marcar disponible' : 'Marcar agotado' }}</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editProduct(product)">
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="add_circle_outline" color="grey-7" @click="adminStore.extraProduct(product)">
-                <q-tooltip>Agregar Extras</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="content_copy" color="grey-7" @click="cloneProduct(product)">
-                <q-tooltip>Clonar</q-tooltip>
-              </q-btn>
-              <q-btn flat size="sm" dense round icon="delete_outline" color="negative" @click="deleteProduct(product)">
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <product-actions
+                :product="product"
+                @featured="adminStore.toggleFeatured(product)"
+                @offer="openOfferDialog(product)"
+                @soldout="adminStore.toggleSoldOut(product)"
+                @edit="editProduct(product)"
+                @extras="adminStore.extraProduct(product)"
+                @clone="cloneProduct(product)"
+                @delete="deleteProduct(product)"
+              />
             </q-card-actions>
           </q-card>
         </div>
@@ -298,7 +328,10 @@
       />
     </div>
   </q-card>
-  <form-drawer />
+  <!-- El formulario del platillo tambien puede abrir la oferta: es donde el dueño ya
+       esta cuando piensa en el precio, y en el menu de los tres puntitos nadie la
+       encontraba. Es el MISMO dialogo de abajo. -->
+  <form-drawer @offer="openOfferDialog" />
 
   <!-- Special Offer Dialog -->
   <q-dialog v-model="offerDialog" backdrop-filter="blur(8px)">
@@ -315,17 +348,48 @@
           {{ offerProduct.name }} — Precio actual: <strong>${{ offerProduct.price }}</strong>
         </p>
         <q-input filled dense rounded v-model="offerPrice" type="number" label="Precio de oferta ($)" class="q-mb-md" />
-        <q-input filled dense rounded v-model="offerUntil" type="datetime-local" label="Válido hasta (opcional)" />
+
+        <!-- "Los martes el ceviche a $99". Sin días marcados aplica todos, que es
+             como se comportaron siempre las ofertas. -->
+        <div class="mc-offer-days-label">Solo estos días</div>
+        <div class="mc-days q-mb-md">
+          <q-btn
+            v-for="dia in DIAS_LUNES_PRIMERO"
+            :key="dia.valor"
+            :label="dia.corto"
+            :color="offerDays.includes(dia.valor) ? 'primary' : 'grey-4'"
+            :text-color="offerDays.includes(dia.valor) ? 'white' : 'grey-8'"
+            unelevated
+            dense
+            no-caps
+            class="mc-days__btn"
+            @click="toggleOfferDay(dia.valor)"
+          >
+            <q-tooltip>{{ dia.nombre }}</q-tooltip>
+          </q-btn>
+        </div>
+
+        <!-- Antes decía "(opcional)" pero la regla EXIGÍA la fecha: quien la dejaba
+             en blanco guardaba el precio y la oferta no aplicaba nunca. -->
+        <q-input filled dense rounded v-model="offerUntil" type="datetime-local" label="Válido hasta">
+          <template v-slot:hint>Déjalo vacío para que corra hasta que la quites</template>
+        </q-input>
       </q-card-section>
 
       <q-card-actions class="q-px-lg q-pb-lg">
         <q-btn
           v-if="offerProduct?.special_price"
           flat no-caps color="negative" label="Quitar oferta"
+          :disable="adminStore.loading"
           @click="removeOffer"
         />
         <q-space />
-        <q-btn unelevated no-caps color="primary" label="Guardar" @click="saveOffer" />
+        <q-btn
+          unelevated no-caps color="primary" label="Guardar"
+          :loading="adminStore.loading"
+          :disable="adminStore.loading"
+          @click="saveOffer"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -342,6 +406,8 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
+import ProductActions from "./products/ProductActions.vue";
+import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
 
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
@@ -354,20 +420,108 @@ const currentPage = ref(1);
 const rowsPerPage = ref(10);
 const rowsPerPageOptions = [5, 10, 15, 20, 50];
 
+const categoryFilter = ref(null); // id de categoría o null (todas)
+
 const statusFilters = [
   { value: "all", label: "Todos", icon: "apps" },
   { value: "featured", label: "Destacados", icon: "star" },
   { value: "offer", label: "En oferta", icon: "local_offer" },
   { value: "sold_out", label: "Agotados", icon: "remove_shopping_cart" },
   { value: "available", label: "Disponibles", icon: "shopping_cart_checkout" },
+  { value: "active", label: "Activos", icon: "visibility" },
+  { value: "inactive", label: "Inactivos", icon: "visibility_off" },
 ];
 
-watch([filter, statusFilter], () => {
+const categoryOptions = computed(() => [
+  { label: "Todas las categorías", value: null },
+  ...(adminStore.categories || []).map((c) => ({ label: c.name, value: c.id })),
+]);
+
+// ---- Exportar menú a PDF (descarga directa desde el servidor) ----
+const exportingPdf = ref(false);
+const exportMenuPdf = async () => {
+  if (exportingPdf.value) return;
+  exportingPdf.value = true;
+  try {
+    await adminStore.downloadMenuPdf();
+    adminStore.messageStore.success("Menú PDF descargado");
+  } catch (e) {
+    adminStore.messageStore.error("Error al generar el PDF del menú");
+  } finally {
+    exportingPdf.value = false;
+  }
+};
+
+// ---- Selección múltiple + acciones en lote ----
+const selected = ref([]);
+const isSelected = (id) => selected.value.includes(id);
+const toggleSelect = (id) => {
+  selected.value = isSelected(id)
+    ? selected.value.filter((x) => x !== id)
+    : [...selected.value, id];
+};
+const clearSelection = () => {
+  selected.value = [];
+};
+
+// "Seleccionar todo" opera sobre los productos filtrados (todas las páginas).
+const filteredIds = computed(() => filteredProducts.value.map((p) => p.id));
+const allSelected = computed(
+  () =>
+    filteredIds.value.length > 0 &&
+    filteredIds.value.every((id) => isSelected(id))
+);
+const someSelected = computed(
+  () => selected.value.length > 0 && !allSelected.value
+);
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    const visible = new Set(filteredIds.value);
+    selected.value = selected.value.filter((id) => !visible.has(id));
+  } else {
+    selected.value = [...new Set([...selected.value, ...filteredIds.value])];
+  }
+};
+
+const runBulk = (action, label) => {
+  const n = selected.value.length;
+  if (!n) return;
+  confirm(
+    label,
+    `Se aplicará "${label}" a ${n} platillo(s). ¿Continuar?`,
+    async () => {
+      const ok = await adminStore.bulkDishAction([...selected.value], action);
+      if (ok) clearSelection();
+    }
+  );
+};
+
+const runBulkDelete = () => {
+  const n = selected.value.length;
+  if (!n) return;
+  confirm(
+    "Eliminar platillos",
+    `Se eliminarán ${n} platillo(s) de forma permanente. ¿Continuar?`,
+    async () => {
+      const ok = await adminStore.bulkDishAction([...selected.value], "delete");
+      if (ok) clearSelection();
+    }
+  );
+};
+
+watch([filter, statusFilter, categoryFilter], () => {
   currentPage.value = 1;
 });
 
 const filteredProducts = computed(() => {
   let list = adminStore.products;
+
+  // Filtro por categoría
+  if (categoryFilter.value != null) {
+    list = list.filter(
+      (p) => (p.dish_category?.id ?? p.dish_category_id) === categoryFilter.value
+    );
+  }
 
   // Filtro por estado
   switch (statusFilter.value) {
@@ -383,6 +537,12 @@ const filteredProducts = computed(() => {
     case "available":
       list = list.filter((p) => !p.is_sold_out);
       break;
+    case "active":
+      list = list.filter((p) => p.status === "Activo");
+      break;
+    case "inactive":
+      list = list.filter((p) => p.status === "Inactivo");
+      break;
   }
 
   // Filtro por texto
@@ -397,6 +557,15 @@ const filteredProducts = computed(() => {
 
   return list;
 });
+
+// Reordenar solo es seguro cuando la lista renderizada == el array completo.
+// Con búsqueda o filtro activos, arrastrar corrompería el orden real.
+const canReorder = computed(
+  () =>
+    !filter.value &&
+    statusFilter.value === "all" &&
+    categoryFilter.value == null
+);
 
 const totalPages = computed(() =>
   Math.ceil(filteredProducts.value.length / rowsPerPage.value)
@@ -435,20 +604,58 @@ const offerProduct = ref(null);
 const offerPrice = ref("");
 const offerUntil = ref("");
 
+// Días en que aplica la oferta. Se manda null cuando no queda ninguno, no un
+// arreglo vacío: la columna dice "sin restricción" de una sola forma.
+const offerDays = ref([]);
+
+const toggleOfferDay = (valor) => {
+  offerDays.value = offerDays.value.includes(valor)
+    ? offerDays.value.filter((d) => d !== valor)
+    : [...offerDays.value, valor].sort((a, b) => a - b);
+};
+
 const openOfferDialog = (product) => {
   offerProduct.value = product;
   offerPrice.value = product.special_price || "";
   offerUntil.value = product.special_until ? product.special_until.slice(0, 16) : "";
+  offerDays.value = diasValidos(product.special_days);
   offerDialog.value = true;
 };
 
+// Las dos formas de guardar una oferta que nace muerta. Las dos se vieron en
+// produccion en el MISMO platillo: precio de oferta igual al normal y fecha ya
+// pasada. Se guardaba sin chistar, el panel decia "Con oferta a $330" y el menu
+// no mostraba nada, que es imposible de entender desde afuera.
 const saveOffer = async () => {
-  await adminStore.setSpecialOffer(offerProduct.value, offerPrice.value, offerUntil.value);
+  const precio = Number(offerPrice.value);
+  const normal = Number(offerProduct.value?.price);
+
+  if (precio > 0 && normal > 0 && precio >= normal) {
+    adminStore.messageStore.error(
+      `El precio de oferta debe ser MENOR a $${normal}. Si el platillo YA es la promoción, ` +
+        `no le pongas oferta: enciende "Es una promoción" en el platillo y sube solo.`
+    );
+    return;
+  }
+
+  if (offerUntil.value && new Date(offerUntil.value) <= new Date()) {
+    adminStore.messageStore.error(
+      "Esa fecha ya pasó: la oferta no se mostraría ni un minuto. Elige una fecha futura o déjala vacía."
+    );
+    return;
+  }
+
+  await adminStore.setSpecialOffer(
+    offerProduct.value,
+    offerPrice.value,
+    offerUntil.value,
+    offerDays.value
+  );
   offerDialog.value = false;
 };
 
 const removeOffer = async () => {
-  await adminStore.setSpecialOffer(offerProduct.value, null, null);
+  await adminStore.setSpecialOffer(offerProduct.value, null, null, null);
   offerDialog.value = false;
 };
 </script>
@@ -484,6 +691,51 @@ const removeOffer = async () => {
   left: var(--space-xs);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+.mc-product-card__check {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-full);
+  padding: 2px;
+  box-shadow: var(--shadow-sm);
+}
+
+.mc-card-selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.mc-row-selected {
+  background: var(--color-primary-container, rgba(25, 118, 210, 0.08));
+}
+
+.mc-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin: 0 var(--space-md) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface-variant);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  &__count {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
 }
 
 .mc-admin-table {
@@ -571,6 +823,28 @@ const removeOffer = async () => {
   &__select {
     width: 70px;
     font-size: var(--text-xs);
+  }
+}
+
+// Los siete días como botones: se ven todos de un vistazo y "fin de semana" son dos
+// toques. Mismo bloque que en la ficha del producto, para que se capturen igual en
+// los dos lugares.
+.mc-offer-days-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.mc-days {
+  display: flex;
+  gap: 4px;
+
+  &__btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 4px 0;
+    font-weight: 700;
   }
 }
 </style>

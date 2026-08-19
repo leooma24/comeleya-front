@@ -12,21 +12,51 @@
     </div>
 
     <template v-else>
+      <div class="mc-loyalty-sections">
       <!-- Config section -->
-      <div class="mc-loyalty-config">
-        <h4 class="mc-section-title">Configuración de puntos</h4>
+      <admin-section
+        icon="stars"
+        title="Configuración de puntos"
+        description="Cuántos puntos gana tu cliente y desde cuántos te los puede cambiar por descuento. Aplica a los pedidos nuevos, no a los que ya pasaron."
+      >
+        <!-- Earn mode selector -->
+        <div class="q-mb-md">
+          <div class="text-caption text-grey-6 q-mb-xs">¿Cómo ganan puntos tus clientes?</div>
+          <q-btn-toggle
+            v-model="config.earn_mode"
+            no-caps rounded unelevated
+            toggle-color="primary"
+            color="grey-3"
+            text-color="grey-8"
+            :options="[
+              { label: 'Por monto gastado', value: 'per_amount' },
+              { label: 'Por pedido', value: 'per_order' },
+            ]"
+          />
+        </div>
+
+        <!-- Per amount -->
+        <div v-if="config.earn_mode === 'per_amount'" class="row items-center q-gutter-sm q-mb-md">
+          <span class="text-body2">Gana</span>
+          <q-input filled dense rounded v-model.number="config.points_per_amount" type="number" min="0" style="width: 90px" />
+          <span class="text-body2">punto(s) por cada</span>
+          <q-input filled dense rounded v-model.number="config.amount_step" type="number" min="1" prefix="$" style="width: 110px" />
+          <span class="text-body2">gastados</span>
+        </div>
+
+        <!-- Per order -->
+        <div v-else class="row items-center q-gutter-sm q-mb-md">
+          <span class="text-body2">Gana</span>
+          <q-input filled dense rounded v-model.number="config.points_per_order" type="number" min="0" style="width: 90px" />
+          <span class="text-body2">punto(s) por cada pedido</span>
+        </div>
+
+        <!-- Redeem config (común a ambos modos) -->
         <div class="row q-gutter-md q-mb-md">
           <q-input
             filled dense rounded
-            v-model.number="config.points_per_order"
-            type="number"
-            label="Puntos por pedido"
-            class="col"
-          />
-          <q-input
-            filled dense rounded
             v-model.number="config.points_value"
-            type="number"
+            type="number" min="0"
             label="Valor por punto ($)"
             class="col"
             hint="Cuánto vale cada punto al canjear"
@@ -34,19 +64,23 @@
           <q-input
             filled dense rounded
             v-model.number="config.min_points_redeem"
-            type="number"
+            type="number" min="1"
             label="Mínimo para canjear"
             class="col"
           />
         </div>
-        <q-btn unelevated no-caps color="primary" label="Guardar configuración" @click="saveConfig" :loading="savingConfig" size="sm" />
-      </div>
 
-      <q-separator class="q-my-md" />
+        <div>
+          <q-btn unelevated no-caps color="primary" label="Guardar configuración" @click="saveConfig" :loading="savingConfig" size="sm" />
+        </div>
+      </admin-section>
 
       <!-- Lookup -->
-      <div class="mc-loyalty-lookup">
-        <h4 class="mc-section-title">Buscar cliente</h4>
+      <admin-section
+        icon="person_search"
+        title="Buscar cliente"
+        description="Cuando alguien te pida su descuento en caja, busca su teléfono aquí para ver cuántos puntos lleva y canjeárselos en el momento."
+      >
         <div class="row q-gutter-sm items-center">
           <q-input
             filled dense rounded
@@ -82,13 +116,14 @@
             </p>
           </div>
         </div>
-      </div>
-
-      <q-separator class="q-my-md" />
+      </admin-section>
 
       <!-- Recent transactions -->
-      <div class="mc-loyalty-list">
-        <h4 class="mc-section-title">Clientes con puntos</h4>
+      <admin-section
+        icon="loyalty"
+        title="Clientes con puntos"
+        description="Quiénes vuelven. Los que más puntos traen son los que ya te compraron varias veces."
+      >
         <div v-if="customers.length">
           <div
             class="mc-loyalty-row"
@@ -108,6 +143,7 @@
           <q-icon name="loyalty" size="48px" color="grey-4" />
           <p>Aún no hay clientes con puntos</p>
         </div>
+      </admin-section>
       </div>
     </template>
   </q-card>
@@ -119,11 +155,19 @@ defineOptions({ name: "LoyaltyComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
 const customers = ref([]);
-const config = ref({ points_per_order: 10, points_value: 1, min_points_redeem: 50 });
+const config = ref({
+  earn_mode: "per_amount",
+  points_per_amount: 1,
+  amount_step: 10,
+  points_per_order: 10,
+  points_value: 1,
+  min_points_redeem: 50,
+});
 const savingConfig = ref(false);
 const searchPhone = ref("");
 const searching = ref(false);
@@ -150,9 +194,12 @@ const lookupCustomer = async () => {
     const { data } = await api.get(`/admin/${adminStore.slug}/loyalty/lookup`, { params: { phone: searchPhone.value } });
     customerPoints.value = data.loyalty;
     redeemAmount.value = 0;
+    if (!data.loyalty) {
+      adminStore.messageStore.success("Ese cliente aún no tiene puntos");
+    }
   } catch (e) {
     customerPoints.value = null;
-    adminStore.messageStore.error("Cliente no encontrado");
+    adminStore.messageStore.error("Error al buscar cliente");
   } finally {
     searching.value = false;
   }
@@ -190,9 +237,9 @@ onMounted(async () => {
   try {
     const [customersRes, configRes] = await Promise.all([
       api.get(`/admin/${adminStore.slug}/loyalty`),
-      api.get(`/${adminStore.slug}/loyalty/config`),
+      api.get(`/establishment/${adminStore.slug}/loyalty/config`),
     ]);
-    customers.value = customersRes.data.customers;
+    customers.value = customersRes.data.customers || [];
     if (configRes.data.config) {
       Object.assign(config.value, configRes.data.config);
     }
@@ -212,17 +259,14 @@ onMounted(async () => {
   min-height: 200px;
 }
 
-.mc-section-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-md) 0;
-}
-
-.mc-loyalty-config,
-.mc-loyalty-lookup,
-.mc-loyalty-list {
+// Los tres bloques iban sueltos, con su propio padding y separados por <q-separator>.
+// Ahora cada uno es una caja de AdminSection, asi que el padding y la separacion los
+// pone el contenedor y las lineas divisorias sobran: el borde de cada caja ya divide.
+.mc-loyalty-sections {
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 
 .mc-points-card {
@@ -286,9 +330,7 @@ onMounted(async () => {
 }
 
 @media screen and (max-width: 600px) {
-  .mc-loyalty-config,
-  .mc-loyalty-lookup,
-  .mc-loyalty-list {
+  .mc-loyalty-sections {
     padding: var(--space-md);
   }
 }

@@ -20,11 +20,15 @@
     />
 
     <div class="q-pa-md q-pt-xl">
+      <checkout-steps :current="3" @back="mainStore.paymentDrawer = false" />
       <h5 class="mc-drawer-title q-mb-md">Datos de Pago</h5>
 
       <!-- Tip Section -->
       <div class="mc-form-section">
         <h6 class="mc-section-title">Propina</h6>
+        <p class="mc-section-caption">
+          Opcional — va completa para el equipo del restaurante 🙌
+        </p>
         <div class="mc-tip-grid">
           <q-btn
             v-for="amount in [0, 10, 20, 30, 40]"
@@ -80,6 +84,7 @@
             v-model="couponCode"
             label="Código de cupón"
             class="col"
+            @keyup.enter="applyCoupon"
           />
           <q-btn
             color="primary"
@@ -88,7 +93,9 @@
             no-caps
             dense
             class="mc-coupon-btn"
-            @click="mainStore.applyCoupon(couponCode)"
+            :loading="applyingCoupon"
+            :disable="!couponCode"
+            @click="applyCoupon"
           />
         </div>
         <div v-else class="mc-coupon-applied">
@@ -98,6 +105,38 @@
             <span class="mc-coupon-applied__discount">-${{ mainStore.coupon.discount.toFixed(2) }}</span>
           </div>
           <q-btn flat dense round icon="close" size="sm" color="grey-6" @click="mainStore.removeCoupon()" />
+        </div>
+      </div>
+
+      <!-- Programar pedido para más tarde -->
+      <div class="mc-form-section">
+        <div class="mc-schedule-head">
+          <h6 class="mc-section-title q-mb-none">Programar para más tarde</h6>
+          <q-toggle v-model="mainStore.schedule.enabled" color="primary" dense />
+        </div>
+        <q-input
+          v-if="mainStore.schedule.enabled"
+          v-model="mainStore.schedule.at"
+          type="datetime-local"
+          filled dense rounded
+          :min="minDateTime"
+          class="q-mt-sm"
+          hint="¿Para qué día y hora lo quieres?"
+        />
+      </div>
+
+      <!-- Lealtad: canjear puntos -->
+      <div v-if="mainStore.canRedeemLoyalty" class="mc-form-section">
+        <h6 class="mc-section-title">Tus puntos de lealtad</h6>
+        <div class="mc-loyalty-redeem">
+          <q-toggle v-model="mainStore.loyalty.use" color="primary" dense />
+          <div class="mc-loyalty-redeem__text">
+            <span>Usar mis <strong>{{ mainStore.loyalty.points }}</strong> puntos</span>
+            <span
+              v-if="mainStore.loyalty.use && mainStore.loyaltyDiscount > 0"
+              class="mc-loyalty-redeem__disc"
+            >−${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
+          </div>
         </div>
       </div>
 
@@ -118,6 +157,10 @@
         <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.coupon.applied">
           <span>Descuento</span>
           <span class="mc-summary-value">- ${{ mainStore.coupon.discount.toFixed(2) }}</span>
+        </div>
+        <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.loyaltyDiscount > 0">
+          <span>Puntos de lealtad</span>
+          <span class="mc-summary-value">- ${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
         </div>
         <div class="mc-summary-row mc-summary-row--total">
           <span>Total a pagar</span>
@@ -145,7 +188,11 @@
           <q-icon name="payments" size="24px" />
           <span class="mc-payment-option__label">Efectivo</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Efectivo" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Efectivo' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Efectivo' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
         <q-input
           filled
@@ -178,7 +225,11 @@
           <q-icon name="credit_card" size="24px" />
           <span class="mc-payment-option__label">Tarjeta (Terminal)</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Tarjeta" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Tarjeta' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Tarjeta' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
 
         <!-- Transfer -->
@@ -193,12 +244,16 @@
           <q-icon name="account_balance" size="24px" />
           <span class="mc-payment-option__label">Transferencia</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="Transferencia" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'Transferencia' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'Transferencia' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
 
-        <!-- MercadoPago Online -->
+        <!-- MercadoPago Online (feature 15 = online_payments; el 10 es Comedor) -->
         <div
-          v-if="mainStore.hasService(10)"
+          v-if="mainStore.hasService(15)"
           :class="[
             'mc-payment-option',
             mainStore.payment.type === 'MercadoPago' ? 'mc-payment-option--active' : ''
@@ -208,7 +263,11 @@
           <q-icon name="credit_score" size="24px" />
           <span class="mc-payment-option__label">Pago en línea (MercadoPago)</span>
           <q-space />
-          <q-radio v-model="mainStore.payment.type" val="MercadoPago" color="primary" />
+          <q-icon
+            :name="mainStore.payment.type === 'MercadoPago' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'MercadoPago' ? 'primary' : 'grey-5'"
+            size="22px"
+          />
         </div>
         <div class="mc-mercadopago-info" v-if="mainStore.payment.type === 'MercadoPago'">
           <q-icon name="info" size="16px" color="info" />
@@ -226,7 +285,10 @@
 
       <!-- Comments -->
       <div class="mc-form-section">
-        <h6 class="mc-section-title">Comentarios</h6>
+        <h6 class="mc-section-title">Instrucciones para el restaurante</h6>
+        <p class="mc-section-caption">
+          Opcional — alergias, sin cebolla, tocar el timbre, etc.
+        </p>
         <q-input
           filled
           dense
@@ -234,7 +296,8 @@
           color="primary"
           v-model="mainStore.data.comments"
           type="textarea"
-          label="Ejemplo: Sin cebolla, extra queso"
+          autogrow
+          placeholder="Ej: Sin cebolla, alergia al maní, dejar en recepción…"
         />
       </div>
     </div>
@@ -262,11 +325,38 @@
 defineOptions({
   name: "PaymentDrawer",
 });
-import { ref } from "vue";
+import { ref, watch, computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
+
+// Mínimo para programar: 15 min en el futuro, en formato datetime-local.
+const minDateTime = computed(() => {
+  const pad = (n) => String(n).padStart(2, "0");
+  const d = new Date(Date.now() + 15 * 60000);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+});
 const couponCode = ref("");
 const sendingOrder = ref(false);
+const applyingCoupon = ref(false);
+
+// Al abrir el pago, consulta los puntos del cliente (por el teléfono ya capturado).
+watch(
+  () => mainStore.paymentDrawer,
+  (open) => {
+    if (open) mainStore.checkLoyalty();
+  }
+);
+
+const applyCoupon = async () => {
+  if (!couponCode.value || applyingCoupon.value) return;
+  applyingCoupon.value = true;
+  try {
+    await mainStore.applyCoupon(couponCode.value);
+  } finally {
+    applyingCoupon.value = false;
+  }
+};
 
 const submitOrder = async () => {
   sendingOrder.value = true;
@@ -279,6 +369,40 @@ const submitOrder = async () => {
 </script>
 
 <style lang="scss" scoped>
+.mc-section-caption {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.4;
+}
+
+.mc-schedule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.mc-loyalty-redeem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+
+  &__text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: 1;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+  }
+
+  &__disc {
+    font-weight: 700;
+    color: var(--q-primary);
+  }
+}
+
 .mc-drawer-title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);

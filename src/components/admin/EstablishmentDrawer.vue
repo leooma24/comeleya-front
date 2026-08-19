@@ -1,6 +1,7 @@
 <template>
   <q-drawer
-    v-model="adminStore.establishmentDrawer"
+    :model-value="adminStore.establishmentDrawer"
+    @update:model-value="onDrawerModel"
     bordered
     overlay
     side="right"
@@ -15,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="adminStore.establishmentDrawer = false"
+        @click="requestClose"
       />
     </div>
 
@@ -202,8 +203,25 @@ defineOptions({
 import { ref, computed, watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
+import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
 const adminStore = useAdminStore();
 const $q = useQuasar();
+
+// Aviso de cambios sin guardar al cerrar.
+const { snap, isDirty, confirmClose } = useUnsavedChanges();
+watch(() => adminStore.establishmentDrawer, (v) => {
+  if (v) snap(adminStore.companyStore.companyForm);
+});
+const onDrawerModel = (v) => {
+  if (v) { adminStore.establishmentDrawer = true; return; }
+  requestClose();
+};
+const requestClose = () =>
+  confirmClose(
+    isDirty(adminStore.companyStore.companyForm, adminStore.uploadingImage),
+    () => adminStore.saveEstablishment(), // cierra el drawer al guardar bien
+    () => { adminStore.establishmentDrawer = false; }
+  );
 
 const fileInput = ref(null);
 const localPreview = ref("");

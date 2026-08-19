@@ -26,13 +26,13 @@
         {{ currentSeg?.label }}
       </q-chip>
       <q-space />
-      <q-btn unelevated no-caps color="primary" icon="campaign" label="Enviar campana a segmento" size="sm" @click="$emit('openCampaign', selectedSegment)" />
+      <q-btn unelevated no-caps color="primary" icon="campaign" label="Enviar campaña a segmento" size="sm" @click="$emit('openCampaign', selectedSegment)" />
       <q-btn flat no-caps color="grey-6" label="Limpiar filtro" size="sm" class="q-ml-sm" @click="selectedSegment = null" />
     </div>
 
     <!-- Filtered prospects table -->
     <q-table flat :rows="filteredProspects" :columns="columns" row-key="id" no-data-label="Sin prospectos en este segmento"
-      rows-per-page-label="Por pagina:" class="mc-inner-table" :loading="loading">
+      rows-per-page-label="Por página:" class="mc-inner-table" :loading="loading">
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="$emit('openActivities', props.row)">
           <q-td key="business_name" :props="props">
@@ -82,7 +82,7 @@ const refreshing = ref(false);
 
 const segments = [
   { value: "pedidos_sin_pago", label: "Pedidos sin pago", icon: "local_fire_department", qcolor: "red", color: "#E53935" },
-  { value: "menu_sin_pedidos", label: "Menu sin pedidos", icon: "restaurant_menu", qcolor: "orange", color: "#FB8C00" },
+  { value: "menu_sin_pedidos", label: "Menú sin pedidos", icon: "restaurant_menu", qcolor: "orange", color: "#FB8C00" },
   { value: "sin_configurar", label: "Sin configurar", icon: "help_outline", qcolor: "blue", color: "#1976D2" },
   { value: "inactivo", label: "Inactivo", icon: "schedule", qcolor: "grey", color: "#9E9E9E" },
 ];
@@ -147,7 +147,7 @@ onMounted(() => { loadStats(); });
 const columns = [
   { name: "business_name", label: "Negocio", align: "left", field: "business_name", sortable: true },
   { name: "score", label: "Score", align: "center", field: "engagement_score", sortable: true },
-  { name: "phone", label: "Telefono", align: "left", field: "phone" },
+  { name: "phone", label: "Teléfono", align: "left", field: "phone" },
   { name: "email", label: "Email", align: "left", field: "email" },
   { name: "notes", label: "Info", align: "left", field: "notes" },
   { name: "actions", label: "Acciones", align: "right" },

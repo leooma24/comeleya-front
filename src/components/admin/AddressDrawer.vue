@@ -1,6 +1,7 @@
 <template>
   <q-drawer
-    v-model="adminStore.addressDrawer"
+    :model-value="adminStore.addressDrawer"
+    @update:model-value="onDrawerModel"
     bordered
     overlay
     side="right"
@@ -15,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="adminStore.addressDrawer = false"
+        @click="requestClose"
       />
     </div>
 
@@ -125,10 +126,26 @@ defineOptions({
   name: "AddressDrawer",
 });
 
+import { watch } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
+import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
 const adminStore = useAdminStore();
 const $q = useQuasar();
+
+// Aviso de cambios sin guardar al cerrar.
+const { snap, isDirty, confirmClose } = useUnsavedChanges();
+watch(() => adminStore.addressDrawer, (v) => { if (v) snap(adminStore.addressForm); });
+const onDrawerModel = (v) => {
+  if (v) { adminStore.addressDrawer = true; return; }
+  requestClose();
+};
+const requestClose = () =>
+  confirmClose(
+    isDirty(adminStore.addressForm),
+    () => adminStore.saveAddress(), // saveAddress cierra el drawer al guardar bien
+    () => { adminStore.addressDrawer = false; }
+  );
 </script>
 
 <style lang="scss" scoped>

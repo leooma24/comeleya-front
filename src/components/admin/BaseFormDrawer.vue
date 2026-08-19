@@ -6,7 +6,7 @@
     side="right"
     :width="drawerWidth"
     class="mc-form-drawer"
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="onDrawerModel"
   >
     <div class="mc-form-drawer__header">
       <h6>{{ title }}</h6>
@@ -16,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="$emit('update:modelValue', false)"
+        @click="requestClose"
       />
     </div>
 
@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useQuasar } from "quasar";
 
 defineOptions({
@@ -65,12 +65,65 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Objeto reactivo del formulario a vigilar. Si se pasa, al cerrar con cambios
+  // sin guardar se pregunta si desean guardar. Si NO se pasa, cierra directo.
+  formData: {
+    type: [Object, null],
+    default: null,
+  },
+  // Fuerza "cambios pendientes" (p. ej. una imagen subiéndose).
+  uploading: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-defineEmits(["update:modelValue", "save"]);
+const emit = defineEmits(["update:modelValue", "save"]);
 
 const $q = useQuasar();
 const drawerWidth = computed(() =>
   $q.screen.width <= 440 ? $q.screen.width : 440
 );
+
+// "Foto" del formulario al abrir, para detectar cambios al cerrar.
+let snapshot = null;
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) snapshot = props.formData ? JSON.stringify(props.formData) : null;
+  }
+);
+
+const isDirty = () => {
+  if (props.uploading) return true;
+  if (!props.formData) return false;
+  return snapshot !== null && snapshot !== JSON.stringify(props.formData);
+};
+
+const doClose = () => emit("update:modelValue", false);
+
+const requestClose = () => {
+  if (!isDirty()) {
+    doClose();
+    return;
+  }
+  $q.dialog({
+    title: "Cambios sin guardar",
+    message: "Hiciste cambios y aún no los guardas. ¿Qué deseas hacer?",
+    ok: { label: "Guardar", unelevated: true, noCaps: true, color: "primary" },
+    cancel: { label: "Descartar", flat: true, noCaps: true, color: "negative" },
+    persistent: true,
+  })
+    .onOk(() => emit("save"))
+    .onCancel(() => doClose());
+};
+
+// El q-drawer emite update:model-value(false) al hacer clic fuera o ESC.
+const onDrawerModel = (val) => {
+  if (val) {
+    emit("update:modelValue", true);
+    return;
+  }
+  requestClose();
+};
 </script>

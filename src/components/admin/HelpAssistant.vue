@@ -17,7 +17,7 @@
         <q-avatar size="36px" color="primary" text-color="white" icon="support_agent" />
         <div class="col">
           <div class="text-weight-bold">Asistente ComeleYa</div>
-          <div class="text-caption text-grey-6">Como te puedo ayudar?</div>
+          <div class="text-caption text-grey-6">Cómo te puedo ayudar?</div>
         </div>
         <q-btn flat round dense icon="close" @click="show = false" />
       </q-card-section>
@@ -55,7 +55,7 @@
 
         <!-- Guide list -->
         <div v-else class="q-pa-md">
-          <div class="text-subtitle2 text-weight-bold q-mb-sm">Que quieres hacer?</div>
+          <div class="text-subtitle2 text-weight-bold q-mb-sm">Qué quieres hacer?</div>
 
           <q-list>
             <q-item
@@ -86,13 +86,13 @@
           <div class="text-subtitle2 text-weight-bold q-mb-sm">Contacto directo</div>
           <q-btn
             outline no-caps color="green" icon="fab fa-whatsapp"
-            label="Escribenos por WhatsApp"
+            label="Escríbenos por WhatsApp"
             class="full-width q-mb-sm"
             @click="openWa"
           />
           <q-btn
             outline no-caps color="primary" icon="mail"
-            label="Envianos un correo"
+            label="Envíanos un correo"
             class="full-width"
             href="mailto:soporte@comeleya.com"
           />
@@ -127,52 +127,52 @@ const openWa = () => {
 const guides = [
   {
     id: "setup",
-    title: "Configurar mi menu desde cero",
-    desc: "Sube tu logo, horario, categorias y platillos",
+    title: "Configurar mi menú desde cero",
+    desc: "Sube tu logo, horario, categorías y platillos",
     icon: "rocket_launch",
     color: "primary",
     steps: [
-      { title: "Sube tu logo", desc: "Ve a Establecimiento y sube una imagen de tu logo. Tambien puedes agregar tu direccion y datos de contacto.", icon: "image", btnLabel: "Ir a establecimiento", btnIcon: "storefront", action: () => adminStore.setEstablishmentDrawer(true) },
-      { title: "Configura tu horario", desc: "Define los dias y horas que tu negocio esta abierto. Los clientes veran cuando estas disponible.", icon: "schedule", btnLabel: "Configurar horario", btnIcon: "schedule", action: () => adminStore.setScheduleDrawer(true) },
-      { title: "Crea una categoria", desc: "Las categorias organizan tu menu (ej: Hamburguesas, Bebidas, Postres). Necesitas al menos una.", icon: "category", btnLabel: "Crear categoria", btnIcon: "add", action: () => { adminStore.tab = "categorias"; adminStore.addCategory(); } },
-      { title: "Agrega tus platillos", desc: "Sube foto, nombre, precio y descripcion. Puedes agregar extras y opciones despues.", icon: "restaurant_menu", btnLabel: "Agregar platillo", btnIcon: "add", action: () => { adminStore.tab = "productos"; adminStore.addProduct(); } },
-      { title: "Comparte tu menu", desc: "Descarga tu QR desde tu perfil e imprimelo. Tambien puedes compartir el link de tu menu.", icon: "qr_code", btnLabel: "Ver mi QR", btnIcon: "qr_code", action: () => adminStore.setProfileDrawer(true) },
+      { title: "Sube tu logo", desc: "Ve a Establecimiento y sube una imagen de tu logo. También puedes agregar tu dirección y datos de contacto.", icon: "image", btnLabel: "Ir a establecimiento", btnIcon: "storefront", action: () => adminStore.setEstablishmentDrawer(true) },
+      { title: "Configura tu horario", desc: "Define los días y horas que tu negocio está abierto. Los clientes verán cuándo estás disponible.", icon: "schedule", btnLabel: "Configurar horario", btnIcon: "schedule", action: () => adminStore.setScheduleDrawer(true) },
+      { title: "Crea una categoría", desc: "Las categorías organizan tu menú (ej: Hamburguesas, Bebidas, Postres). Necesitas al menos una.", icon: "category", btnLabel: "Crear categoría", btnIcon: "add", action: () => { adminStore.tab = "categorias"; adminStore.addCategory(); } },
+      { title: "Agrega tus platillos", desc: "Sube foto, nombre, precio y descripción. Puedes agregar extras y opciones después.", icon: "restaurant_menu", btnLabel: "Agregar platillo", btnIcon: "add", action: () => { adminStore.tab = "productos"; adminStore.addProduct(); } },
+      { title: "Comparte tu menú", desc: "Descarga tu QR desde tu perfil e imprímelo. También puedes compartir el link de tu menú.", icon: "qr_code", btnLabel: "Ver mi QR", btnIcon: "qr_code", action: () => adminStore.setProfileDrawer(true) },
     ],
   },
   {
     id: "orders",
     title: "Recibir y gestionar pedidos",
-    desc: "Como manejar pedidos que llegan a tu negocio",
+    desc: "Cómo manejar pedidos que llegan a tu negocio",
     icon: "receipt_long",
     color: "blue",
     steps: [
-      { title: "Los pedidos llegan automaticamente", desc: "Cuando un cliente hace un pedido desde tu menu, aparece en la seccion de Pedidos.", icon: "notifications", btnLabel: "Ver pedidos", btnIcon: "receipt_long", action: () => { adminStore.tab = "pedidos_pendientes"; } },
-      { title: "Cambia el estado del pedido", desc: "Marca como 'En preparacion', 'Enviado' o 'Entregado'. El cliente recibe notificacion.", icon: "swap_horiz" },
-      { title: "Tambien te llega por WhatsApp", desc: "El pedido se envia automaticamente a tu WhatsApp para que no pierdas ninguno.", icon: "fab fa-whatsapp" },
+      { title: "Los pedidos llegan automáticamente", desc: "Cuando un cliente hace un pedido desde tu menú, aparece en la sección de Pedidos.", icon: "notifications", btnLabel: "Ver pedidos", btnIcon: "receipt_long", action: () => { adminStore.tab = "pedidos_pendientes"; } },
+      { title: "Cambia el estado del pedido", desc: "Marca como 'En preparación', 'Enviado' o 'Entregado'. El cliente recibe notificación.", icon: "swap_horiz" },
+      { title: "También te llega por WhatsApp", desc: "El pedido se envía automáticamente a tu WhatsApp para que no pierdas ninguno.", icon: "fab fa-whatsapp" },
     ],
   },
   {
     id: "coupons",
     title: "Crear cupones de descuento",
-    desc: "Atrae mas clientes con promociones",
+    desc: "Atrae más clientes con promociones",
     icon: "confirmation_number",
     color: "purple",
     steps: [
-      { title: "Ve a la seccion de Cupones", desc: "Ahi podras crear codigos de descuento con porcentaje o cantidad fija.", icon: "confirmation_number", btnLabel: "Ir a cupones", btnIcon: "confirmation_number", action: () => { adminStore.tab = "cupones"; } },
-      { title: "Define el tipo de descuento", desc: "Porcentaje (ej: 15% OFF) o cantidad fija (ej: $50 de descuento). Puedes poner un minimo de compra.", icon: "percent" },
-      { title: "Comparte el codigo", desc: "Publica el codigo en tus redes sociales o imprimelo en tu local. Los clientes lo ingresan al hacer su pedido.", icon: "share" },
+      { title: "Ve a la sección de Cupones", desc: "Ahí podrás crear códigos de descuento con porcentaje o cantidad fija.", icon: "confirmation_number", btnLabel: "Ir a cupones", btnIcon: "confirmation_number", action: () => { adminStore.tab = "cupones"; } },
+      { title: "Define el tipo de descuento", desc: "Porcentaje (ej: 15% OFF) o cantidad fija (ej: $50 de descuento). Puedes poner un mínimo de compra.", icon: "percent" },
+      { title: "Comparte el código", desc: "Publica el código en tus redes sociales o imprímelo en tu local. Los clientes lo ingresan al hacer su pedido.", icon: "share" },
     ],
   },
   {
     id: "extras",
     title: "Agregar extras a mis platillos",
-    desc: "Opciones como salsas, tamanos, ingredientes extra",
+    desc: "Opciones como salsas, tamaños, ingredientes extra",
     icon: "add_circle",
     color: "teal",
     steps: [
-      { title: "Crea un grupo de extras", desc: "Ve a Extras y crea un grupo (ej: 'Salsas', 'Tamano', 'Ingredientes extra').", icon: "add_circle", btnLabel: "Ir a extras", btnIcon: "add_circle", action: () => { adminStore.tab = "extras"; } },
+      { title: "Crea un grupo de extras", desc: "Ve a Extras y crea un grupo (ej: 'Salsas', 'Tamaño', 'Ingredientes extra').", icon: "add_circle", btnLabel: "Ir a extras", btnIcon: "add_circle", action: () => { adminStore.tab = "extras"; } },
       { title: "Define las opciones", desc: "Agrega opciones con nombre y precio (ej: Salsa verde $0, Guacamole $15).", icon: "list" },
-      { title: "Asigna al platillo", desc: "Edita un platillo y en la seccion de extras, agrega el grupo que creaste. Puedes marcar como requerido.", icon: "link" },
+      { title: "Asigna al platillo", desc: "Edita un platillo y en la sección de extras, agrega el grupo que creaste. Puedes marcar como requerido.", icon: "link" },
     ],
   },
   {
@@ -183,32 +183,32 @@ const guides = [
     color: "grey-8",
     steps: [
       { title: "Ve a tu perfil", desc: "Haz click en tu nombre arriba a la derecha y selecciona 'Perfil'.", icon: "person", btnLabel: "Ir a perfil", btnIcon: "person", action: () => adminStore.setProfileDrawer(true) },
-      { title: "Descarga el QR", desc: "Veras tu codigo QR. Haz click en 'Descargar QR' para guardarlo como imagen.", icon: "download" },
-      { title: "Imprimelo y colocalo", desc: "Imprime el QR en tamano visible y colocalo en mesas, mostrador, ventanas o tarjetas.", icon: "print" },
+      { title: "Descarga el QR", desc: "Verás tu código QR. Haz click en 'Descargar QR' para guardarlo como imagen.", icon: "download" },
+      { title: "Imprímelo y colócalo", desc: "Imprime el QR en tamaño visible y colócalo en mesas, mostrador, ventanas o tarjetas.", icon: "print" },
     ],
   },
   {
     id: "theme",
-    title: "Personalizar mi menu",
-    desc: "Colores, fuentes y apariencia de tu menu",
+    title: "Personalizar mi menú",
+    desc: "Colores, fuentes y apariencia de tu menú",
     icon: "palette",
     color: "pink",
     steps: [
-      { title: "Ve a la seccion Tema", desc: "Ahi puedes cambiar colores, fuentes y estilo de tu menu digital.", icon: "palette", btnLabel: "Ir a tema", btnIcon: "palette", action: () => { adminStore.tab = "tema"; } },
+      { title: "Ve a la sección Tema", desc: "Ahí puedes cambiar colores, fuentes y estilo de tu menú digital.", icon: "palette", btnLabel: "Ir a tema", btnIcon: "palette", action: () => { adminStore.tab = "tema"; } },
       { title: "Elige tu color primario", desc: "Selecciona el color principal de tu marca. Se aplica a botones, links y acentos.", icon: "color_lens" },
-      { title: "Agrega un banner", desc: "Puedes mostrar un mensaje en la parte superior de tu menu (ej: 'Envio gratis hoy!').", icon: "announcement" },
+      { title: "Agrega un banner", desc: "Puedes mostrar un mensaje en la parte superior de tu menú (ej: '¡Envío gratis hoy!').", icon: "announcement" },
     ],
   },
   {
     id: "analytics",
-    title: "Ver mis estadisticas",
-    desc: "Conoce cuanto vendes y que es lo mas popular",
+    title: "Ver mis estadísticas",
+    desc: "Conoce cuánto vendes y qué es lo más popular",
     icon: "analytics",
     color: "indigo",
     steps: [
       { title: "Dashboard", desc: "En el Dashboard ves pedidos, ingresos y ticket promedio de hoy, semana y mes.", icon: "dashboard", btnLabel: "Ver dashboard", btnIcon: "dashboard", action: () => { adminStore.tab = "dashboard"; } },
-      { title: "Top productos", desc: "Tambien ves cuales son tus platillos mas vendidos para saber que promocionar.", icon: "trending_up" },
-      { title: "Analiticas avanzadas", desc: "En la seccion de Analiticas tienes graficas detalladas y puedes exportar a CSV.", icon: "analytics", btnLabel: "Ver analiticas", btnIcon: "analytics", action: () => { adminStore.tab = "analiticas"; } },
+      { title: "Top productos", desc: "También ves cuáles son tus platillos más vendidos para saber qué promocionar.", icon: "trending_up" },
+      { title: "Analíticas avanzadas", desc: "En la sección de Analíticas tienes gráficas detalladas y puedes exportar a CSV.", icon: "analytics", btnLabel: "Ver analíticas", btnIcon: "analytics", action: () => { adminStore.tab = "analiticas"; } },
     ],
   },
 ];

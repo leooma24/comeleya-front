@@ -52,6 +52,9 @@
           handle=".drag-handle"
           filter=".q-btn"
           :preventOnFilter="false"
+          :disabled="!canReorder"
+          :force-fallback="true"
+          :fallback-tolerance="4"
         >
           <tr
             v-for="(element, index) in filteredCategories"
@@ -60,6 +63,7 @@
           >
             <td>
               <q-icon
+                v-if="canReorder"
                 name="drag_indicator"
                 class="drag-handle cursor-pointer"
                 color="grey-5"
@@ -80,26 +84,12 @@
               </q-chip>
             </td>
             <td class="text-right">
-              <q-btn
-                flat
-                round
-                size="sm"
-                icon="edit"
-                color="grey-7"
-                @click="editCategory(element)"
-              >
-                <q-tooltip>Editar</q-tooltip>
-              </q-btn>
-              <q-btn
-                flat
-                round
-                size="sm"
-                icon="delete_outline"
-                color="negative"
-                @click="deleteCategory(element)"
-              >
-                <q-tooltip>Eliminar</q-tooltip>
-              </q-btn>
+              <row-actions-menu
+                :actions="[
+                  { key: 'edit', icon: 'edit', color: 'grey-7', label: 'Editar', handler: () => editCategory(element) },
+                  { key: 'delete', icon: 'delete_outline', color: 'negative', label: 'Eliminar', handler: () => deleteCategory(element) },
+                ]"
+              />
             </td>
           </tr>
         </draggable>
@@ -151,6 +141,7 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./categories/FormDrawer.vue";
+import RowActionsMenu from "./RowActionsMenu.vue";
 
 defineOptions({
   name: "establishment-categories",
@@ -175,6 +166,9 @@ const filteredCategories = computed(() => {
     c.name?.toLowerCase().includes(search)
   );
 });
+
+// Reordenar solo es seguro sin búsqueda (evita corromper el orden real)
+const canReorder = computed(() => !filter.value);
 
 const totalPages = computed(() =>
   Math.ceil(filteredCategories.value.length / rowsPerPage.value)

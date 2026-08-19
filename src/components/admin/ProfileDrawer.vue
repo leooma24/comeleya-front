@@ -1,6 +1,7 @@
 <template>
   <q-drawer
-    v-model="adminStore.profileDrawer"
+    :model-value="adminStore.profileDrawer"
+    @update:model-value="onDrawerModel"
     bordered
     overlay
     side="right"
@@ -15,7 +16,7 @@
         dense
         icon="close"
         color="grey-6"
-        @click="adminStore.profileDrawer = false"
+        @click="requestClose"
       />
     </div>
 
@@ -186,10 +187,26 @@ defineOptions({
   name: "ProfileDrawer",
 });
 
+import { watch } from "vue";
 import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useUnsavedChanges } from "src/composables/useUnsavedChanges";
 const adminStore = useAdminStore();
+
+// Aviso de cambios sin guardar al cerrar.
+const { snap, isDirty, confirmClose } = useUnsavedChanges();
+watch(() => adminStore.profileDrawer, (v) => { if (v) snap(adminStore.userForm); });
+const onDrawerModel = (v) => {
+  if (v) { adminStore.profileDrawer = true; return; }
+  requestClose();
+};
+const requestClose = () =>
+  confirmClose(
+    isDirty(adminStore.userForm),
+    () => { adminStore.saveProfile(); adminStore.profileDrawer = false; },
+    () => { adminStore.profileDrawer = false; }
+  );
 const $q = useQuasar();
 
 const downloadQrPdf = async () => {

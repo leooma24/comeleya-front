@@ -13,7 +13,7 @@
             <q-icon name="card_membership" size="20px" color="primary" />
           </div>
           <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'dia' : 'dias' }} restantes</strong>
+            <strong>{{ planName }} — {{ trialDaysLeft }} {{ trialDaysLeft === 1 ? 'día' : 'días' }} restantes</strong>
             <span>Tu plan vence el {{ new Date(adminStore.company?.active_subscription?.end_date).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) }}</span>
           </div>
         </div>
@@ -27,7 +27,7 @@
             <q-icon name="hourglass_top" size="20px" color="orange" />
           </div>
           <div class="mc-setup-banner__text">
-            <strong>{{ planName }} — {{ trialDaysLeft === 1 ? 'Vence manana' : `Vence en ${trialDaysLeft} dias` }}</strong>
+            <strong>{{ planName }} — {{ trialDaysLeft === 1 ? 'Vence mañana' : `Vence en ${trialDaysLeft} días` }}</strong>
             <span>Renueva tu plan para no perder acceso a las funciones premium.</span>
           </div>
           <q-btn
@@ -230,32 +230,40 @@
 defineOptions({
   name: "AdminPage",
 });
-import { ref, computed } from "vue";
+import { ref, computed, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
-import Dashboard from "src/components/admin/Dashboard.vue";
-import Products from "src/components/admin/Products.vue";
-import Categories from "src/components/admin/Categories.vue";
-import Extras from "src/components/admin/Extras.vue";
-import Coupons from "src/components/admin/Coupons.vue";
-import Orders from "src/components/admin/Orders.vue";
-import Establishments from "src/components/admin/Establishments.vue";
-import Users from "src/components/admin/Users.vue";
-import EstablishmentCategories from "src/components/admin/EstablishmentCategories.vue";
-import EstablishmentTypes from "src/components/admin/EstablishmentTypes.vue";
-import Packages from "src/components/admin/Packages.vue";
-import Reservations from "src/components/admin/Reservations.vue";
-import Drivers from "src/components/admin/Drivers.vue";
-import Loyalty from "src/components/admin/Loyalty.vue";
-import ThemeCustomizer from "src/components/admin/ThemeCustomizer.vue";
-import SeoSettings from "src/components/admin/SeoSettings.vue";
-import FacebookCatalog from "src/components/admin/FacebookCatalog.vue";
-import Analytics from "src/components/admin/Analytics.vue";
-import Crm from "src/components/admin/Crm.vue";
-import SalesGoals from "src/components/admin/SalesGoals.vue";
-import Subscriptions from "src/components/admin/Subscriptions.vue";
-import MySubscription from "src/components/admin/MySubscription.vue";
-import Reviews from "src/components/admin/Reviews.vue";
+import { useOrderAlerts } from "src/composables/useOrderAlerts";
+
+// Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
+const lazy = (name) =>
+  defineAsyncComponent(() => import(`../components/admin/${name}.vue`));
+
+const Dashboard = lazy("Dashboard");
+const Products = lazy("Products");
+const Categories = lazy("Categories");
+const Extras = lazy("Extras");
+const Coupons = lazy("Coupons");
+const Orders = lazy("Orders");
+const Establishments = lazy("Establishments");
+const SuperAdminHome = lazy("SuperAdminHome");
+const EstablishmentsHealth = lazy("EstablishmentsHealth");
+const Users = lazy("Users");
+const EstablishmentCategories = lazy("EstablishmentCategories");
+const EstablishmentTypes = lazy("EstablishmentTypes");
+const Packages = lazy("Packages");
+const Reservations = lazy("Reservations");
+const Drivers = lazy("Drivers");
+const Loyalty = lazy("Loyalty");
+const ThemeCustomizer = lazy("ThemeCustomizer");
+const SeoSettings = lazy("SeoSettings");
+const FacebookCatalog = lazy("FacebookCatalog");
+const Analytics = lazy("Analytics");
+const Crm = lazy("Crm");
+const SalesGoals = lazy("SalesGoals");
+const Subscriptions = lazy("Subscriptions");
+const MySubscription = lazy("MySubscription");
+const Reviews = lazy("Reviews");
 
 const adminStore = useAdminStore();
 const route = useRoute();
@@ -297,6 +305,10 @@ if (route.path === "/admin") {
   isAdmin.value = true;
 }
 
+// Alerta global de pedidos nuevos (suena en cualquier pestaña). Solo aplica al
+// panel de un establecimiento (no en el super-admin, donde no hay slug).
+useOrderAlerts(() => slug);
+
 const addCategory = () => {
   adminStore.tab = "categorias";
   adminStore.categoryFormDrawer = true;
@@ -320,6 +332,10 @@ const getComponentName = (tab) => {
     return Coupons;
   } else if (tab === "pedidos_pendientes") {
     return Orders;
+  } else if (tab === "inicio") {
+    return SuperAdminHome;
+  } else if (tab === "salud") {
+    return EstablishmentsHealth;
   } else if (tab === "establecimientos") {
     return Establishments;
   } else if (tab === "usuarios") {
@@ -371,6 +387,10 @@ const getStatus = (tab, orderTab) => {
         return 4;
       case "pedidos_cancelados":
         return 5;
+      // El Historial no es un estado: es su propia vista y trae sus propios filtros.
+      // El 0 le dice a Orders.vue que no consulte ni sondee ningun estado.
+      case "pedidos_historial":
+        return 0;
     }
   }
   return "0";

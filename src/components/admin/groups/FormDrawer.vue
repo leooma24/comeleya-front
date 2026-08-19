@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.groupFormDrawer"
+    :form-data="adminStore.groupForm"
     :title="(adminStore.groupForm.id ? 'Editar' : 'Nuevo') + ' Extra'"
     save-label="Guardar Extra"
     :loading="adminStore.loading"

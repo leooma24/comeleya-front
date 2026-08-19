@@ -36,12 +36,13 @@
 
     <q-table
       flat
+      :grid="$q.screen.lt.md"
       :rows="adminStore.packages"
       :columns="columns"
       row-key="name"
       :filter="filter"
       no-data-label="No se encontraron paquetes"
-      rows-per-page-label="Registros por pagina:"
+      rows-per-page-label="Registros por página:"
       v-model:pagination="pagination"
       :rows-per-page-options="[5, 10, 15, 20]"
       class="mc-inner-table"
@@ -52,10 +53,10 @@
             <span class="text-weight-medium">{{ props.row.name }}</span>
           </q-td>
           <q-td key="monthly_price" :props="props">
-            <span class="mc-text-price">${{ props.row.monthly_price }}</span>
+            <span class="mc-text-price">${{ money(props.row.monthly_price) }}</span>
           </q-td>
           <q-td key="yearly_price" :props="props">
-            <span class="mc-text-price">${{ props.row.yearly_price }}</span>
+            <span class="mc-text-price">${{ money(props.row.yearly_price) }}</span>
           </q-td>
           <q-td key="max_products" :props="props">
             <q-chip dense size="sm" :color="props.row.max_products === 0 ? 'blue-2' : 'orange-2'" :text-color="props.row.max_products === 0 ? 'blue-8' : 'orange-8'">
@@ -64,7 +65,7 @@
           </q-td>
           <q-td key="features_count" :props="props">
             <q-chip dense size="sm" color="green-2" text-color="green-8">
-              {{ countFeatures(props.row) }}/10
+              {{ countFeatures(props.row) }}/{{ featureFields.length }}
             </q-chip>
           </q-td>
           <q-td key="status" :props="props">
@@ -101,9 +102,11 @@ defineProps(["status"]);
 import { ref } from "vue";
 
 import { useAdminStore } from "src/stores/admin-store";
+import { useQuasar } from "quasar";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./packages/FormDrawer.vue";
 const adminStore = useAdminStore();
+const $q = useQuasar();
 const { confirmDelete } = useConfirmDialog();
 
 const filter = ref("");
@@ -116,12 +119,15 @@ const pagination = ref({
 const featureFields = [
   'has_analytics', 'has_loyalty', 'has_reservations', 'has_drivers',
   'has_online_payments', 'has_notifications', 'has_ticket_printing',
-  'has_seo', 'has_theme_customization', 'has_google_business',
+  'has_seo', 'has_theme_customization', 'has_google_business', 'has_facebook',
 ];
 
 const countFeatures = (row) => {
   return featureFields.filter(f => row[f]).length;
 };
+
+const money = (n) =>
+  Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const editItem = (row) => {
   adminStore.editPackage(row);

@@ -32,7 +32,7 @@
                 <div class="text-weight-bold text-body1">{{ pkg.name }}</div>
                 <div class="text-h5 text-primary q-my-sm" style="font-weight: 800">
                   ${{ billingType === 'monthly' ? pkg.monthly_price : pkg.yearly_price }}
-                  <span class="text-caption text-grey-6">/{{ billingType === 'monthly' ? 'mes' : 'ano' }}</span>
+                  <span class="text-caption text-grey-6">/{{ billingType === 'monthly' ? 'mes' : 'año' }}</span>
                 </div>
                 <div class="text-caption text-grey-6">{{ pkg.description }}</div>
               </q-card-section>

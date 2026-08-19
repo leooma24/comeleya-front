@@ -4,13 +4,30 @@
     :class="{ 'dish-card--sold-out': item.is_sold_out }"
     flat
     bordered
-    @click="seeProduct(item)"
+    @click="seeProduct"
   >
     <!-- Imagen con overlay de precio -->
     <div class="dish-card__image-wrapper">
-      <!-- Etiqueta AGOTADO -->
-      <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
+      <!-- Etiquetas -->
+      <!-- Prioridad: agotado > oferta > nuevo. La oferta le gana a NUEVO porque un
+           descuento mueve más que una novedad, y dos sellos encimados no se leen. -->
+      <div v-if="item.is_sold_out" class="dish-card__badge dish-card__badge--sold-out">
         AGOTADO
+      </div>
+      <!-- El descuento en número. Antes solo se tachaba el precio anterior, y tachar
+           obliga a restar de cabeza: casi nadie lo hace. -->
+      <div v-else-if="savings" class="dish-card__badge dish-card__badge--offer">
+        -{{ savings.porcentaje }}%
+      </div>
+      <!-- El platillo que ES la promoción sube al bloque de ofertas con su propio
+           precio, sin descuento que anunciar. Sin sello quedaba ahí como un platillo
+           cualquiera bajo un letrero que dice "Ofertas del día", que se lee como un
+           error del menú. Va antes que NUEVO: es la razón por la que está arriba. -->
+      <div v-else-if="item.is_promo" class="dish-card__badge dish-card__badge--promo">
+        PROMO
+      </div>
+      <div v-else-if="isNew" class="dish-card__badge dish-card__badge--new">
+        NUEVO
       </div>
       <q-img
         v-if="item.photo"
@@ -55,6 +72,13 @@
       <p class="dish-card__description">
         {{ item.description }}
       </p>
+
+      <!-- El ahorro en pesos, que es como la gente decide. La urgencia solo aparece
+           cuando la oferta tiene un límite de verdad: inventársela a una permanente
+           funciona una vez y a la tercera el cliente deja de creerle al menú. -->
+      <p v-if="savings" class="dish-card__savings">
+        Ahorras ${{ savings.ahorro }}<span v-if="urgency"> · {{ urgency }}</span>
+      </p>
     </q-card-section>
 
     <!-- Footer con indicador de acción -->
@@ -66,7 +90,7 @@
         size="sm"
         icon="share"
         color="grey-5"
-        @click.stop="shareProduct(item)"
+        @click.stop="shareProduct"
       >
         <q-tooltip>Compartir</q-tooltip>
       </q-btn>
@@ -99,7 +123,9 @@ defineOptions({
   name: "CardDish",
 });
 
-import { computed } from "vue";
+import { computed, toRef } from "vue";
+import { useDish } from "src/composables/useDish";
+import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
   item: {
@@ -108,32 +134,29 @@ const props = defineProps({
   },
 });
 
-const hasSpecialPrice = computed(() => {
-  return props.item.special_price && (!props.item.special_until || new Date(props.item.special_until) > new Date());
-});
+const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+  toRef(props, "item")
+);
 
-import { useMainStore } from "src/stores/main-store";
-const mainStore = useMainStore();
-
-const seeProduct = (item) => {
-  const productClone = JSON.parse(JSON.stringify(item));
-  mainStore.seeProduct(productClone);
-};
-
-const shareProduct = (item) => {
-  const url = window.location.href;
-  const text = `${item.name} - $${item.price} en ${mainStore.company.name}`;
-
-  if (navigator.share) {
-    navigator.share({ title: item.name, text, url });
-  } else {
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-    window.open(waUrl, "_blank");
-  }
-};
+// Null cuando no hay oferta vigente o cuando el descuento no se puede afirmar (precio
+// mal capturado). El template usa eso para decidir si habla: es más barato callarse
+// que anunciar "-0%".
+const savings = computed(() => offerSavings(props.item));
+const urgency = computed(() => offerUrgency(props.item));
 </script>
 
 <style lang="scss" scoped>
+@keyframes mcCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .dish-card {
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -143,6 +166,11 @@ const shareProduct = (item) => {
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
+  animation: mcCardIn 0.35s ease both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   &:hover {
     transform: translateY(-3px);
@@ -192,12 +220,11 @@ const shareProduct = (item) => {
     overflow: hidden;
   }
 
-  &__sold-out-badge {
+  &__badge {
     position: absolute;
     top: var(--space-sm);
     left: var(--space-sm);
     z-index: 2;
-    background: var(--q-negative, #D32F2F);
     color: #fff;
     font-size: var(--text-xs);
     font-weight: 800;
@@ -205,6 +232,43 @@ const shareProduct = (item) => {
     padding: 4px 10px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
+
+    &--sold-out {
+      background: var(--q-negative, #D32F2F);
+    }
+
+    &--new {
+      background: var(--q-positive, #43A047);
+    }
+
+    // Rojo fijo y NO el color del negocio: el rojo se lee como "oferta" sin pensarlo,
+    // aunque la marca sea verde. Más grande que los otros dos sellos porque es el
+    // único que da una razón para comprar; los otros solo informan.
+    &--offer {
+      background: #e53935;
+      font-size: var(--text-sm);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      padding: 5px 12px;
+      box-shadow: 0 3px 12px rgba(229, 57, 53, 0.45);
+    }
+
+    // Mismo rojo que la oferta -es la misma promesa para el cliente- pero del tamaño
+    // de los sellos informativos: sin porcentaje que gritar, no compite con un -30%
+    // de la tarjeta de al lado.
+    &--promo {
+      background: #e53935;
+    }
+  }
+
+  // El ahorro en pesos, debajo de la descripción: es donde la vista ya está cuando
+  // termina de leer qué es el platillo.
+  &__savings {
+    margin: var(--space-xs) 0 0;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: #e53935;
+    line-height: 1.3;
   }
 
   &__image {
@@ -235,6 +299,10 @@ const shareProduct = (item) => {
     right: var(--space-sm);
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
+
+    :global(body.body--dark) & {
+      background: rgba(20, 20, 24, 0.88);
+    }
     padding: var(--space-xs) 14px;
     border-radius: var(--radius-full);
     box-shadow: var(--shadow-sm);
@@ -257,9 +325,9 @@ const shareProduct = (item) => {
   }
 
   &__title {
-    font-family: var(--font-body);
+    font-family: var(--font-display);
     font-size: var(--text-base);
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.3;
     color: var(--color-text-primary);
     margin: 0 0 var(--space-xs) 0;
@@ -281,8 +349,7 @@ const shareProduct = (item) => {
   }
 
   &__actions {
-    padding: var(--space-sm) var(--space-md) var(--space-md);
-    border-top: 1px solid var(--color-border-subtle);
+    padding: var(--space-xs) var(--space-md) var(--space-md);
   }
 
   &__cta {

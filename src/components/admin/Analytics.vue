@@ -12,8 +12,7 @@
         />
         <q-btn
           outline no-caps color="primary" icon="print" label="Imprimir Ticket" size="sm"
-          @click="printTicket" :loading="printing"
-          v-if="lastOrderId"
+          @click="printTicket"
         />
       </div>
     </div>
@@ -92,8 +91,10 @@
             <q-input
               filled dense rounded
               v-model="ticketOrderId"
-              label="ID o código de orden"
+              label="ID o código de la orden"
+              hint="Ej. el código que aparece en la columna Orden"
               class="q-mb-md"
+              @keyup.enter="generateTicket"
             />
           </q-card-section>
           <q-card-actions class="q-px-lg q-pb-lg">
@@ -120,8 +121,10 @@
               <hr />
               <div class="mc-ticket-preview__totals">
                 <div><span>Subtotal:</span><span>${{ ticketData.subtotal }}</span></div>
-                <div v-if="ticketData.discount"><span>Descuento:</span><span>-${{ ticketData.discount }}</span></div>
-                <div v-if="ticketData.tip"><span>Propina:</span><span>${{ ticketData.tip }}</span></div>
+                <!-- Number(...) porque toFixed(2) da la cadena "0.00", que es truthy -->
+                <div v-if="Number(ticketData.discount) > 0"><span>Descuento:</span><span>-${{ ticketData.discount }}</span></div>
+                <div v-if="Number(ticketData.deliveryCharge) > 0"><span>Envío:</span><span>${{ ticketData.deliveryCharge }}</span></div>
+                <div v-if="Number(ticketData.tip) > 0"><span>Propina:</span><span>${{ ticketData.tip }}</span></div>
                 <div class="mc-ticket-total"><span>TOTAL:</span><span>${{ ticketData.total }}</span></div>
               </div>
               <div class="mc-ticket-preview__footer">
@@ -143,14 +146,13 @@ defineOptions({ name: "AnalyticsComponent" });
 import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { fitPageToContent } from "src/utils/ticketPageSize";
 
 const adminStore = useAdminStore();
 const loading = ref(true);
 const exporting = ref(false);
-const printing = ref(false);
 const rows = ref([]);
 const summary = ref({ total_orders: 0, total_revenue: 0, total_discount: 0, total_tips: 0, avg_ticket: 0 });
-const lastOrderId = ref(null);
 const showTicketDialog = ref(false);
 const ticketOrderId = ref("");
 const generatingTicket = ref(false);
@@ -209,13 +211,33 @@ const printTicket = () => {
 };
 
 const generateTicket = async () => {
-  if (!ticketOrderId.value) return;
+  const key = String(ticketOrderId.value || "").trim();
+  if (!key) return;
   generatingTicket.value = true;
   try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/ticket/${ticketOrderId.value}`);
-    ticketData.value = data.ticket;
+    const { data } = await api.get(`/admin/${adminStore.slug}/orders/${encodeURIComponent(key)}/ticket`);
+    // El backend devuelve { establishment, order, items, totals, payment }.
+    // Lo adaptamos a la forma que espera la vista previa del ticket.
+    ticketData.value = {
+      establishment: data.establishment?.name || adminStore.company?.name || "",
+      date: data.order?.date || "",
+      order_code: data.order?.code || key,
+      items: (data.items || []).map((it) => ({
+        qty: it.quantity,
+        name: it.name,
+        total: Number(it.total || 0).toFixed(2),
+      })),
+      subtotal: Number(data.totals?.subtotal || 0).toFixed(2),
+      discount: Number(data.totals?.discount || 0).toFixed(2),
+      deliveryCharge: Number(data.totals?.delivery_charge || 0).toFixed(2),
+      tip: Number(data.totals?.tip || 0).toFixed(2),
+      total: Number(data.totals?.total || 0).toFixed(2),
+      payment_method: data.payment?.method || "",
+    };
   } catch (e) {
-    adminStore.messageStore.error("Error al generar ticket");
+    adminStore.messageStore.error(
+      e.response?.status === 404 ? "No se encontró esa orden" : "Error al generar ticket"
+    );
   } finally {
     generatingTicket.value = false;
   }
@@ -227,7 +249,9 @@ const printTicketContent = () => {
   printWindow.document.write(`
     <html><head><title>Ticket</title>
     <style>
-      body { font-family: monospace; font-size: 12px; width: 280px; margin: 0 auto; padding: 10px; }
+      /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
+      html, body { margin: 0; padding: 0; }
+      body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; line-height: 1.35; width: 280px; margin: 0 auto; padding: 10px; }
       hr { border: none; border-top: 1px dashed #000; }
       .mc-ticket-item, .mc-ticket-preview__totals > div { display: flex; justify-content: space-between; }
       .mc-ticket-total { font-weight: bold; font-size: 14px; margin-top: 4px; }
@@ -241,6 +265,8 @@ const printTicketContent = () => {
     </body></html>
   `);
   printWindow.document.close();
+  // Acota la hoja al alto del ticket antes de mandar a imprimir.
+  fitPageToContent(printWindow.document);
   printWindow.print();
   printWindow.close();
 };

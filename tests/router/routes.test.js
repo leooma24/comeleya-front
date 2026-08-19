@@ -93,7 +93,15 @@ describe("router routes", () => {
     expect(slug.children).toHaveLength(1);
   });
 
-  it("total route count is correct", () => {
-    expect(routes).toHaveLength(9);
+  // Aqui habia un `expect(routes).toHaveLength(9)`. Se ponia en rojo cada vez que
+  // alguien agregaba una pagina —y asi llevaba tiempo, con 14 rutas— sin avisar de
+  // nada: que existan las que importan ya lo cubre la primera prueba, y que el
+  // catch-all vaya al final lo cubre la de arriba.
+  //
+  // Esta si es una invariante: dos rutas con el mismo path se resuelven a la primera
+  // y la segunda queda inalcanzable, sin error ni aviso en ningun lado.
+  it("no hay dos rutas con el mismo path", () => {
+    const paths = routes.map((r) => r.path);
+    expect(paths).toHaveLength(new Set(paths).size);
   });
 });

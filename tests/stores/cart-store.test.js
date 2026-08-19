@@ -121,6 +121,78 @@ describe("cart-store", () => {
     });
   });
 
+  // Nota del comensal para UN platillo ("sin cebolla"), distinta del comentario
+  // del pedido completo. Aplica a toda la línea: si pidió 3, va para los 3.
+  describe("setNotes", () => {
+    beforeEach(() => {
+      store.addToCart({ name: "Charola Pacifico", totalPrice: 550, qty: 1 });
+      store.addToCart({ name: "Bazuka", totalPrice: 170, qty: 1 });
+    });
+
+    it("guarda la nota en la línea correcta", () => {
+      store.setNotes(0, "Sin cebolla");
+      expect(store.cart[0].notes).toBe("Sin cebolla");
+      expect(store.cart[1].notes).toBeUndefined();
+    });
+
+    it("recorta los espacios de sobra", () => {
+      store.setNotes(0, "   Sin cebolla   ");
+      expect(store.cart[0].notes).toBe("Sin cebolla");
+    });
+
+    // Se borra la llave en vez de guardar "": así el payload no manda ruido.
+    it("una nota vacía borra el campo", () => {
+      store.setNotes(0, "Sin cebolla");
+      store.setNotes(0, "");
+      expect(store.cart[0].notes).toBeUndefined();
+      expect("notes" in store.cart[0]).toBe(false);
+    });
+
+    it("una nota de solo espacios también lo borra", () => {
+      store.setNotes(0, "Sin cebolla");
+      store.setNotes(0, "     ");
+      expect(store.cart[0].notes).toBeUndefined();
+    });
+
+    it("sobrescribe una nota anterior sin acumular", () => {
+      store.setNotes(0, "Sin cebolla");
+      store.setNotes(0, "Término medio");
+      expect(store.cart[0].notes).toBe("Término medio");
+    });
+
+    it("un índice que no existe no revienta", () => {
+      expect(() => store.setNotes(99, "Sin cebolla")).not.toThrow();
+      expect(() => store.setNotes(-1, "Sin cebolla")).not.toThrow();
+    });
+
+    it("tolera null y undefined", () => {
+      store.setNotes(0, "Sin cebolla");
+      store.setNotes(0, null);
+      expect(store.cart[0].notes).toBeUndefined();
+      expect(() => store.setNotes(1, undefined)).not.toThrow();
+    });
+
+    // El lápiz del carrito reabre el platillo en el cajón de extras y lo vuelve a
+    // guardar. La nota tiene que sobrevivir ese viaje de ida y vuelta.
+    it("la nota sobrevive al ciclo de edición", () => {
+      store.setNotes(0, "Sin cebolla");
+
+      const copia = store.editProduct(0); // lápiz
+      expect(copia.notes).toBe("Sin cebolla");
+
+      store.addToCart(copia); // guardar en el cajón
+
+      expect(store.cart[0].notes).toBe("Sin cebolla");
+      expect(store.cart).toHaveLength(2); // reemplazó, no duplicó
+    });
+
+    it("borrar una línea no arrastra la nota de la siguiente", () => {
+      store.setNotes(1, "Extra picante");
+      store.removeProduct(0);
+      expect(store.cart[0].notes).toBe("Extra picante");
+    });
+  });
+
   describe("updateTotal", () => {
     it("calculates total based on totalPrice * qty", () => {
       store.cart = [

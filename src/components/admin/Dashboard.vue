@@ -64,6 +64,53 @@
       </div>
     </q-card>
 
+    <!-- ASESOR DE MENÚ -->
+    <q-card v-if="menuHealth && !loading" flat class="mc-admin-card q-mb-md">
+      <div class="mc-admin-card__header">
+        <div class="mc-admin-card__title">
+          <q-icon name="menu_book" size="24px" color="primary" class="q-mr-sm" />
+          Salud de tu menú
+        </div>
+        <div class="mc-mh-score" :class="`mc-mh-score--${scoreColor(menuHealth.score)}`">
+          {{ menuHealth.score }}<small>/100</small>
+        </div>
+      </div>
+      <div class="q-px-lg q-pb-lg">
+        <q-linear-progress
+          :value="menuHealth.score / 100"
+          :color="scoreColor(menuHealth.score)"
+          size="10px"
+          rounded
+          class="q-mb-md"
+        />
+
+        <div v-if="!menuHealth.findings.length" class="mc-mh-empty">
+          <q-icon name="check_circle" color="positive" size="28px" />
+          <span>¡Tu menú está bien optimizado! Sigue así. 🎉</span>
+        </div>
+
+        <div v-for="f in menuHealth.findings" :key="f.key" class="mc-mh-finding">
+          <q-icon :name="f.icon" size="22px" :color="sevColor(f.severity)" class="mc-mh-finding__icon" />
+          <div class="mc-mh-finding__body">
+            <div class="mc-mh-finding__title">{{ f.title }}</div>
+            <div class="mc-mh-finding__tip">{{ f.tip }}</div>
+            <div v-if="f.dishes.length" class="mc-mh-finding__dishes">
+              <q-chip
+                v-for="d in f.dishes"
+                :key="d.id"
+                dense size="sm" color="grey-3" text-color="grey-8"
+              >{{ d.name }}</q-chip>
+            </div>
+          </div>
+          <q-btn
+            flat dense no-caps color="primary" size="sm" label="Arreglar"
+            class="mc-mh-finding__btn"
+            @click="handleSuggestion(f.action)"
+          />
+        </div>
+      </div>
+    </q-card>
+
     <!-- MAIN DASHBOARD (existing stats) -->
     <q-card flat class="mc-admin-card">
       <div class="mc-admin-card__header">
@@ -73,6 +120,8 @@
         </div>
         <div class="row q-gutter-sm items-center">
           <q-btn unelevated no-caps color="red" icon="local_fire_department" label="Oferta flash" size="sm" @click="showFlashOffer = true" />
+          <q-btn outline no-caps color="primary" icon="point_of_sale" label="Corte de caja" size="sm" @click="openCashCut" />
+          <q-btn outline no-caps color="primary" icon="code" label="Insertar en web" size="sm" @click="showEmbed = true" class="gt-xs" />
           <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir" size="sm" @click="shareMenuWa" class="gt-xs" />
           <q-btn-toggle
             v-model="period"
@@ -100,9 +149,9 @@
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">{{ stats.orders[period] }}</span>
               <span class="mc-stat-card__label">Pedidos</span>
-              <span v-if="stats.comparison && period === 'month'" :class="['mc-stat-card__change', stats.comparison.orders_change >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
-                <q-icon :name="stats.comparison.orders_change >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
-                {{ Math.abs(stats.comparison.orders_change) }}% vs mes anterior
+              <span v-if="ordersChange !== null" :class="['mc-stat-card__change', ordersChange >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
+                <q-icon :name="ordersChange >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(ordersChange) }}% {{ comparisonLabel }}
               </span>
             </div>
           </div>
@@ -113,9 +162,9 @@
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">${{ formatNumber(stats.revenue[period]) }}</span>
               <span class="mc-stat-card__label">Ingresos</span>
-              <span v-if="stats.comparison && period === 'month'" :class="['mc-stat-card__change', stats.comparison.revenue_change >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
-                <q-icon :name="stats.comparison.revenue_change >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
-                {{ Math.abs(stats.comparison.revenue_change) }}% vs mes anterior
+              <span v-if="revenueChange !== null" :class="['mc-stat-card__change', revenueChange >= 0 ? 'mc-stat-card__change--up' : 'mc-stat-card__change--down']">
+                <q-icon :name="revenueChange >= 0 ? 'trending_up' : 'trending_down'" size="12px" />
+                {{ Math.abs(revenueChange) }}% {{ comparisonLabel }}
               </span>
             </div>
           </div>
@@ -134,7 +183,7 @@
             </div>
             <div class="mc-stat-card__content">
               <span class="mc-stat-card__value">{{ stats.reviews.avg || '—' }}</span>
-              <span class="mc-stat-card__label">{{ stats.reviews.total }} resenas</span>
+              <span class="mc-stat-card__label">{{ stats.reviews.total }} reseñas</span>
             </div>
           </div>
         </div>
@@ -153,7 +202,7 @@
 
         <!-- Chart -->
         <div class="mc-chart-section">
-          <h4 class="mc-chart-title">Pedidos - Ultimos 7 dias</h4>
+          <h4 class="mc-chart-title">Pedidos - Últimos 7 días</h4>
           <div class="mc-chart">
             <div class="mc-chart-bar-wrapper" v-for="(day, index) in stats.chart" :key="index">
               <span class="mc-chart-bar__value">{{ day.count }}</span>
@@ -161,6 +210,28 @@
               <span class="mc-chart-bar__label">{{ day.label }}</span>
             </div>
           </div>
+        </div>
+
+        <!-- Peak hours -->
+        <div class="mc-chart-section" v-if="peakTotal > 0">
+          <h4 class="mc-chart-title">Horas pico - últimos 30 días</h4>
+          <div class="mc-hours-chart">
+            <div
+              class="mc-hour-bar-wrapper"
+              v-for="h in stats.peakHours"
+              :key="h.hour"
+              :class="{ 'mc-hour-bar-wrapper--peak': h.hour === peakHour }"
+            >
+              <div class="mc-hour-bar" :style="{ height: getHourHeight(h.count) + '%' }">
+                <q-tooltip v-if="h.count">{{ h.count }} pedidos ~ {{ formatHour(h.hour) }}</q-tooltip>
+              </div>
+              <span v-if="h.hour % 3 === 0" class="mc-hour-bar__label">{{ formatHour(h.hour) }}</span>
+            </div>
+          </div>
+          <p v-if="peakHour !== null" class="mc-hours-hint">
+            <q-icon name="bolt" size="14px" color="amber-8" />
+            Tu hora más fuerte es alrededor de las <strong>{{ formatHour(peakHour) }}</strong>. Ten personal y stock listos.
+          </p>
         </div>
 
         <!-- Top Products -->
@@ -200,12 +271,27 @@
           Tus clientes ({{ stats.customers.length }})
         </div>
         <div class="row q-gutter-sm">
-          <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir menu" size="sm" @click="shareMenuWa" />
+          <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir menú" size="sm" @click="shareMenuWa" />
         </div>
       </div>
 
-      <q-table flat :rows="stats.customers" :columns="customerColumns" row-key="phone"
-        :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por pagina:" class="mc-inner-table"
+      <!-- Filtros por segmento -->
+      <div class="mc-segment-filters">
+        <q-chip
+          v-for="s in ['all', 'nuevo', 'frecuente', 'vip', 'inactivo']"
+          :key="s"
+          clickable
+          :selected="segmentFilter === s"
+          :color="segmentFilter === s ? (s === 'all' ? 'primary' : segmentMeta[s]?.color) : 'grey-3'"
+          :text-color="segmentFilter === s ? 'white' : 'grey-8'"
+          @click="segmentFilter = s"
+        >
+          {{ s === 'all' ? 'Todos' : segmentMeta[s].label }} ({{ segmentCounts[s] }})
+        </q-chip>
+      </div>
+
+      <q-table flat :rows="filteredCustomers" :columns="customerColumns" row-key="phone"
+        :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por página:" class="mc-inner-table"
         :filter="customerSearch"
       >
         <template v-slot:top-left>
@@ -217,6 +303,11 @@
           <q-tr :props="props">
             <q-td key="customer_name" :props="props">
               <span class="text-weight-medium">{{ props.row.customer_name }}</span>
+            </q-td>
+            <q-td key="segment" :props="props">
+              <q-chip dense size="sm" :color="segmentMeta[segmentOf(props.row)].color" text-color="white">
+                {{ segmentMeta[segmentOf(props.row)].label }}
+              </q-chip>
             </q-td>
             <q-td key="phone" :props="props">{{ props.row.phone }}</q-td>
             <q-td key="order_count" :props="props">
@@ -238,6 +329,53 @@
       </q-table>
     </q-card>
 
+    <!-- CORTE DE CAJA DIALOG -->
+    <q-dialog v-model="cashCutDialog">
+      <q-card style="min-width: 340px; max-width: 420px; border-radius: 16px" id="mc-cashcut-card">
+        <q-card-section class="row items-center justify-between">
+          <div class="row items-center q-gutter-sm">
+            <q-icon name="point_of_sale" size="24px" color="primary" />
+            <span style="font-size: 18px; font-weight: 700">Corte de caja</span>
+          </div>
+          <q-btn flat round dense icon="close" v-close-popup />
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <q-input v-model="cashCutDate" type="date" filled dense label="Fecha" @update:model-value="fetchCashCut" />
+        </q-card-section>
+
+        <q-card-section v-if="cashCutLoading" class="text-center">
+          <q-spinner-dots color="primary" size="32px" />
+        </q-card-section>
+
+        <q-card-section v-else-if="cashCut" class="q-pt-none">
+          <div class="mc-cc-summary">
+            <div class="mc-cc-row"><span>Pedidos</span><strong>{{ cashCut.orders }}</strong></div>
+            <div class="mc-cc-row"><span>Ventas</span><strong>${{ formatNumber(cashCut.revenue) }}</strong></div>
+            <div class="mc-cc-row"><span>Propinas</span><strong>${{ formatNumber(cashCut.tips) }}</strong></div>
+            <div class="mc-cc-row"><span>Descuentos</span><strong>-${{ formatNumber(cashCut.discounts) }}</strong></div>
+            <div class="mc-cc-row"><span>Ticket promedio</span><strong>${{ formatNumber(cashCut.avg_ticket) }}</strong></div>
+          </div>
+
+          <div class="mc-cc-methods">
+            <div class="mc-cc-methods__title">Por método de pago</div>
+            <div v-for="m in cashCut.by_method" :key="m.method" class="mc-cc-row">
+              <span>{{ m.method }} ({{ m.count }})</span>
+              <strong>${{ formatNumber(m.total) }}</strong>
+            </div>
+            <div v-if="!cashCut.by_method.length" class="text-caption text-grey-6 q-mt-sm">
+              Sin pedidos en esta fecha.
+            </div>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right" class="q-px-md q-pb-md">
+          <q-btn flat no-caps color="grey-7" icon="print" label="Imprimir" @click="printCashCut" />
+          <q-btn unelevated no-caps color="primary" label="Cerrar" v-close-popup />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <!-- FLASH OFFER DIALOG -->
     <q-dialog v-model="showFlashOffer">
       <q-card style="min-width: 360px; border-radius: 16px">
@@ -258,12 +396,76 @@
           <q-select
             v-model="flashForm.hours"
             :options="[{ label: '2 horas', value: 2 }, { label: '4 horas', value: 4 }, { label: '8 horas', value: 8 }, { label: '24 horas', value: 24 }, { label: '48 horas', value: 48 }]"
-            emit-value map-options filled dense label="Duracion"
+            emit-value map-options filled dense label="Duración"
           />
         </q-card-section>
         <q-card-actions align="right">
           <q-btn flat no-caps label="Cancelar" v-close-popup />
           <q-btn unelevated no-caps color="red" label="Activar oferta" icon="local_fire_department" :loading="flashLoading" @click="activateFlash" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <!-- EMBED / IFRAME DIALOG -->
+    <q-dialog v-model="showEmbed">
+      <q-card style="min-width: 360px; max-width: 520px; border-radius: 16px">
+        <q-card-section>
+          <div class="row items-center q-gutter-sm">
+            <q-icon name="code" size="24px" color="primary" />
+            <span style="font-size: 18px; font-weight: 700">Insertar en tu web</span>
+          </div>
+          <p class="text-caption text-grey-6 q-mt-sm">
+            Copia el código y pégalo como HTML en tu sitio (Wix, WordPress, etc.) para mostrar tu menú dentro de tu página.
+          </p>
+        </q-card-section>
+        <q-card-section class="q-pt-none">
+          <q-input :model-value="embedUrl" readonly filled dense label="Enlace del menú" class="q-mb-md">
+            <template v-slot:append>
+              <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(embedUrl, 'Enlace copiado')">
+                <q-tooltip>Copiar enlace</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+          <q-input :model-value="embedCode" readonly filled type="textarea" autogrow label="Código para insertar (iframe)" />
+
+          <!-- El carrusel es lo contrario del iframe: no mete el menú completo, sino
+               unos cuantos platillos que se actualizan solos donde el dueño ya tiene
+               su propio diseño. -->
+          <q-separator class="q-my-lg" />
+          <div style="font-weight: 700">Solo unos platillos (carrusel)</div>
+          <p class="text-caption text-grey-6 q-mt-xs q-mb-md">
+            Muestra unos cuantos platillos en tu página y se actualizan solos cuando
+            cambies el menú. Cada uno lleva a tu carta, listo para pedir.
+          </p>
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div :class="showcaseTipo === 'categoria' ? 'col-6' : 'col-12'">
+              <q-select
+                v-model="showcaseTipo"
+                :options="showcaseTipos"
+                emit-value map-options filled dense
+                label="Qué mostrar"
+              />
+            </div>
+            <div class="col-6" v-if="showcaseTipo === 'categoria'">
+              <q-select
+                v-model="showcaseCat"
+                :options="showcaseCategorias"
+                emit-value map-options filled dense clearable
+                label="Categoría"
+              />
+            </div>
+          </div>
+          <q-input :model-value="showcaseCode" readonly filled type="textarea" autogrow label="Código del carrusel">
+            <template v-slot:append>
+              <q-btn flat dense round icon="content_copy" color="primary" @click="copyText(showcaseCode, 'Código copiado')">
+                <q-tooltip>Copiar código del carrusel</q-tooltip>
+              </q-btn>
+            </template>
+          </q-input>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat no-caps label="Cerrar" v-close-popup />
+          <q-btn unelevated no-caps color="primary" icon="content_copy" label="Copiar código" @click="copyText(embedCode, 'Código copiado')" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -279,7 +481,7 @@
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <p class="text-grey-6 text-caption q-mb-md">Selecciona los platillos que quieras agregar. Puedes editarlos despues.</p>
+          <p class="text-grey-6 text-caption q-mb-md">Selecciona los platillos que quieras agregar. Puedes editarlos después.</p>
 
           <q-list>
             <q-item v-for="tpl in dishTemplates" :key="tpl.name" tag="label" v-ripple>
@@ -329,19 +531,176 @@ const showFlashOffer = ref(false);
 const flashForm = ref({ dish_id: null, special_price: null, hours: 4 });
 const flashLoading = ref(false);
 
+// --- CORTE DE CAJA ---
+const cashCutDialog = ref(false);
+const cashCutDate = ref(new Date().toISOString().slice(0, 10));
+const cashCut = ref(null);
+const cashCutLoading = ref(false);
+
+const fetchCashCut = async () => {
+  cashCutLoading.value = true;
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/cash-cut`, {
+      params: { date: cashCutDate.value },
+    });
+    cashCut.value = data;
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo cargar el corte de caja");
+  } finally {
+    cashCutLoading.value = false;
+  }
+};
+
+const openCashCut = () => {
+  cashCutDate.value = new Date().toISOString().slice(0, 10);
+  cashCutDialog.value = true;
+  fetchCashCut();
+};
+
+const printCashCut = () => {
+  if (!cashCut.value) return;
+  const c = cashCut.value;
+  const name = adminStore.company?.name || "Restaurante";
+  const money = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const methods = c.by_method.map((m) => `<div class="row"><span>${m.method} (${m.count})</span><b>${money(m.total)}</b></div>`).join("");
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write(`
+    <html><head><title>Corte ${c.date}</title><style>
+      body{font-family:'Consolas','DejaVu Sans Mono','Liberation Mono',Menlo,'Courier New',monospace;font-weight:700;line-height:1.35;max-width:320px;margin:0 auto;padding:12px;color:#000}
+      h2{text-align:center;margin:4px 0}.date{text-align:center;margin-bottom:10px}
+      .row{display:flex;justify-content:space-between;padding:3px 0}
+      .sep{border-top:1px dashed #000;margin:8px 0}.title{font-weight:bold;margin-top:8px}
+    </style></head><body>
+      <h2>${name}</h2>
+      <div class="date">Corte de caja — ${c.date}</div>
+      <div class="sep"></div>
+      <div class="row"><span>Pedidos</span><b>${c.orders}</b></div>
+      <div class="row"><span>Ventas</span><b>${money(c.revenue)}</b></div>
+      <div class="row"><span>Propinas</span><b>${money(c.tips)}</b></div>
+      <div class="row"><span>Descuentos</span><b>-${money(c.discounts)}</b></div>
+      <div class="row"><span>Ticket promedio</span><b>${money(c.avg_ticket)}</b></div>
+      <div class="sep"></div>
+      <div class="title">Por método de pago</div>
+      ${methods || "<div>Sin pedidos</div>"}
+      <div class="sep"></div>
+      <div class="date">${new Date().toLocaleString("es-MX")}</div>
+    </body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+  w.close();
+};
+
+// --- Insertar en web (iframe) ---
+const showEmbed = ref(false);
+const embedUrl = computed(() => `${window.location.origin}/${adminStore.slug}?isExternal=true`);
+const embedCode = computed(
+  () =>
+    `<iframe src="${embedUrl.value}" data-comeleya style="width:100%;border:0;" height="700"></iframe>\n` +
+    `<script src="${window.location.origin}/embed.js" defer><\/script>`
+);
+
+// --- Carrusel de platillos (public/widget.js) ---
+const showcaseTipo = ref("destacados");
+const showcaseCat = ref(null);
+const showcaseTipos = [
+  { label: "Destacados (los que marcas tú)", value: "destacados" },
+  { label: "Los más pedidos", value: "populares" },
+  { label: "Promociones vigentes", value: "ofertas" },
+  { label: "Una categoría", value: "categoria" },
+];
+const showcaseCategorias = computed(() =>
+  (adminStore.categories || []).map((c) => ({ label: c.name, value: c.id }))
+);
+const showcaseCode = computed(() => {
+  const attrs = [
+    "data-comeleya-showcase",
+    `data-slug="${adminStore.slug}"`,
+    `data-tipo="${showcaseTipo.value}"`,
+  ];
+  // La categoría solo viaja cuando aplica: un data-cat suelto confunde a quien lea
+  // el código pegado en su sitio.
+  if (showcaseTipo.value === "categoria" && showcaseCat.value) {
+    attrs.push(`data-cat="${showcaseCat.value}"`);
+  }
+  return (
+    `<div ${attrs.join(" ")}></div>\n` +
+    `<script src="${window.location.origin}/widget.js" defer><\/script>`
+  );
+});
+const copyText = async (text, okMsg) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    adminStore.messageStore.success(okMsg || "Copiado");
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo copiar. Copia el texto manualmente.");
+  }
+};
+
 const stats = ref({
   orders: { today: 0, week: 0, month: 0 },
   revenue: { today: 0, week: 0, month: 0 },
   avgTicket: { today: 0, week: 0, month: 0 },
   topProducts: [],
   chart: [],
+  peakHours: [],
   reviews: null,
 });
+
+// Asesor de menú (auditoría + tips).
+const menuHealth = ref(null);
+const scoreColor = (s) => (s >= 80 ? "positive" : s >= 50 ? "orange" : "negative");
+const sevColor = (sev) =>
+  sev === "high" ? "negative" : sev === "medium" ? "orange-8" : "primary";
 
 const formatNumber = (num) => Number(num || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const getBarHeight = (count) => {
   const max = Math.max(...(stats.value.chart || []).map((d) => d.count), 1);
   return Math.max((count / max) * 100, 4);
+};
+
+// --- COMPARATIVAS por periodo (hoy vs ayer / semana vs semana pasada / mes vs mes pasado) ---
+const comparisonLabel = computed(
+  () => ({ today: "vs ayer", week: "vs semana anterior", month: "vs mes anterior" })[period.value]
+);
+const ordersChange = computed(() => {
+  const c = stats.value.comparison || {};
+  return (period.value === "today" ? c.orders_change_today : period.value === "week" ? c.orders_change_week : c.orders_change) ?? null;
+});
+const revenueChange = computed(() => {
+  const c = stats.value.comparison || {};
+  return (period.value === "today" ? c.revenue_change_today : period.value === "week" ? c.revenue_change_week : c.revenue_change) ?? null;
+});
+
+// --- HORAS PICO (últimos 30 días) ---
+const peakTotal = computed(() => (stats.value.peakHours || []).reduce((s, h) => s + h.count, 0));
+const peakHour = computed(() => {
+  const hrs = stats.value.peakHours || [];
+  if (!hrs.length) return null;
+  const top = hrs.reduce((a, b) => (b.count > a.count ? b : a), hrs[0]);
+  return top.count > 0 ? top.hour : null;
+});
+const getHourHeight = (count) => {
+  const max = Math.max(...(stats.value.peakHours || []).map((h) => h.count), 1);
+  return Math.max((count / max) * 100, 3);
+};
+const formatHour = (h) => {
+  const suffix = h < 12 ? "am" : "pm";
+  const hr = h % 12 === 0 ? 12 : h % 12;
+  return `${hr}${suffix}`;
 };
 
 // --- WIZARD ---
@@ -351,7 +710,7 @@ const wizardSteps = computed(() => {
     {
       key: "logo",
       title: "Sube tu logo",
-      desc: "Tu logo aparecera en tu menu digital y QR",
+      desc: "Tu logo aparecerá en tu menú digital y QR",
       done: !!c.logo,
       btnLabel: "Subir",
       btnIcon: "image",
@@ -360,7 +719,7 @@ const wizardSteps = computed(() => {
     {
       key: "hours",
       title: "Configura tu horario",
-      desc: "Tus clientes sabran cuando estas abierto",
+      desc: "Tus clientes sabrán cuándo estás abierto",
       done: c.hours?.length > 0,
       btnLabel: "Configurar",
       btnIcon: "schedule",
@@ -368,8 +727,8 @@ const wizardSteps = computed(() => {
     },
     {
       key: "categories",
-      title: "Agrega una categoria",
-      desc: "Organiza tu menu por tipo de platillo",
+      title: "Agrega una categoría",
+      desc: "Organiza tu menú por tipo de platillo",
       done: adminStore.categories?.length > 0,
       btnLabel: "Agregar",
       btnIcon: "category",
@@ -378,7 +737,7 @@ const wizardSteps = computed(() => {
     {
       key: "products",
       title: "Agrega tu primer platillo",
-      desc: "Sube fotos, precios y descripcion",
+      desc: "Sube fotos, precios y descripción",
       done: adminStore.products?.length > 0,
       btnLabel: "Agregar",
       btnIcon: "restaurant_menu",
@@ -386,7 +745,7 @@ const wizardSteps = computed(() => {
     },
     {
       key: "address",
-      title: "Agrega tu direccion",
+      title: "Agrega tu dirección",
       desc: "Para que tus clientes te encuentren",
       done: !!c.address,
       btnLabel: "Agregar",
@@ -416,7 +775,7 @@ const optimizations = computed(() => {
       icon: "photo_camera",
       color: "orange",
       title: `${productsNoPhoto} platillos sin foto`,
-      desc: "Los platillos con foto se venden hasta 3x mas",
+      desc: "Los platillos con foto se venden hasta 3x más",
       btnLabel: "Ir a productos",
       action: () => { adminStore.tab = "productos"; },
     });
@@ -441,8 +800,8 @@ const optimizations = computed(() => {
       icon: "confirmation_number",
       color: "purple",
       title: "Sin cupones activos",
-      desc: "Crea un cupon de descuento para atraer nuevos clientes",
-      btnLabel: "Crear cupon",
+      desc: "Crea un cupón de descuento para atraer nuevos clientes",
+      btnLabel: "Crear cupón",
       action: () => { adminStore.tab = "cupones"; },
     });
   }
@@ -464,12 +823,12 @@ const optimizations = computed(() => {
 
 // --- TIPS ---
 const allTips = [
-  { title: "Comparte tu menu en redes sociales", desc: "Comparte el link de tu menu en Instagram, Facebook y WhatsApp para atraer mas clientes.", btnLabel: "Ver menu", action: () => window.open(`/${adminStore.slug}`, "_blank") },
-  { title: "Imprime tu QR en tu local", desc: "Coloca tu codigo QR en mesas, mostrador y entrada para que tus clientes lo escaneen.", btnLabel: "Ver QR", action: () => adminStore.setProfileDrawer(true) },
-  { title: "Responde las resenas de tus clientes", desc: "Los clientes valoran la atencion. Responder resenas aumenta la confianza.", btnLabel: "Ver resenas", action: () => { adminStore.tab = "resenas"; } },
+  { title: "Comparte tu menú en redes sociales", desc: "Comparte el link de tu menú en Instagram, Facebook y WhatsApp para atraer más clientes.", btnLabel: "Ver menú", action: () => window.open(`/${adminStore.slug}`, "_blank") },
+  { title: "Imprime tu QR en tu local", desc: "Coloca tu código QR en mesas, mostrador y entrada para que tus clientes lo escaneen.", btnLabel: "Ver QR", action: () => adminStore.setProfileDrawer(true) },
+  { title: "Responde las reseñas de tus clientes", desc: "Los clientes valoran la atención. Responder reseñas aumenta la confianza.", btnLabel: "Ver reseñas", action: () => { adminStore.tab = "resenas"; } },
   { title: "Actualiza tus precios regularmente", desc: "Mantener precios actualizados evita confusiones y mejora la experiencia.", btnLabel: null, action: null },
-  { title: "Usa fotos reales de tus platillos", desc: "Las fotos reales generan mas confianza que imagenes genericas. Usa buena iluminacion.", btnLabel: null, action: null },
-  { title: "Ofrece promociones en dias lentos", desc: "Si un dia tiene pocos pedidos, crea un cupon especial para ese dia.", btnLabel: "Crear cupon", action: () => { adminStore.tab = "cupones"; } },
+  { title: "Usa fotos reales de tus platillos", desc: "Las fotos reales generan más confianza que imágenes genéricas. Usa buena iluminación.", btnLabel: null, action: null },
+  { title: "Ofrece promociones en días lentos", desc: "Si un día tiene pocos pedidos, crea un cupón especial para ese día.", btnLabel: "Crear cupón", action: () => { adminStore.tab = "cupones"; } },
 ];
 
 const currentTip = computed(() => {
@@ -480,35 +839,35 @@ const currentTip = computed(() => {
 // --- DISH TEMPLATES ---
 const restaurantTemplates = {
   pizza: [
-    { name: "Hawaiana", description: "Jamon y pina con queso mozzarella", price: 129 },
+    { name: "Hawaiana", description: "Jamón y piña con queso mozzarella", price: 129 },
     { name: "Pepperoni", description: "Pepperoni con extra queso", price: 129 },
-    { name: "Mexicana", description: "Chorizo, jalapeno y tomate", price: 139 },
+    { name: "Mexicana", description: "Chorizo, jalapeño y tomate", price: 139 },
     { name: "Margarita", description: "Tomate fresco, albahaca y mozzarella", price: 119 },
   ],
   hamburguesas: [
-    { name: "Clasica", description: "Carne de res, lechuga, tomate, cebolla y queso amarillo", price: 89 },
+    { name: "Clásica", description: "Carne de res, lechuga, tomate, cebolla y queso amarillo", price: 89 },
     { name: "BBQ Bacon", description: "Carne de res, tocino, queso cheddar y salsa BBQ", price: 109 },
     { name: "Doble Queso", description: "Doble carne, doble queso amarillo", price: 119 },
     { name: "Pollo Crispy", description: "Pechuga empanizada, mayonesa y lechuga", price: 99 },
   ],
   tacos: [
-    { name: "Tacos al Pastor", description: "Con pina, cilantro y cebolla", price: 18 },
+    { name: "Tacos al Pastor", description: "Con piña, cilantro y cebolla", price: 18 },
     { name: "Tacos de Bistec", description: "Bistec asado con guacamole", price: 22 },
     { name: "Tacos de Suadero", description: "Suadero con salsa verde", price: 18 },
     { name: "Quesadilla", description: "Tortilla de harina con queso fundido", price: 35 },
   ],
   sushi: [
     { name: "California Roll", description: "Surimi, aguacate y pepino", price: 89 },
-    { name: "Philadelphia Roll", description: "Salmon, queso crema y aguacate", price: 109 },
-    { name: "Tempura Roll", description: "Camaron empanizado con aguacate", price: 119 },
-    { name: "Spicy Tuna", description: "Atun picante con chile serrano", price: 129 },
+    { name: "Philadelphia Roll", description: "Salmón, queso crema y aguacate", price: 109 },
+    { name: "Tempura Roll", description: "Camarón empanizado con aguacate", price: 119 },
+    { name: "Spicy Tuna", description: "Atún picante con chile serrano", price: 129 },
   ],
   general: [
-    { name: "Entrada del dia", description: "Pregunta por nuestra entrada especial", price: 59 },
-    { name: "Plato fuerte", description: "Platillo principal con guarnicion", price: 129 },
+    { name: "Entrada del día", description: "Pregunta por nuestra entrada especial", price: 59 },
+    { name: "Plato fuerte", description: "Platillo principal con guarnición", price: 129 },
     { name: "Ensalada de la casa", description: "Mezcla de lechugas con aderezo", price: 69 },
-    { name: "Postre del dia", description: "Pregunta por nuestro postre", price: 49 },
-    { name: "Agua fresca", description: "Agua de fruta del dia (1L)", price: 35 },
+    { name: "Postre del día", description: "Pregunta por nuestro postre", price: 49 },
+    { name: "Agua fresca", description: "Agua de fruta del día (1L)", price: 35 },
     { name: "Refresco", description: "Coca-Cola, Sprite, Fanta", price: 25 },
   ],
 };
@@ -528,7 +887,7 @@ const addSelectedTemplates = async () => {
 
   const categoryId = adminStore.categories[0]?.id;
   if (!categoryId) {
-    adminStore.messageStore.error("Agrega una categoria primero");
+    adminStore.messageStore.error("Agrega una categoría primero");
     addingTemplates.value = false;
     return;
   }
@@ -559,9 +918,9 @@ const addSelectedTemplates = async () => {
 
 // --- SUGGESTION ACTIONS ---
 const actionLabel = (action) => ({
-  share: "Compartir menu",
+  share: "Compartir menú",
   products: "Ir a productos",
-  coupons: "Crear cupon",
+  coupons: "Crear cupón",
   loyalty: "Ver lealtad",
   customers: "Ver clientes",
 })[action] || "Ver";
@@ -587,26 +946,61 @@ const timeAgo = (d) => {
 
 const customerColumns = [
   { name: "customer_name", label: "Cliente", align: "left", field: "customer_name", sortable: true },
-  { name: "phone", label: "Telefono", align: "left", field: "phone" },
+  { name: "segment", label: "Segmento", align: "left", field: "phone" },
+  { name: "phone", label: "Teléfono", align: "left", field: "phone" },
   { name: "order_count", label: "Pedidos", align: "center", field: "order_count", sortable: true },
   { name: "total_spent", label: "Total gastado", align: "right", field: "total_spent", sortable: true },
-  { name: "last_order", label: "Ultimo pedido", align: "center", field: "last_order_at", sortable: true },
+  { name: "last_order", label: "Último pedido", align: "center", field: "last_order_at", sortable: true },
   { name: "actions", label: "", align: "right" },
 ];
 
+// --- SEGMENTACIÓN DE CLIENTES (comensales) ---
+const segmentFilter = ref("all");
+const daysSince = (d) => Math.floor((Date.now() - new Date(d)) / 86400000);
+const segmentOf = (c) => {
+  if (daysSince(c.last_order_at) > 30) return "inactivo";
+  if (c.order_count >= 6) return "vip";
+  if (c.order_count >= 3) return "frecuente";
+  return "nuevo";
+};
+const segmentMeta = {
+  nuevo: { label: "Nuevo", color: "grey-6" },
+  frecuente: { label: "Frecuente", color: "primary" },
+  vip: { label: "VIP", color: "amber-8" },
+  inactivo: { label: "Inactivo", color: "negative" },
+};
+const segmentCounts = computed(() => {
+  const counts = { all: (stats.value.customers || []).length, nuevo: 0, frecuente: 0, vip: 0, inactivo: 0 };
+  (stats.value.customers || []).forEach((c) => { counts[segmentOf(c)]++; });
+  return counts;
+});
+const filteredCustomers = computed(() => {
+  const list = stats.value.customers || [];
+  if (segmentFilter.value === "all") return list;
+  return list.filter((c) => segmentOf(c) === segmentFilter.value);
+});
+
 const sendWaToCustomer = (customer) => {
   const name = adminStore.company?.name || "nuestro restaurante";
+  const first = (customer.customer_name || "").split(" ")[0] || "";
+  const menu = `https://comeleya.com/${adminStore.slug}`;
+  const seg = segmentOf(customer);
+  let msg;
+  if (seg === "inactivo") {
+    msg = `¡Hola ${first}! Te extrañamos en ${name} 🥺. Vuelve y disfruta tu platillo favorito. Mira el menú aquí: ${menu}`;
+  } else if (seg === "vip") {
+    msg = `¡Hola ${first}! Gracias por ser cliente frecuente de ${name} 🙌. Tenemos algo especial para ti. Menú: ${menu}`;
+  } else {
+    msg = `¡Hola ${first}! Gracias por tu preferencia en ${name}. Mira nuestras novedades: ${menu}`;
+  }
   const phone = customer.phone.replace(/\D/g, "");
   const normalized = phone.length === 10 ? "52" + phone : phone;
-  const msg = encodeURIComponent(
-    `Hola ${customer.customer_name}! Gracias por ser cliente de ${name}. Tenemos promociones especiales para ti. Visita nuestro menu: https://comeleya.com/${adminStore.slug}`
-  );
-  window.open(`https://wa.me/${normalized}?text=${msg}`, "_blank");
+  window.open(`https://wa.me/${normalized}?text=${encodeURIComponent(msg)}`, "_blank");
 };
 
 const shareMenuWa = () => {
   const name = adminStore.company?.name || "mi restaurante";
-  const msg = encodeURIComponent(`Mira el menu de ${name}: https://comeleya.com/${adminStore.slug}`);
+  const msg = encodeURIComponent(`Mira el menú de ${name}: https://comeleya.com/${adminStore.slug}`);
   window.open(`https://wa.me/?text=${msg}`, "_blank");
 };
 
@@ -641,6 +1035,12 @@ onMounted(async () => {
     stats.value = data;
   } catch (e) {
     // Stats not available
+  }
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/menu-health`);
+    menuHealth.value = data;
+  } catch (e) {
+    // Asesor de menú no disponible
   } finally {
     loading.value = false;
   }
@@ -662,6 +1062,54 @@ onMounted(async () => {
   &__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
   &__desc { font-size: 12px; color: var(--color-text-secondary); }
   &__btn { flex-shrink: 0; }
+}
+
+// Asesor de menú
+.mc-mh-score {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  small { font-size: 12px; font-weight: 600; opacity: 0.6; }
+  &--positive { color: var(--q-positive); }
+  &--orange { color: #f57c00; }
+  &--negative { color: var(--q-negative); }
+}
+.mc-mh-empty {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--color-text-primary); padding: 8px 0;
+}
+.mc-mh-finding {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border-subtle);
+  &:first-of-type { border-top: none; }
+  &__icon { flex-shrink: 0; margin-top: 2px; }
+  &__body { flex: 1; min-width: 0; }
+  &__title { font-weight: 600; font-size: 14px; color: var(--color-text-primary); }
+  &__tip { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.45; margin-top: 2px; }
+  &__dishes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  &__btn { flex-shrink: 0; align-self: center; }
+}
+
+// Corte de caja
+.mc-cc-summary { display: flex; flex-direction: column; gap: 2px; }
+.mc-cc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; font-size: 14px; color: var(--color-text-primary);
+  strong { font-variant-numeric: tabular-nums; }
+}
+.mc-cc-methods {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  &__title { font-weight: 700; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
+}
+
+// Segmentación de clientes
+.mc-segment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 var(--space-lg) var(--space-sm);
 }
 
 // Optimization
@@ -697,6 +1145,14 @@ onMounted(async () => {
 .mc-chart-bar { width: 100%; max-width: 48px; background: var(--q-primary); border-radius: var(--radius-sm) var(--radius-sm) 0 0; transition: height 0.5s ease; min-height: 4px; opacity: 0.85; &:hover { opacity: 1; } }
 .mc-chart-bar__value { font-size: var(--text-xs); font-weight: 600; color: var(--color-text-primary); }
 .mc-chart-bar__label { font-size: var(--text-xs); color: var(--color-text-tertiary); white-space: nowrap; text-transform: capitalize; }
+
+// Peak hours
+.mc-hours-chart { display: flex; align-items: flex-end; gap: 3px; height: 130px; padding: var(--space-md) 0 22px; }
+.mc-hour-bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; position: relative; }
+.mc-hour-bar { width: 100%; max-width: 22px; background: var(--q-info); border-radius: 3px 3px 0 0; min-height: 3px; opacity: 0.55; transition: opacity var(--transition-fast); &:hover { opacity: 1; } }
+.mc-hour-bar-wrapper--peak .mc-hour-bar { background: var(--q-primary); opacity: 1; }
+.mc-hour-bar__label { position: absolute; bottom: -20px; font-size: 10px; color: var(--color-text-tertiary); white-space: nowrap; }
+.mc-hours-hint { font-size: var(--text-xs); color: var(--color-text-secondary); margin: var(--space-sm) 0 0; display: flex; align-items: center; gap: 4px; }
 
 // Top products
 .mc-top-products { padding: 0 var(--space-lg) var(--space-lg); }

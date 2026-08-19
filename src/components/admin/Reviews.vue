@@ -3,7 +3,7 @@
     <div class="mc-admin-card__header">
       <div class="mc-admin-card__title">
         <q-icon name="star" size="24px" color="amber-8" class="q-mr-sm" />
-        Resenas
+        Reseñas
       </div>
     </div>
 
@@ -14,7 +14,7 @@
         <div class="row q-mt-xs">
           <q-icon v-for="s in 5" :key="s" :name="s <= Math.round(avgRating) ? 'star' : 'star_border'" size="20px" color="amber-8" />
         </div>
-        <div class="text-caption text-grey-6 q-mt-xs">{{ totalReviews }} {{ totalReviews === 1 ? 'resena' : 'resenas' }}</div>
+        <div class="text-caption text-grey-6 q-mt-xs">{{ totalReviews }} {{ totalReviews === 1 ? 'reseña' : 'reseñas' }}</div>
       </div>
 
       <div class="mc-review-stats__bars">
@@ -37,8 +37,8 @@
     <!-- Empty state -->
     <div v-if="!loading && totalReviews === 0" class="mc-empty-state q-pa-xl">
       <q-icon name="rate_review" size="64px" color="grey-4" />
-      <p class="q-mt-md text-grey-6">Aun no tienes resenas</p>
-      <p class="text-caption text-grey-5">Las resenas apareceran aqui cuando tus clientes las envien.</p>
+      <p class="q-mt-md text-grey-6">Aún no tienes reseñas</p>
+      <p class="text-caption text-grey-5">Las reseñas aparecerán aquí cuando tus clientes las envíen.</p>
     </div>
 
     <!-- Loading -->
@@ -110,7 +110,7 @@ const formatDate = (d) => {
   const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
   if (diffDays === 0) return "Hoy";
   if (diffDays === 1) return "Ayer";
-  if (diffDays < 7) return `Hace ${diffDays} dias`;
+  if (diffDays < 7) return `Hace ${diffDays} días`;
   return date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" });
 };
 

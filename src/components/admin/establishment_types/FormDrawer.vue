@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.establishmentTypeFormDrawer"
+    :form-data="adminStore.establishmentTypesForm"
     :title="(adminStore.establishmentTypesForm.id ? 'Editar' : 'Nuevo') + ' Tipo'"
     save-label="Guardar Tipo"
     :loading="adminStore.loading"

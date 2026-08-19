@@ -45,6 +45,36 @@ describe("order-store", () => {
     });
   });
 
+  // El contador de las pestañas salia con decimales: el backend aliaseaba el conteo
+  // como `total`, que es tambien la columna del DINERO del pedido, casteada como
+  // decimal:2. El conteo llegaba entonces como la cadena "1847.00", y en JavaScript
+  // "1847.00" + 1 no suma: concatena. Marcar un pedido como entregado dejaba el badge
+  // en 1847.001.
+  describe("el contador siempre es un numero, aunque llegue como cadena", () => {
+    it("no concatena al mover un pedido de estado", async () => {
+      store.counts = { 3: "1847.00", 4: "12.00" };
+      store.orders = [{ id: 1, current_status_id: 3 }];
+
+      api.get.mockResolvedValueOnce({ data: { message: "OK" } });
+
+      await store.deliverOrder({ id: 1, current_status_id: 3 }, "test-slug");
+
+      expect(store.counts[3]).toBe(1846);
+      expect(store.counts[4]).toBe(13);
+    });
+
+    it("un contador que no existia arranca en 1 y no en '01'", async () => {
+      store.counts = {};
+      store.orders = [{ id: 1, current_status_id: 3 }];
+
+      api.get.mockResolvedValueOnce({ data: { message: "OK" } });
+
+      await store.deliverOrder({ id: 1, current_status_id: 3 }, "test-slug");
+
+      expect(store.counts[4]).toBe(1);
+    });
+  });
+
   describe("startOrder", () => {
     it("decrements current status count and increments status 2", async () => {
       store.counts = [0, 5, 0, 0, 0, 0];

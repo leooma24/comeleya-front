@@ -135,39 +135,69 @@
         </div>
       </q-toolbar>
 
-      <!-- Establishment tabs -->
+      <!-- Establishment tabs (agrupadas por sección) -->
       <div
-        class="mc-admin-tabs"
+        class="mc-admin-tabs mc-admin-nav"
         v-if="adminStore.user.isAuthenticated && adminStore.isEstablishment"
       >
-        <q-tabs
-          v-model="adminStore.tab"
-          shrink
-          active-color="primary"
-          indicator-color="primary"
-          class="mc-tabs"
-          no-caps
-        >
-          <q-tab name="dashboard" icon="dashboard" label="Dashboard" />
-          <q-tab name="productos" icon="restaurant_menu" label="Productos" />
-          <q-tab name="categorias" icon="category" label="Categorías" />
-          <q-tab name="extras" icon="add_circle_outline" label="Extras" />
-          <q-tab name="cupones" icon="confirmation_number" label="Cupones" />
-          <q-tab name="pedidos_pendientes" icon="receipt_long" label="Pedidos">
-            <q-badge v-if="adminStore.getOrderCounts(1)" color="negative" floating>
-              {{ adminStore.getOrderCounts(1) }}
+        <div class="mc-nav-row">
+         <div class="mc-nav-inner">
+          <!-- Accesos directos (más usados) -->
+          <button
+            v-for="item in leadingTabs"
+            :key="item.name"
+            type="button"
+            :class="['mc-nav-item', { 'mc-nav-item--active': adminStore.tab === item.name }]"
+            @click="adminStore.tab = item.name"
+          >
+            <q-icon :name="item.icon" size="18px" />
+            <span>{{ item.label }}</span>
+            <q-badge v-if="item.badge && item.badge()" color="negative" class="mc-nav-badge">
+              {{ item.badge() }}
             </q-badge>
-          </q-tab>
-          <q-tab name="reservaciones" icon="event_seat" label="Reservaciones" v-if="hasFeature('reservations')" />
-          <q-tab name="repartidores" icon="delivery_dining" label="Repartidores" v-if="hasFeature('delivery')" />
-          <q-tab name="lealtad" icon="loyalty" label="Lealtad" v-if="hasFeature('loyalty')" />
-          <q-tab name="tema" icon="palette" label="Tema" />
-          <q-tab name="seo" icon="travel_explore" label="SEO" />
-          <q-tab name="facebook" icon="fab fa-facebook" label="Facebook" />
-          <q-tab name="resenas" icon="star" label="Resenas" />
-          <q-tab name="analiticas" icon="analytics" label="Analíticas" />
-          <q-tab name="mi_plan" icon="card_membership" label="Mi plan" />
-        </q-tabs>
+          </button>
+
+          <!-- Grupos -->
+          <q-btn-dropdown
+            v-for="group in visibleGroups"
+            :key="group.label"
+            flat
+            no-caps
+            :class="['mc-nav-item', 'mc-nav-item--group', { 'mc-nav-item--active': groupActive(group) }]"
+            :icon="group.icon"
+            :label="group.label"
+          >
+            <q-list style="min-width: 190px">
+              <q-item
+                v-for="item in group.items"
+                :key="item.name"
+                clickable
+                v-close-popup
+                :active="adminStore.tab === item.name"
+                active-class="mc-nav-menu-active"
+                @click="adminStore.tab = item.name"
+              >
+                <q-item-section avatar>
+                  <q-icon :name="item.icon" size="20px" />
+                </q-item-section>
+                <q-item-section>{{ item.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+
+          <!-- Cierre -->
+          <button
+            v-for="item in trailingTabs"
+            :key="item.name"
+            type="button"
+            :class="['mc-nav-item', { 'mc-nav-item--active': adminStore.tab === item.name }]"
+            @click="adminStore.tab = item.name"
+          >
+            <q-icon :name="item.icon" size="18px" />
+            <span>{{ item.label }}</span>
+          </button>
+         </div>
+        </div>
       </div>
 
       <!-- Super admin tabs -->
@@ -187,6 +217,8 @@
           class="mc-tabs"
           no-caps
         >
+          <q-tab name="inicio" icon="insights" label="Inicio" />
+          <q-tab name="salud" icon="health_and_safety" label="Salud" />
           <q-tab name="establecimientos" icon="store" label="Establecimientos" />
           <q-tab name="usuarios" icon="people" label="Usuarios" />
           <q-tab name="categorias_establecimiento" icon="category" label="Categorías" />
@@ -223,6 +255,7 @@
 defineOptions({
   name: "AdminLayout",
 });
+import { computed } from "vue";
 import { useQuasar } from "quasar";
 import ExtraDrawer from "src/components/admin/ExtraDrawer.vue";
 import EstablishmentDrawer from "src/components/admin/EstablishmentDrawer.vue";
@@ -261,9 +294,61 @@ const hasFeature = (featureName) => {
     notifications: 'has_notifications',
     online_payments: 'has_online_payments',
     ticket_printing: 'has_ticket_printing',
+    facebook: 'has_facebook',
   };
   return !!pkg[map[featureName]];
 };
+
+// --- Navegación agrupada del panel del establecimiento ---
+// Solo presentación: cada item sigue cambiando adminStore.tab como antes.
+const leadingTabs = [
+  { name: "dashboard", icon: "dashboard", label: "Dashboard" },
+  { name: "pedidos_pendientes", icon: "receipt_long", label: "Pedidos", badge: () => adminStore.getOrderCounts(1) },
+];
+const trailingTabs = [
+  { name: "mi_plan", icon: "card_membership", label: "Mi plan" },
+];
+const navGroups = [
+  {
+    label: "Catálogo",
+    icon: "restaurant_menu",
+    items: [
+      { name: "productos", icon: "restaurant_menu", label: "Productos" },
+      { name: "categorias", icon: "category", label: "Categorías" },
+      { name: "extras", icon: "add_circle_outline", label: "Extras" },
+      { name: "cupones", icon: "confirmation_number", label: "Cupones" },
+    ],
+  },
+  {
+    label: "Operación",
+    icon: "tune",
+    items: [
+      { name: "reservaciones", icon: "event_seat", label: "Reservaciones", feature: "reservations" },
+      { name: "repartidores", icon: "delivery_dining", label: "Repartidores", feature: "delivery" },
+      { name: "lealtad", icon: "loyalty", label: "Lealtad", feature: "loyalty" },
+    ],
+  },
+  {
+    label: "Crecimiento",
+    icon: "trending_up",
+    items: [
+      { name: "tema", icon: "palette", label: "Tema" },
+      { name: "seo", icon: "travel_explore", label: "SEO" },
+      { name: "facebook", icon: "fab fa-facebook", label: "Facebook" },
+      { name: "resenas", icon: "star", label: "Reseñas" },
+      { name: "analiticas", icon: "analytics", label: "Analíticas" },
+    ],
+  },
+];
+
+// Filtra items premium no disponibles y oculta grupos que quedan vacíos.
+const visibleGroups = computed(() =>
+  navGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || hasFeature(i.feature)) }))
+    .filter((g) => g.items.length)
+);
+
+const groupActive = (group) => group.items.some((i) => i.name === adminStore.tab);
 
 const logout = () => {
   $q.dialog({
@@ -392,5 +477,79 @@ const logout = () => {
       font-weight: 600;
     }
   }
+}
+
+// Navegación agrupada (dueño)
+.mc-admin-nav {
+  padding: 0 var(--space-sm);
+
+  .mc-nav-row {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  // Se centra cuando cabe; cuando desborda, los márgenes colapsan y scrollea desde el inicio.
+  .mc-nav-inner {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    margin: 0 auto;
+  }
+}
+
+.mc-nav-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    color: var(--q-primary);
+  }
+
+  &--active {
+    color: var(--q-primary);
+    font-weight: 600;
+    border-bottom-color: var(--q-primary);
+  }
+
+  // q-btn-dropdown usado como item de nav
+  &--group {
+    padding: 0 4px 0 12px;
+
+    :deep(.q-btn__content) {
+      gap: 6px;
+      text-transform: none;
+      font-weight: inherit;
+      font-size: var(--text-sm);
+    }
+  }
+}
+
+.mc-nav-badge {
+  margin-left: 2px;
+}
+
+.mc-nav-menu-active {
+  color: var(--q-primary);
+  font-weight: 600;
 }
 </style>

@@ -1,6 +1,7 @@
 <template>
   <BaseFormDrawer
     v-model="adminStore.prospectDrawer"
+    :form-data="adminStore.prospectForm"
     :title="(adminStore.prospectForm.id ? 'Editar' : 'Nuevo') + ' Prospecto'"
     save-label="Guardar"
     :loading="adminStore.loading"
@@ -11,7 +12,7 @@
 
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-6">
-        <q-input v-model="adminStore.prospectForm.phone" label="Telefono" filled dense />
+        <q-input v-model="adminStore.prospectForm.phone" label="Teléfono" filled dense />
       </div>
       <div class="col-6">
         <q-input v-model="adminStore.prospectForm.email" label="Email" filled dense />
@@ -42,7 +43,7 @@
 
     <div class="row q-col-gutter-md q-mb-md">
       <div class="col-6">
-        <q-input v-model="adminStore.prospectForm.next_contact_at" label="Proximo contacto" filled dense type="datetime-local" />
+        <q-input v-model="adminStore.prospectForm.next_contact_at" label="Próximo contacto" filled dense type="datetime-local" />
       </div>
       <div class="col-6">
         <q-input v-model.number="adminStore.prospectForm.deal_value" label="Valor mensual ($)" filled dense type="number" prefix="$" />
@@ -65,7 +66,7 @@
     <q-input
       v-if="adminStore.prospectForm.status === 'cerrado_perdido'"
       v-model="adminStore.prospectForm.loss_reason"
-      label="Razon de perdida"
+      label="Razón de pérdida"
       filled dense
       class="q-mb-md"
     />
