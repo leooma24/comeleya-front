@@ -115,33 +115,42 @@
     <q-card flat class="mc-admin-card" :class="{ 'mc-hoy-app': modoApp }">
       <!-- Cabecera de celular: la seccion, la fecha y el periodo como control
            segmentado. Las acciones pasan a dos botones parejos abajo. -->
-      <div class="mc-hhead" v-if="modoApp">
-        <div class="mc-hhead__fila">
-          <div>
-            <div class="mc-hhead__tit">Hoy</div>
-            <div class="mc-hhead__sub">{{ fechaLarga }}</div>
-          </div>
-        </div>
-        <div class="mc-hhead__seg">
+      <mc-encabezado
+        v-if="modoApp"
+        titulo="Hoy"
+        :subtitulo="fechaLarga"
+      >
+        <template v-slot:acciones>
           <button
-            v-for="op in [{ l: 'Hoy', v: 'today' }, { l: 'Semana', v: 'week' }, { l: 'Mes', v: 'month' }]"
-            :key="op.v"
-            type="button"
-            :class="['mc-hhead__op', { 'mc-hhead__op--on': period === op.v }]"
-            @click="period = op.v"
+            type="button" class="mc-head__ic mc-head__ic--fuerte"
+            title="Oferta flash" aria-label="Oferta flash"
+            @click="showFlashOffer = true"
           >
-            {{ op.l }}
+            <mc-icon name="cupon" :size="16" />
           </button>
-        </div>
-        <div class="mc-hhead__acc">
-          <button type="button" class="mc-hhead__btn mc-hhead__btn--rojo" @click="showFlashOffer = true">
-            <mc-icon name="alerta" :size="15" /> Oferta flash
+          <button
+            type="button" class="mc-head__ic"
+            title="Corte de caja" aria-label="Corte de caja"
+            @click="openCashCut"
+          >
+            <mc-icon name="caja" :size="16" />
           </button>
-          <button type="button" class="mc-hhead__btn" @click="openCashCut">
-            <mc-icon name="caja" :size="15" /> Corte de caja
-          </button>
-        </div>
-      </div>
+        </template>
+
+        <template v-slot:pie>
+          <div class="mc-head__seg">
+            <button
+              v-for="op in [{ l: 'Hoy', v: 'today' }, { l: 'Semana', v: 'week' }, { l: 'Mes', v: 'month' }]"
+              :key="op.v"
+              type="button"
+              :class="{ on: period === op.v }"
+              @click="period = op.v"
+            >
+              {{ op.l }}
+            </button>
+          </div>
+        </template>
+      </mc-encabezado>
 
       <div class="mc-admin-card__header" v-if="!modoApp">
         <div class="mc-admin-card__title">
@@ -623,6 +632,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
+import McEncabezado from "./movil/Encabezado.vue";
 
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
@@ -1375,71 +1385,8 @@ onMounted(async () => {
   border-radius: 0 !important;
 }
 
-.mc-hhead {
-  background: var(--color-surface);
-  border-bottom: 0.5px solid var(--color-border);
-  padding: 10px 16px 12px;
-}
-.mc-hhead__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
-.mc-hhead__sub {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  text-transform: capitalize;
-}
-.mc-hhead__seg {
-  display: flex;
-  gap: 3px;
-  margin-top: 11px;
-  background: var(--color-surface-variant);
-  border-radius: 12px;
-  padding: 3px;
-}
-.mc-hhead__op {
-  appearance: none;
-  border: 0;
-  flex: 1;
-  padding: 7px 0;
-  border-radius: 9.5px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 550;
-  color: var(--color-text-secondary);
-  background: none;
-  cursor: pointer;
+/* La banda de arriba la pone ahora Encabezado.vue, igual que en las otras tres. */
 
-  &--on {
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    font-weight: 640;
-    box-shadow: 0 1px 2px rgba(13, 16, 21, 0.08);
-  }
-}
-.mc-hhead__acc { display: flex; gap: 8px; margin-top: 10px; }
-.mc-hhead__btn {
-  appearance: none;
-  flex: 1;
-  border: 0.5px solid var(--color-border);
-  background: var(--color-surface);
-  border-radius: 12px;
-  padding: 10px 0;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  cursor: pointer;
-
-  &--rojo {
-    background: var(--q-primary);
-    border-color: var(--q-primary);
-    color: #fff;
-  }
-}
-
-/* Las cifras: fuera el cuadro de icono, el numero manda. */
 .mc-hoy-app .mc-stats-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr;

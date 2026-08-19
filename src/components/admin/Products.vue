@@ -3,43 +3,48 @@
     <!-- Cabecera de celular: el nombre de la seccion, cuantos platillos hay y las dos
          acciones como iconos. Lo demas -buscador, categoria, PDF- se despliega al
          tocar la lupa, para que la lista empiece arriba. -->
-    <div class="mc-mhead" v-if="modoApp">
-      <div>
-        <div class="mc-mhead__tit">Menú</div>
-        <div class="mc-mhead__sub">
-          {{ adminStore.products.length }} platillos
-          <template v-if="agotadosCuenta">· {{ agotadosCuenta }} agotados</template>
-        </div>
-      </div>
-      <div class="mc-mhead__acc">
-        <button type="button" class="mc-mhead__ic" @click="buscarAbierto = !buscarAbierto">
+    <mc-encabezado
+      v-if="modoApp"
+      titulo="Menú"
+      :subtitulo="adminStore.company?.name || 'Tu negocio'"
+      :cifras="[
+        { v: adminStore.products.length, l: 'Platillos' },
+        { v: agotadosCuenta, l: 'Agotados' },
+        { v: enOfertaCuenta, l: 'En oferta' },
+      ]"
+    >
+      <template v-slot:acciones>
+        <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
           <mc-icon name="buscar" :size="17" />
         </button>
-        <button type="button" class="mc-mhead__ic mc-mhead__ic--on" @click="adminStore.addProduct()">
+        <button type="button" class="mc-head__ic mc-head__ic--fuerte" @click="adminStore.addProduct()">
           <mc-icon name="plus" :size="17" />
         </button>
-      </div>
-    </div>
+      </template>
 
-    <div class="mc-mhead__extra" v-if="modoApp && buscarAbierto">
-      <q-input
-        filled dense rounded debounce="300" v-model="filter"
-        placeholder="Buscar platillo..." autofocus
-      >
-        <template v-slot:prepend><q-icon name="search" size="18px" /></template>
-      </q-input>
-      <q-select
-        v-model="categoryFilter"
-        :options="categoryOptions"
-        filled dense rounded emit-value map-options
-        label="Categoría"
-        class="q-mt-sm"
-      />
-      <q-btn
-        flat no-caps dense color="primary" icon="picture_as_pdf"
-        label="Exportar menú a PDF" class="q-mt-sm full-width" :loading="exportingPdf" @click="exportMenuPdf"
-      />
-    </div>
+      <template v-slot:pie>
+        <div class="mc-head__pie" v-if="buscarAbierto">
+          <q-input
+            filled dense rounded debounce="300" v-model="filter"
+            placeholder="Buscar platillo..." autofocus
+          >
+            <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+          </q-input>
+          <q-select
+            v-model="categoryFilter"
+            :options="categoryOptions"
+            filled dense rounded emit-value map-options
+            label="Categoría"
+            class="q-mt-sm"
+          />
+          <q-btn
+            flat no-caps dense color="white" icon="picture_as_pdf"
+            label="Exportar menú a PDF" class="q-mt-sm full-width" :loading="exportingPdf"
+            @click="exportMenuPdf"
+          />
+        </div>
+      </template>
+    </mc-encabezado>
 
     <div class="mc-admin-card__header" v-if="!modoApp">
       <div class="mc-admin-card__title">
@@ -526,6 +531,7 @@ import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
+import McEncabezado from "./movil/Encabezado.vue";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
 import ProductActions from "./products/ProductActions.vue";
@@ -558,6 +564,12 @@ const buscarAbierto = ref(false);
 const sinCentavos = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });
 const agotadosCuenta = computed(
   () => (adminStore.products || []).filter((x) => x.is_sold_out).length
+);
+
+/** Las ofertas puestas. Sin este numero nadie se entera de que el bloque de ofertas
+    del menu esta vacio, que es lo que pasaba en casi todos los negocios. */
+const enOfertaCuenta = computed(
+  () => (adminStore.products || []).filter((x) => Number(x.special_price) > 0).length
 );
 
 const statusFilters = [
@@ -839,37 +851,7 @@ const removeOffer = async () => {
   border-radius: 0 !important;
 }
 
-.mc-mhead {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px 12px;
-  background: var(--color-surface);
-  border-bottom: 0.5px solid var(--color-border);
-}
-.mc-mhead__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
-.mc-mhead__sub { font-size: 11px; color: var(--color-text-secondary); }
-.mc-mhead__acc { margin-left: auto; display: flex; gap: 7px; }
-.mc-mhead__ic {
-  appearance: none;
-  border: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-  background: var(--color-surface-variant);
-  color: var(--color-text-secondary);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-
-  &--on { background: var(--q-primary); color: #fff; }
-}
-.mc-mhead__extra {
-  padding: 11px 14px;
-  background: var(--color-surface);
-  border-bottom: 0.5px solid var(--color-border);
-}
-
+/* La banda de arriba la pone ahora Encabezado.vue, igual que en las otras tres. */
 
 /* ===== Cabecera y filtros en celular =====
    Los chips se apilaban en tres renglones y empujaban la lista fuera de pantalla, y

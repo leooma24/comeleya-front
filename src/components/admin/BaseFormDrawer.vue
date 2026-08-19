@@ -6,11 +6,26 @@
     side="right"
     :width="drawerWidth"
     class="mc-form-drawer"
+    :class="{ 'mc-form-drawer--app': modoApp }"
     @update:model-value="onDrawerModel"
   >
     <div class="mc-form-drawer__header">
+      <!-- En celular el cajon ocupa la pantalla completa, o sea que es una pantalla,
+           no un panel al lado: se sale con la flecha de regresar, que es donde el
+           pulgar ya la busca. La tacha de escritorio se queda en escritorio. -->
+      <q-btn
+        v-if="modoApp"
+        flat
+        round
+        dense
+        icon="arrow_back_ios_new"
+        size="sm"
+        class="mc-form-drawer__atras"
+        @click="requestClose"
+      />
       <h6>{{ title }}</h6>
       <q-btn
+        v-if="!modoApp"
         flat
         round
         dense
@@ -20,7 +35,7 @@
       />
     </div>
 
-    <q-scroll-area style="height: calc(100% - 130px)">
+    <q-scroll-area :style="{ height: altoLista }">
       <div class="mc-form-drawer__body">
         <slot />
       </div>
@@ -43,6 +58,7 @@
 <script setup>
 import { computed, watch } from "vue";
 import { useQuasar } from "quasar";
+import { useModoApp } from "src/composables/useModoApp";
 
 defineOptions({
   name: "BaseFormDrawer",
@@ -81,8 +97,18 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "save"]);
 
 const $q = useQuasar();
+const { modoApp } = useModoApp();
 const drawerWidth = computed(() =>
   $q.screen.width <= 440 ? $q.screen.width : 440
+);
+
+// El alto que le queda a la lista: la barra de guardar en celular crece con el gesto
+// de inicio del telefono, asi que el descuento no puede ser un numero fijo -con uno
+// fijo el ultimo campo quedaba debajo del boton y no se alcanzaba a tocar-.
+const altoLista = computed(() =>
+  modoApp.value
+    ? "calc(100% - 128px - env(safe-area-inset-bottom, 0px))"
+    : "calc(100% - 130px)"
 );
 
 // "Foto" del formulario al abrir, para detectar cambios al cerrar.

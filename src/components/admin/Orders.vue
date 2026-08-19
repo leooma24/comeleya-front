@@ -1,56 +1,53 @@
 <template>
   <q-card flat class="mc-admin-card" :class="{ 'mc-orders-app': modoApp }">
-    <!-- Cabecera de servicio (solo celular).
-         Oscura a proposito: da contraste contra las tarjetas y separa la pantalla que
-         se usa en hora pico del resto del panel. Las tres cifras son las que se miran
-         de reojo mientras se cocina. -->
-    <div class="mc-svc" v-if="modoApp">
-      <div class="mc-svc__fila">
-        <div>
-          <div class="mc-svc__tit">Pedidos</div>
-          <div class="mc-svc__sub">
-            <span class="mc-svc__vivo" v-if="pollingActive"></span>
-            {{ adminStore.company?.name || 'Tu negocio' }}
-          </div>
+    <!-- La banda de arriba es la misma en las cuatro pantallas del panel: cambia lo
+         que dice, no como se ve. Aqui lleva las tres cifras que se miran de reojo
+         mientras se cocina. -->
+    <mc-encabezado
+      v-if="modoApp"
+      titulo="Pedidos"
+      :subtitulo="adminStore.company?.name || 'Tu negocio'"
+      :vivo="pollingActive"
+      :cifras="[
+        { v: activosAhora, l: 'Activos' },
+        { v: esperaPromedio, l: 'Espera' },
+        { v: ventaVisible, l: 'En curso' },
+      ]"
+    >
+      <template v-slot:acciones>
+        <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
+          <mc-icon name="buscar" :size="17" />
+        </button>
+        <q-btn-dropdown flat round dense class="mc-head__ic" dropdown-icon="none" no-icon-animation>
+          <template v-slot:label><mc-icon name="sonido" :size="17" /></template>
+          <q-list dense>
+            <q-item
+              v-for="t in ALERT_TONES"
+              :key="t.key"
+              clickable
+              v-close-popup
+              @click="chooseTone(t.key)"
+            >
+              <q-item-section>{{ t.label }}</q-item-section>
+              <q-item-section side v-if="alertTone === t.key">
+                <q-icon name="check" size="16px" color="primary" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+      </template>
+
+      <template v-slot:pie>
+        <div class="mc-head__pie" v-if="buscarAbierto">
+          <q-input
+            filled dense rounded debounce="300" v-model="filter"
+            placeholder="Buscar pedido..." autofocus
+          >
+            <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+          </q-input>
         </div>
-        <div class="mc-svc__acc">
-          <q-btn flat round dense class="mc-svc__ic" @click="buscarAbierto = !buscarAbierto">
-            <mc-icon name="buscar" :size="17" />
-          </q-btn>
-          <q-btn-dropdown flat round dense class="mc-svc__ic" dropdown-icon="none" no-icon-animation>
-            <template v-slot:label><mc-icon name="sonido" :size="17" /></template>
-            <q-list dense>
-              <q-item
-                v-for="t in ALERT_TONES"
-                :key="t.key"
-                clickable
-                v-close-popup
-                @click="chooseTone(t.key)"
-              >
-                <q-item-section>{{ t.label }}</q-item-section>
-                <q-item-section side v-if="alertTone === t.key">
-                  <q-icon name="check" size="16px" color="primary" />
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
-        </div>
-      </div>
-      <div class="mc-svc__cifras">
-        <div><div class="v">{{ activosAhora }}</div><div class="l">Activos</div></div>
-        <span class="mc-svc__div"></span>
-        <div><div class="v">{{ esperaPromedio }}</div><div class="l">Espera</div></div>
-        <span class="mc-svc__div"></span>
-        <div><div class="v">{{ ventaVisible }}</div><div class="l">En curso</div></div>
-      </div>
-      <q-input
-        v-if="buscarAbierto"
-        filled dense rounded debounce="300" v-model="filter"
-        placeholder="Buscar pedido..." class="mc-svc__buscar" autofocus
-      >
-        <template v-slot:prepend><q-icon name="search" size="18px" /></template>
-      </q-input>
-    </div>
+      </template>
+    </mc-encabezado>
 
     <div class="mc-admin-card__header" v-if="!modoApp">
       <div class="mc-admin-card__title">
@@ -558,6 +555,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
+import McEncabezado from "./movil/Encabezado.vue";
 import { orderTotals } from "src/utils/orderTotals";
 import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
@@ -1006,39 +1004,8 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
   margin: -16px -16px 0 !important;
 }
 
-.mc-svc {
-  background: linear-gradient(180deg, #1d222c, #14171e);
-  color: #fff;
-  padding: 10px 16px 12px;
-}
-.mc-svc__fila { display: flex; align-items: center; gap: 10px; }
-.mc-svc__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
-.mc-svc__sub {
-  font-size: 11px; color: rgba(255, 255, 255, 0.55);
-  display: flex; align-items: center; gap: 6px;
-}
-.mc-svc__vivo {
-  width: 5px; height: 5px; border-radius: 999px; background: #34d17d;
-  box-shadow: 0 0 0 2.5px rgba(52, 209, 125, 0.2);
-}
-.mc-svc__acc { margin-left: auto; display: flex; gap: 6px; }
-.mc-svc__ic {
-  width: 32px; height: 32px; border-radius: 10px;
-  background: rgba(255, 255, 255, 0.09); color: rgba(255, 255, 255, 0.85);
-
-  .q-btn-dropdown__arrow { display: none; }
-}
-.mc-svc__cifras { display: flex; gap: 16px; margin-top: 10px; align-items: center; }
-.mc-svc__cifras .v {
-  font-size: 17px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-.mc-svc__cifras .l {
-  font-size: 9.5px; color: rgba(255, 255, 255, 0.45); font-weight: 540;
-  letter-spacing: 0.05em; text-transform: uppercase;
-}
-.mc-svc__div { width: 0.5px; align-self: stretch; background: rgba(255, 255, 255, 0.14); }
-.mc-svc__buscar { margin-top: 10px; }
+/* La banda de arriba vive ahora en Encabezado.vue, que la comparten las cuatro
+   pantallas: aqui solo quedaba una copia con otro nombre. */
 
 /* Chips de estado: se desvanecen a la derecha, que es la señal de que hay mas. */
 .mc-chips {

@@ -1,14 +1,20 @@
 <template>
   <section class="mc-form-section">
     <header class="mc-form-section__header">
-      <q-icon
-        v-if="icon"
-        :name="icon"
-        size="18px"
-        class="mc-form-section__icon"
-      />
       <div class="mc-form-section__heading">
-        <h4 class="mc-form-section__title">{{ title }}</h4>
+        <!-- El icono va DENTRO del titulo, no al lado del bloque. Afuera se alineaba
+             contra el alto de titulo + descripcion, asi que con descripcion quedaba
+             flotando arriba del texto y se veia desfasado en las cuatro secciones.
+             Adentro comparte el renglon del titulo y se centra contra el. -->
+        <h4 class="mc-form-section__title">
+          <q-icon
+            v-if="icon"
+            :name="icon"
+            size="16px"
+            class="mc-form-section__icon"
+          />
+          {{ title }}
+        </h4>
         <p
           v-if="description || $slots.description"
           class="mc-form-section__desc"

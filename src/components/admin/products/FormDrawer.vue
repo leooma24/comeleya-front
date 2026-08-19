@@ -3,11 +3,20 @@
     v-model="adminStore.productFormDrawer"
     :form-data="adminStore.productForm"
     :uploading="adminStore.uploadingImage"
-    :title="(adminStore.productForm.id ? 'Editar' : 'Nuevo') + ' Producto'"
-    save-label="Guardar Producto"
+    :title="(adminStore.productForm.id ? 'Editar' : 'Nuevo') + ' platillo'"
+    save-label="Guardar platillo"
     :loading="adminStore.loading || adminStore.uploadingImage"
     @save="adminStore.saveProduct"
   >
+    <!-- Cuatro grupos y no una lista de catorce campos: el formulario contesta cuatro
+         preguntas distintas -como se ve, que es, cuando se vende y a que precio- y
+         puestas en fila no se distinguian entre si. La caja con titulo es la misma que
+         ya usan Configuracion y Tema, no una convencion nueva. -->
+    <admin-section
+      title="Foto del platillo"
+      icon="photo_camera"
+      description="Es lo primero que decide si lo piden."
+    >
     <!-- Product image -->
     <div class="mc-image-upload" v-if="displayedPhoto">
       <q-img
@@ -51,6 +60,7 @@
       icon="camera_alt"
       no-caps
       :label="displayedPhoto ? 'Cambiar imagen' : 'Agregar imagen'"
+      :dense="modoApp"
       class="full-width q-mb-lg mc-upload-btn"
       @click="triggerFileInput"
     />
@@ -81,6 +91,13 @@
       </q-card>
     </q-dialog>
 
+    </admin-section>
+
+    <admin-section
+      title="Lo básico"
+      icon="restaurant_menu"
+      description="Lo que el cliente lee en el menú. La descripción es la que convence."
+    >
     <q-input
       v-model="adminStore.productForm.name"
       label="Nombre del producto"
@@ -120,6 +137,13 @@
       class="q-mb-md"
     />
 
+    </admin-section>
+
+    <admin-section
+      title="Cuándo se vende"
+      icon="schedule"
+      description="Inactivo lo esconde del menú. Los días y las horas lo muestran solo en su momento."
+    >
     <q-select
       v-model="adminStore.productForm.status"
       label="Estado"
@@ -137,10 +161,7 @@
          Y son los que hacen posible la promo como producto: un "Ceviche 3x2"
          marcado solo en lunes aparece y desaparece solo. -->
     <div class="mc-availability">
-      <div class="mc-availability__label">
-        <q-icon name="schedule" size="18px" color="primary" />
-        Disponible solo en
-      </div>
+      <div class="mc-availability__sub">Disponible solo en</div>
       <div class="mc-days">
         <q-btn
           v-for="dia in DIAS_LUNES_PRIMERO"
@@ -175,11 +196,11 @@
         label="Es una promoción"
       />
       <p class="mc-availability__hint">
-        Sube al bloque <strong>Ofertas del día</strong>, hasta arriba del menú, en los
-        días y horas de aquí arriba. No necesita precio anterior: el precio que pusiste
-        ya es el de la promoción.
+        Sube al bloque <strong>Ofertas del día</strong> en los días y horas de aquí
+        arriba. El precio que pusiste ya es el de la promoción.
       </p>
     </div>
+    </admin-section>
 
     <!-- Oferta.
          Estaba SOLO en el menú de los tres puntitos del renglón, y por eso nadie la
@@ -191,11 +212,13 @@
          se guarda por su propio endpoint y el platillo por otro, así que meterla en
          este "Guardar" seria una peticion que puede fallar a la mitad y dejar el
          platillo y su oferta en desacuerdo. -->
-    <div class="mc-offer" v-if="adminStore.productForm.id">
-      <div class="mc-offer__label">
-        <q-icon name="local_offer" size="18px" :color="tieneOferta ? 'red-6' : 'primary'" />
-        Oferta
-      </div>
+    <admin-section
+      v-if="adminStore.productForm.id"
+      title="Oferta"
+      icon="local_offer"
+      description="Rebajar este platillo unos días. Sube al bloque de arriba del menú con su precio anterior tachado."
+    >
+    <div class="mc-offer">
 
       <p class="mc-offer__estado" v-if="tieneOferta">
         Con oferta a <strong>${{ adminStore.productForm.special_price }}</strong>
@@ -226,6 +249,7 @@
         @click="$emit('offer', adminStore.productForm)"
       />
     </div>
+    </admin-section>
   </BaseFormDrawer>
 </template>
 
@@ -238,6 +262,8 @@ import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
+import AdminSection from "../AdminSection.vue";
+import { useModoApp } from "src/composables/useModoApp";
 import { DIAS_LUNES_PRIMERO, aplicaHoy, diasValidos, textoDeDias } from "src/utils/weekDays";
 
 // La oferta la abre el padre (Products.vue), que ya tiene ese diálogo montado.
@@ -245,6 +271,7 @@ defineEmits(["offer"]);
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
+const { modoApp } = useModoApp();
 
 // --- Oferta ---
 const tieneOferta = computed(() => Number(adminStore.productForm.special_price) > 0);
@@ -442,16 +469,14 @@ const onFileSelected = (event) => {
   font-weight: 500;
 }
 
+// Sin marco propio: se lo presta la seccion que lo contiene. Antes tenia el suyo y
+// quedaban dos cajas encimadas con dos titulos que decian lo mismo.
 .mc-availability {
   margin-top: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 
-  &__label {
-    display: flex; align-items: center; gap: 6px;
-    font-weight: 600; font-size: var(--text-sm);
-    color: var(--color-text-primary); margin-bottom: var(--space-sm);
+  &__sub {
+    font-weight: 600; font-size: var(--text-xs);
+    color: var(--color-text-secondary); margin-bottom: var(--space-xs);
   }
   &__hint {
     font-size: var(--text-xs); color: var(--color-text-tertiary);
@@ -459,19 +484,7 @@ const onFileSelected = (event) => {
   }
 }
 
-// Mismo marco que Disponibilidad: son las dos cosas del platillo que no son "el dato",
-// sino cuando y a que precio se vende, y conviene que se lean como hermanas.
 .mc-offer {
-  margin-top: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-
-  &__label {
-    display: flex; align-items: center; gap: 6px;
-    font-weight: 600; font-size: var(--text-sm);
-    color: var(--color-text-primary); margin-bottom: var(--space-sm);
-  }
   &__estado {
     font-size: var(--text-xs); color: var(--color-text-tertiary);
     line-height: 1.5; margin: 0 0 var(--space-sm);
@@ -549,5 +562,27 @@ const onFileSelected = (event) => {
   width: 95vw;
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+
+/* En celular la foto sola se comia la primera pantalla entera: descripcion de tres
+   renglones, imagen 16:9, boton con marco y la guia con su miniatura. El nombre del
+   platillo -que es a lo que uno entra- quedaba abajo del pliegue. */
+@media (max-width: 1023px) {
+  .mc-upload-btn {
+    margin-bottom: var(--space-sm) !important;
+    font-size: 12px;
+  }
+
+  .mc-photo-guide {
+    padding: 8px 10px;
+    /* Era el aire que dejaba el hueco al final de la tarjeta de la foto. */
+    margin-bottom: 0;
+
+    /* La miniatura se ve igual dentro del dialogo, que es donde se lee de verdad. */
+    &__thumb { display: none; }
+    &__text { font-size: 12px; }
+  }
+
+  .mc-availability { margin-top: var(--space-sm); }
 }
 </style>

@@ -1,16 +1,12 @@
 <template>
   <div class="mc-mas">
-    <!-- Cabecera propia: al quitar la barra de ComeleYa en celular, cada pantalla
-         necesita decir dónde está uno. -->
-    <div class="mc-mas__top">
-      <div>
-        <div class="mc-mas__tit">Más</div>
-        <div class="mc-mas__sub">{{ adminStore.company?.name || "Tu negocio" }}</div>
-      </div>
-      <button type="button" class="mc-mas__vermenu" @click="verMenu">
-        <mc-icon name="mundo" :size="15" /> Ver menú
-      </button>
-    </div>
+    <mc-encabezado titulo="Más" :subtitulo="adminStore.company?.name || 'Tu negocio'">
+      <template v-slot:acciones>
+        <button type="button" class="mc-head__pill" @click="verMenu">
+          <mc-icon name="mundo" :size="15" /> Ver menú
+        </button>
+      </template>
+    </mc-encabezado>
 
     <!-- El plan vive aquí y no encabezando Pedidos, que es donde menos importa:
          nadie revisa cuántos días le quedan al plan en plena hora pico. -->
@@ -70,6 +66,7 @@ import { computed } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
 import McIcon from "./movil/McIcon.vue";
+import McEncabezado from "./movil/Encabezado.vue";
 import { useAyuda } from "src/composables/useAyuda";
 
 const adminStore = useAdminStore();
@@ -224,43 +221,13 @@ const salir = () => {
 <style lang="scss" scoped>
 .mc-mas {
   padding: 0 0 4px;
+  /* Al borde, como las otras tres pantallas: la banda oscura no puede quedar flotando
+     con margen blanco a los lados. */
+  margin: -16px -16px 0;
 }
 
-.mc-mas__top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px 12px;
-  background: var(--color-surface);
-  border-bottom: 0.5px solid var(--color-border);
-  margin-bottom: 12px;
-}
-.mc-mas__tit {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
-}
-.mc-mas__sub {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-.mc-mas__vermenu {
-  appearance: none;
-  border: 0;
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 620;
-  color: #fff;
-  background: var(--q-positive);
-  border-radius: 11px;
-  padding: 8px 13px;
-  cursor: pointer;
-}
+/* El aire que antes ponia la cabecera propia de esta pantalla. */
+.mc-mas__plan { margin-top: 12px; }
 
 .mc-mas__plan {
   margin: 0 13px 4px;

@@ -473,6 +473,12 @@ const getStatus = (tab, orderTab) => {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+/* El aire de abajo solo cuando hay algo que anunciar. Sin esto el contenedor vacio
+   dejaba una franja de 24 px arriba de cada pantalla, que en celular se veia como una
+   banda blanca encima de la cabecera oscura. */
+.mc-setup-banners:not(:empty) {
   margin-bottom: var(--space-lg);
 }
 
