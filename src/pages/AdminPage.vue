@@ -224,6 +224,14 @@
         </div>
       </div>
 
+      <!-- Regreso a "Mas". Las secciones que se abren desde ahi -cupones, reseñas,
+           repartidores- no son ninguna de las cuatro pestañas, asi que sin esto el
+           dueño entraba y no tenia como salir mas que adivinando. -->
+      <button v-if="mostrarAtras" type="button" class="mc-atras" @click="volverAMas">
+        <mc-icon name="flecha" :size="16" />
+        Más
+      </button>
+
       <component
         :is="getComponentName(adminStore.tab)"
         :status="getStatus(adminStore.tab, adminStore.orderTab)"
@@ -241,6 +249,7 @@ import { ref, computed, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
+import McIcon from "src/components/admin/movil/McIcon.vue";
 import { useOrderAlerts } from "src/composables/useOrderAlerts";
 
 // Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
@@ -277,6 +286,20 @@ const Reviews = lazy("Reviews");
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
 const enPedidos = computed(() => String(adminStore.tab || "").startsWith("pedidos"));
+
+// Las cuatro pestañas de la barra. Cualquier otra seccion se abrio desde "Mas".
+const TABS_PRINCIPALES = ["dashboard", "productos", "mc_mas"];
+const mostrarAtras = computed(
+  () =>
+    modoApp.value &&
+    adminStore.isEstablishment &&
+    !enPedidos.value &&
+    !TABS_PRINCIPALES.includes(adminStore.tab)
+);
+const volverAMas = () => {
+  adminStore.tab = "mc_mas";
+  window.scrollTo({ top: 0, behavior: "instant" });
+};
 const route = useRoute();
 const isAdmin = ref(false);
 
@@ -412,6 +435,29 @@ const getStatus = (tab, orderTab) => {
 </script>
 
 <style lang="scss" scoped>
+
+/* Regreso a "Más" en las secciones que se abren desde ahí. */
+.mc-atras {
+  appearance: none;
+  border: 0;
+  background: var(--color-surface);
+  box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.06);
+  border-radius: 999px;
+  padding: 7px 14px 7px 10px;
+  margin: 0 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 620;
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  // La flecha del sistema apunta a la derecha; aquí se voltea para "regresar".
+  :deep(svg) { transform: rotate(180deg); }
+}
+
 .mc-admin-page {
   background: var(--color-surface-variant);
   min-height: calc(100vh - 100px);

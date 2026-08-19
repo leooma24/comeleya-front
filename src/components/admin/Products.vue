@@ -401,10 +401,25 @@
     <!-- En celular un paginador con flechas, numeros y selector de filas es de
          escritorio: son seis controles chiquitos donde solo hace falta uno. Se cambia
          por "Ver mas", que es lo que se espera en una lista de telefono. -->
-    <div v-if="modoApp && currentPage < totalPages" class="mc-vermas">
-      <button type="button" class="mc-vermas__btn" @click="currentPage++">
+    <div v-if="modoApp && totalPages > 1" class="mc-vermas">
+      <button
+        v-if="currentPage < totalPages"
+        type="button"
+        class="mc-vermas__btn"
+        @click="currentPage++"
+      >
         Ver más
         <small>{{ Math.min(currentPage * rowsPerPage, filteredProducts.length) }} de {{ filteredProducts.length }}</small>
+      </button>
+      <!-- Sin esta, la lista solo crecia: quien abria de mas se quedaba con una
+           pantalla larguisima y sin forma de volver. -->
+      <button
+        v-if="currentPage > 1"
+        type="button"
+        class="mc-vermas__btn mc-vermas__btn--menos"
+        @click="verMenos"
+      >
+        Ver menos
       </button>
     </div>
 
@@ -519,6 +534,13 @@ import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
+
+/** Regresa la lista a su tamaño inicial y sube: al colapsar, quedarse a media
+ *  pantalla desorienta mas que ayudar. */
+const verMenos = () => {
+  currentPage.value = 1;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 const { confirm, confirmDelete } = useConfirmDialog();
 
 const filter = ref("");
@@ -798,6 +820,14 @@ const removeOffer = async () => {
   gap: 8px;
 
   small { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); }
+
+  &--menos {
+    margin-top: 8px;
+    background: transparent;
+    border-color: transparent;
+    color: var(--color-text-secondary);
+    font-weight: 550;
+  }
 }
 
 
