@@ -240,6 +240,7 @@ const lazy = (name) =>
   defineAsyncComponent(() => import(`../components/admin/${name}.vue`));
 
 const Dashboard = lazy("Dashboard");
+const Mas = lazy("Mas");
 const Products = lazy("Products");
 const Categories = lazy("Categories");
 const Extras = lazy("Extras");
@@ -370,6 +371,9 @@ const getComponentName = (tab) => {
     return MySubscription;
   } else if (tab === "resenas") {
     return Reviews;
+  } else if (tab === "mc_mas") {
+    // Solo existe en celular: es el cajon de todo lo que no se usa en hora pico.
+    return Mas;
   }
   return null;
 };

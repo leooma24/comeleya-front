@@ -138,7 +138,7 @@
       <!-- Establishment tabs (agrupadas por sección) -->
       <div
         class="mc-admin-tabs mc-admin-nav"
-        v-if="adminStore.user.isAuthenticated && adminStore.isEstablishment"
+        v-if="adminStore.user.isAuthenticated && adminStore.isEstablishment && !modoApp"
       >
         <div class="mc-nav-row">
          <div class="mc-nav-inner">
@@ -248,6 +248,12 @@
     </q-page-container>
 
     <help-assistant v-if="adminStore.isEstablishment" />
+
+    <!-- En celular la navegacion se muda abajo: es donde llega el pulgar sin
+         reacomodar la mano, y es la señal que mas dice "aplicacion". -->
+    <admin-tab-bar
+      v-if="modoApp && adminStore.user.isAuthenticated && adminStore.isEstablishment"
+    />
   </q-layout>
 </template>
 
@@ -255,7 +261,7 @@
 defineOptions({
   name: "AdminLayout",
 });
-import { computed } from "vue";
+import { computed, watch, onBeforeUnmount } from "vue";
 import { useQuasar } from "quasar";
 import ExtraDrawer from "src/components/admin/ExtraDrawer.vue";
 import EstablishmentDrawer from "src/components/admin/EstablishmentDrawer.vue";
@@ -264,11 +270,23 @@ import ConfigurationDrawer from "src/components/admin/ConfigurationDrawer.vue";
 import ProfileDrawer from "src/components/admin/ProfileDrawer.vue";
 import AddressDrawer from "src/components/admin/AddressDrawer.vue";
 import HelpAssistant from "src/components/admin/HelpAssistant.vue";
+import AdminTabBar from "src/components/admin/movil/TabBar.vue";
 
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
+const { modoApp } = useModoApp();
+
+// La clase en el body es la que deja que cualquier vista reserve el espacio de la
+// barra de abajo sin tener que saber si existe.
+watch(
+  modoApp,
+  (activo) => document.body.classList.toggle("mc-modo-app", !!activo),
+  { immediate: true }
+);
+onBeforeUnmount(() => document.body.classList.remove("mc-modo-app"));
 
 const openMenu = () => {
   const slug = adminStore.slug;
