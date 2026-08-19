@@ -1,6 +1,58 @@
 <template>
-  <q-card flat class="mc-admin-card">
-    <div class="mc-admin-card__header">
+  <q-card flat class="mc-admin-card" :class="{ 'mc-orders-app': modoApp }">
+    <!-- Cabecera de servicio (solo celular).
+         Oscura a proposito: da contraste contra las tarjetas y separa la pantalla que
+         se usa en hora pico del resto del panel. Las tres cifras son las que se miran
+         de reojo mientras se cocina. -->
+    <div class="mc-svc" v-if="modoApp">
+      <div class="mc-svc__fila">
+        <div>
+          <div class="mc-svc__tit">Pedidos</div>
+          <div class="mc-svc__sub">
+            <span class="mc-svc__vivo" v-if="pollingActive"></span>
+            {{ adminStore.company?.name || 'Tu negocio' }}
+          </div>
+        </div>
+        <div class="mc-svc__acc">
+          <q-btn flat round dense class="mc-svc__ic" @click="buscarAbierto = !buscarAbierto">
+            <mc-icon name="buscar" :size="17" />
+          </q-btn>
+          <q-btn-dropdown flat round dense class="mc-svc__ic" dropdown-icon="none" no-icon-animation>
+            <template v-slot:label><mc-icon name="sonido" :size="17" /></template>
+            <q-list dense>
+              <q-item
+                v-for="t in ALERT_TONES"
+                :key="t.key"
+                clickable
+                v-close-popup
+                @click="chooseTone(t.key)"
+              >
+                <q-item-section>{{ t.label }}</q-item-section>
+                <q-item-section side v-if="alertTone === t.key">
+                  <q-icon name="check" size="16px" color="primary" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+        </div>
+      </div>
+      <div class="mc-svc__cifras">
+        <div><div class="v">{{ activosAhora }}</div><div class="l">Activos</div></div>
+        <span class="mc-svc__div"></span>
+        <div><div class="v">{{ esperaPromedio }}</div><div class="l">Espera</div></div>
+        <span class="mc-svc__div"></span>
+        <div><div class="v">{{ ventaVisible }}</div><div class="l">En curso</div></div>
+      </div>
+      <q-input
+        v-if="buscarAbierto"
+        filled dense rounded debounce="300" v-model="filter"
+        placeholder="Buscar pedido..." class="mc-svc__buscar" autofocus
+      >
+        <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+      </q-input>
+    </div>
+
+    <div class="mc-admin-card__header" v-if="!modoApp">
       <div class="mc-admin-card__title">
         <q-icon name="receipt_long" size="24px" color="primary" class="q-mr-sm" />
         Pedidos
@@ -62,8 +114,23 @@
       </q-btn-dropdown>
     </div>
 
+    <!-- En celular, chips: las pestañas de Quasar se desbordaban y los globos se
+         encimaban con el texto. Mismo v-model, misma navegacion. -->
+    <div class="mc-chips" v-if="modoApp">
+      <button
+        v-for="c in chipsEstado"
+        :key="c.tab"
+        type="button"
+        :class="['mc-chips__c', { 'mc-chips__c--on': adminStore.orderTab === c.tab }]"
+        @click="adminStore.orderTab = c.tab"
+      >
+        {{ c.texto }}
+        <i v-if="c.n">{{ c.n }}</i>
+      </button>
+    </div>
+
     <!-- Order status tabs -->
-    <div class="mc-order-tabs">
+    <div class="mc-order-tabs" v-if="!modoApp">
       <q-tabs
         v-model="adminStore.orderTab"
         no-caps
@@ -138,10 +205,27 @@
     <div class="mc-orders-grid" v-if="filteredOrders.length">
       <div
         class="mc-order-card"
-        :class="{ 'mc-order-card--overdue': isOverdue(order) }"
+        :class="[
+          { 'mc-order-card--overdue': isOverdue(order) },
+          modoApp ? 'mc-order-card--app mc-t-' + nivelTiempo(order) : ''
+        ]"
         v-for="order in paginatedOrders"
         :key="order.id"
       >
+        <!-- Anillo de tiempo (solo celular): el mismo dato que ya se muestra en texto,
+             dicho de una forma que se lee de reojo y a un metro de distancia. -->
+        <div class="mc-anillo" v-if="modoApp" :aria-label="agoText(order.created_at)">
+          <svg width="38" height="38" viewBox="0 0 38 38">
+            <circle cx="19" cy="19" r="16" class="mc-anillo__pista" />
+            <circle
+              cx="19" cy="19" r="16" class="mc-anillo__linea"
+              :stroke-dasharray="100.5"
+              :stroke-dashoffset="100.5 - (100.5 * avanceAnillo(order)) / 100"
+            />
+          </svg>
+          <span class="mc-anillo__t">{{ relojTexto(order) }}</span>
+        </div>
+
         <!-- Order header -->
         <div class="mc-order-card__header">
           <div>
@@ -150,6 +234,7 @@
               {{ helperStore.formatDate(order.created_at, "HH:mm") }}
             </span>
             <span
+              v-if="!modoApp"
               class="mc-order-ago"
               :class="{ 'mc-order-ago--overdue': isOverdue(order) }"
             >
@@ -157,6 +242,7 @@
             </span>
           </div>
           <q-chip
+            v-if="!modoApp"
             dense
             :color="isOverdue(order) ? 'negative' : getStatusColor(order.status.id)"
             text-color="white"
@@ -255,6 +341,21 @@
         </div>
 
         <!-- Actions -->
+        <!-- Dinero y entrega, solo en celular.
+             Hasta hoy la tarjeta no decia cuanto valia el pedido, con que se paga ni a
+             donde va: para saberlo habia que imprimir el ticket. En la comandera eso es
+             justo lo que se necesita antes de aceptar. -->
+        <div class="mc-cobro" v-if="modoApp">
+          <div class="mc-cobro__fila">
+            <span class="mc-cobro__monto">{{ dinero(totalCobrar(order)) }}</span>
+            <span class="mc-cobro__pago" v-if="pagoTexto(order)">{{ pagoTexto(order) }}</span>
+          </div>
+          <div class="mc-cobro__dir" v-if="order.delivery === 'Envio' && order.delivery_address">
+            <mc-icon name="pin" :size="13" />
+            <span>{{ order.delivery_address }}</span>
+          </div>
+        </div>
+
         <div class="mc-order-card__footer">
           <q-btn
             v-if="order.status.id <= 3"
@@ -430,6 +531,9 @@ const props = defineProps({
 
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
+import McIcon from "./movil/McIcon.vue";
+import { orderTotals } from "src/utils/orderTotals";
 import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
@@ -608,6 +712,89 @@ const printOrder = (order) =>
 
 const pollingActive = ref(true);
 const filter = ref("");
+
+// --- Vista de celular -------------------------------------------------------
+// Solo presentacion: los datos y las acciones son los mismos de arriba.
+const { modoApp } = useModoApp();
+const buscarAbierto = ref(false);
+
+const chipsEstado = computed(() => [
+  { tab: "pedidos_pendientes", texto: "Nuevos", n: adminStore.getOrderCounts(1) },
+  { tab: "pedidos_en_preparacion", texto: "Cocina", n: adminStore.getOrderCounts(2) },
+  { tab: "pedidos_enviados", texto: "En camino", n: adminStore.getOrderCounts(3) },
+  { tab: "pedidos_entregados", texto: "Entregados", n: adminStore.getOrderCounts(4) },
+  { tab: "pedidos_cancelados", texto: "Cancelados", n: 0 },
+]);
+
+/** Los que siguen en juego: nuevos, en cocina y en camino. */
+const activosAhora = computed(
+  () => adminStore.getOrderCounts(1) + adminStore.getOrderCounts(2) + adminStore.getOrderCounts(3)
+);
+
+/** Cuanto lleva esperando el mas viejo de los que estan en pantalla. */
+const esperaPromedio = computed(() => {
+  const lista = filteredOrders.value.filter((o) => o?.created_at);
+  if (!lista.length) return "—";
+  const mins = Math.max(...lista.map((o) => minutesSince(o.created_at)));
+  return mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h`;
+});
+
+/** Lo que suman los pedidos de esta pestaña, no la venta del dia. */
+const ventaVisible = computed(() => {
+  const total = filteredOrders.value.reduce((a, o) => a + (parseFloat(o?.total) || 0), 0);
+  return "$" + Math.round(total).toLocaleString("es-MX");
+});
+
+/**
+ * El semaforo del pedido. Verde los primeros 5 minutos, ambar hasta 15, rojo despues.
+ * Es la convencion de las pantallas de cocina, y aqui se dice tres veces -franja,
+ * anillo y numero- para leerse de reojo con las manos ocupadas.
+ */
+const UMBRAL_MEDIO = 5;
+const UMBRAL_TARDE = 15;
+const nivelTiempo = (order) => {
+  const m = minutesSince(order?.created_at);
+  if (m >= UMBRAL_TARDE || isOverdue(order)) return "tarde";
+  if (m >= UMBRAL_MEDIO) return "medio";
+  return "bien";
+};
+/** Cuanto del anillo se ha consumido, tomando 20 minutos como vuelta completa. */
+const avanceAnillo = (order) => {
+  const m = Math.min(minutesSince(order?.created_at), 20);
+  return Math.round((m / 20) * 100);
+};
+const relojTexto = (order) => {
+  // Tres caracteres como maximo: dentro del anillo no cabe mas. Un pedido de ayer
+  // decia "17084h" y se salia del circulo.
+  const m = minutesSince(order?.created_at);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return d < 100 ? `${d}d` : "+99d";
+};
+
+/**
+ * Lo que se cobra de verdad: `order.total` es solo el subtotal de platillos.
+ * Se usa la MISMA cuenta del ticket impreso, no una propia, para que el papel y la
+ * pantalla nunca digan cosas distintas.
+ */
+const totalCobrar = (order) => {
+  try {
+    return orderTotals(order).grandTotal;
+  } catch (e) {
+    return parseFloat(order?.total) || 0;
+  }
+};
+const dinero = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+const ETIQUETAS_PAGO = {
+  cash: "Efectivo",
+  card: "Tarjeta",
+  transfer: "Transferencia",
+  mercadopago: "MercadoPago",
+};
+const pagoTexto = (order) => ETIQUETAS_PAGO[order?.payment_method] || order?.payment_method || "";
 const currentPage = ref(1);
 const rowsPerPage = ref(12);
 const rowsPerPageOptions = [6, 12, 24, 48];
@@ -730,6 +917,151 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+
+/* ===========================================================================
+   Vista de celular. Todo cuelga de .mc-orders-app, asi que nada de esto puede
+   filtrarse al panel de escritorio ni al menu embebido: si la clase no esta,
+   estas reglas no existen.
+   =========================================================================== */
+.mc-orders-app {
+  background: #eef0f4 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  margin: -16px -16px 0 !important;
+}
+
+.mc-svc {
+  background: linear-gradient(180deg, #1d222c, #14171e);
+  color: #fff;
+  padding: 10px 16px 12px;
+}
+.mc-svc__fila { display: flex; align-items: center; gap: 10px; }
+.mc-svc__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
+.mc-svc__sub {
+  font-size: 11px; color: rgba(255, 255, 255, 0.55);
+  display: flex; align-items: center; gap: 6px;
+}
+.mc-svc__vivo {
+  width: 5px; height: 5px; border-radius: 999px; background: #34d17d;
+  box-shadow: 0 0 0 2.5px rgba(52, 209, 125, 0.2);
+}
+.mc-svc__acc { margin-left: auto; display: flex; gap: 6px; }
+.mc-svc__ic {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.09); color: rgba(255, 255, 255, 0.85);
+
+  .q-btn-dropdown__arrow { display: none; }
+}
+.mc-svc__cifras { display: flex; gap: 16px; margin-top: 10px; align-items: center; }
+.mc-svc__cifras .v {
+  font-size: 17px; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.mc-svc__cifras .l {
+  font-size: 9.5px; color: rgba(255, 255, 255, 0.45); font-weight: 540;
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.mc-svc__div { width: 0.5px; align-self: stretch; background: rgba(255, 255, 255, 0.14); }
+.mc-svc__buscar { margin-top: 10px; }
+
+/* Chips de estado: se desvanecen a la derecha, que es la señal de que hay mas. */
+.mc-chips {
+  display: flex; gap: 7px; padding: 10px 16px; overflow-x: auto;
+  background: var(--color-surface); border-bottom: 0.5px solid var(--color-border);
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, #000 90%, transparent);
+
+  &::-webkit-scrollbar { display: none; }
+}
+.mc-chips__c {
+  appearance: none; border: 0; flex: 0 0 auto; cursor: pointer; font-family: inherit;
+  font-size: 11.5px; font-weight: 540; padding: 6px 11px; border-radius: 10px;
+  background: var(--color-surface-variant); color: var(--color-text-secondary);
+  display: flex; align-items: center; gap: 6px;
+
+  i {
+    font-style: normal; font-size: 9.5px; font-weight: 700;
+    background: rgba(13, 16, 21, 0.08); border-radius: 999px; padding: 0.5px 5px;
+  }
+
+  &--on {
+    background: #0d1015; color: #fff; font-weight: 620;
+    i { background: rgba(255, 255, 255, 0.22); }
+  }
+}
+
+/* Una tarjeta por renglon: en 390 px de ancho, dos columnas no dejan leer nada. */
+.mc-orders-app .mc-orders-grid {
+  display: block !important;
+  padding: 0 13px;
+}
+
+.mc-order-card--app {
+  position: relative;
+  margin: 10px 0 0;
+  border-radius: 17px;
+  padding-left: 3px;
+  overflow: hidden;
+
+  /* La franja del semaforo. Es la primera de las tres señales del tiempo. */
+  &::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: #12915a;
+  }
+  &.mc-t-medio::before { background: #b06f00; }
+  &.mc-t-tarde::before { background: var(--q-negative); }
+}
+
+.mc-anillo {
+  position: absolute; top: 12px; right: 13px; width: 38px; height: 38px; z-index: 2;
+}
+.mc-anillo svg { transform: rotate(-90deg); }
+.mc-anillo__pista { fill: none; stroke: var(--color-border-subtle); stroke-width: 3; }
+.mc-anillo__linea {
+  fill: none; stroke: #12915a; stroke-width: 3; stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+.mc-t-medio .mc-anillo__linea { stroke: #b06f00; }
+.mc-t-tarde .mc-anillo__linea { stroke: var(--q-negative); }
+.mc-cobro {
+  padding: 9px 13px 0;
+}
+.mc-cobro__fila { display: flex; align-items: baseline; gap: 9px; }
+.mc-cobro__monto {
+  font-size: 17px; font-weight: 700; letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums; color: var(--color-text-primary);
+}
+.mc-cobro__pago {
+  font-size: 10px; font-weight: 620; color: var(--color-text-secondary);
+  background: var(--color-surface-variant); border-radius: 6px; padding: 2.5px 7px;
+}
+.mc-cobro__dir {
+  display: flex; align-items: flex-start; gap: 6px; margin-top: 5px;
+  font-size: 11.5px; color: var(--color-text-secondary); line-height: 1.35;
+}
+
+.mc-anillo__t {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 10px; font-weight: 700; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; color: var(--color-text-primary);
+}
+
+/* El folio no puede quedar debajo del anillo. */
+.mc-order-card--app .mc-order-card__header { padding-right: 48px; }
+
+/* La accion principal manda: grande y sola. Las de apoyo se hacen a un lado. */
+.mc-order-card--app {
+  .mc-order-actions {
+    display: flex; flex-wrap: wrap; gap: 7px;
+
+    .q-btn { flex: 0 0 auto; }
+    // Preparar, Enviar y Entregar son las que avanzan el pedido.
+    .q-btn--unelevated { flex: 1 1 auto; min-height: 42px; border-radius: 12px; font-weight: 620; }
+  }
+}
+
 .mc-close-day {
   display: flex;
   align-items: center;

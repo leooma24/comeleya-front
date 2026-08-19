@@ -286,6 +286,25 @@ watch(
   (activo) => document.body.classList.toggle("mc-modo-app", !!activo),
   { immediate: true }
 );
+
+// En celular el panel abre en Pedidos, no en Dashboard.
+//
+// El panel se abre cuando entra un pedido, no para revisar estadisticas: aterrizar en
+// el tablero obliga a un toque extra justo cuando hay prisa. Solo se corrige el valor
+// inicial -si el dueño ya navego a otra seccion, no se le mueve el piso.
+let aterrizajeHecho = false;
+watch(
+  () => [modoApp.value, adminStore.isEstablishment],
+  ([app, esNegocio]) => {
+    if (aterrizajeHecho || !app || !esNegocio) return;
+    aterrizajeHecho = true;
+    if (adminStore.tab === "dashboard") {
+      adminStore.tab = "pedidos_pendientes";
+      adminStore.orderTab = "pedidos_pendientes";
+    }
+  },
+  { immediate: true }
+);
 onBeforeUnmount(() => document.body.classList.remove("mc-modo-app"));
 
 const openMenu = () => {
