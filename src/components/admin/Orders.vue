@@ -973,7 +973,7 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  padding: 4px 13px 12px;
+  padding: 4px var(--mc-lado) 12px;
 }
 
 .mc-vermas__btn {
@@ -1027,7 +1027,7 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
   background: #eef0f4 !important;
   box-shadow: none !important;
   border-radius: 0 !important;
-  margin: -16px -16px 0 !important;
+  margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0 !important;
 }
 
 /* La banda de arriba vive ahora en Encabezado.vue, que la comparten las cuatro
@@ -1035,7 +1035,7 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 
 /* Chips de estado: se desvanecen a la derecha, que es la señal de que hay mas. */
 .mc-chips {
-  display: flex; gap: 7px; padding: 10px 16px; overflow-x: auto;
+  display: flex; gap: 7px; padding: 10px var(--mc-lado); overflow-x: auto;
   background: var(--color-surface); border-bottom: 0.5px solid var(--color-border);
   scrollbar-width: none;
   -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent);
@@ -1063,12 +1063,12 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 /* Una tarjeta por renglon: en 390 px de ancho, dos columnas no dejan leer nada. */
 .mc-orders-app .mc-orders-grid {
   display: block !important;
-  padding: 0 13px;
+  padding: 0 var(--mc-lado);
 }
 
 .mc-order-card--app {
   position: relative;
-  margin: 10px 0 0;
+  margin: var(--mc-hueco) 0 0;
   border-radius: 17px;
   padding-left: 3px;
   overflow: hidden;

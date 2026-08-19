@@ -1225,7 +1225,7 @@ onMounted(async () => {
 .mc-cfil__tira {
   display: flex;
   gap: 7px;
-  padding: 4px 13px 2px;
+  padding: 4px var(--mc-lado) 2px;
   overflow-x: auto;
   scrollbar-width: none;
   // El degradado del borde avisa que la tira sigue, sin gastar una flecha.
@@ -1271,7 +1271,7 @@ onMounted(async () => {
 }
 
 .mc-cfil__pie {
-  padding: 7px 16px 0;
+  padding: 7px var(--mc-lado) 0;
   font-size: 11px;
   line-height: 1.35;
   color: var(--color-text-secondary);
@@ -1279,7 +1279,7 @@ onMounted(async () => {
 
 
 /* ===== Clientes en celular ===== */
-.mc-cli { padding: 4px 13px 8px; }
+.mc-cli { padding: 4px var(--mc-lado) 8px; }
 
 .mc-cli__fila {
   display: flex;
@@ -1288,7 +1288,7 @@ onMounted(async () => {
   background: var(--color-surface);
   border-radius: 14px;
   padding: 10px 11px;
-  margin-bottom: 8px;
+  margin-bottom: var(--mc-hueco);
   box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
 }
 
@@ -1381,7 +1381,7 @@ onMounted(async () => {
 .mc-hoy-app {
   background: transparent !important;
   box-shadow: none !important;
-  margin: -16px -16px 0 !important;
+  margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0 !important;
   border-radius: 0 !important;
 }
 
@@ -1391,11 +1391,11 @@ onMounted(async () => {
   display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 9px;
-  padding: 11px 13px 0 !important;
+  padding: 11px var(--mc-lado) 0 !important;
 }
 .mc-hoy-app .mc-stat-card {
   display: block !important;
-  padding: 12px 13px !important;
+  padding: 12px var(--mc-lado) !important;
   border-radius: 15px;
   min-height: 0 !important;
 
@@ -1409,18 +1409,18 @@ onMounted(async () => {
 .mc-hoy-app .mc-suggestion {
   background: var(--color-surface);
   border-radius: 14px;
-  padding: 12px 13px;
+  padding: 12px var(--mc-lado);
   margin-bottom: 8px;
   box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
 }
-.mc-hoy-app .q-px-lg { padding-left: 13px !important; padding-right: 13px !important; }
+.mc-hoy-app .q-px-lg { padding-left: var(--mc-lado) !important; padding-right: var(--mc-lado) !important; }
 
 .mc-dashboard-loading { display: flex; justify-content: center; align-items: center; min-height: 300px; }
 
 // Wizard
 .mc-wizard-steps { display: flex; flex-direction: column; gap: 8px; }
 .mc-wizard-step {
-  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px; padding: 12px var(--mc-lado);
   border: 1px solid var(--color-border-subtle); border-radius: 10px;
   transition: all 0.2s;
   &:hover { background: var(--color-surface-variant); }

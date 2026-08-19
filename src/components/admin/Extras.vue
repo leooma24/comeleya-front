@@ -54,6 +54,7 @@
         </div>
         <div class="mc-lista__der" @click.stop>
           <row-actions-menu
+            :titulo="g.name"
             :actions="[
               { key: 'edit', icon: 'edit', color: 'grey-7', label: 'Editar', handler: () => editGroup(g) },
               { key: 'delete', icon: 'delete_outline', color: 'negative', label: 'Eliminar', handler: () => deleteGroup(g) },

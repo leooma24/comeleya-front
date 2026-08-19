@@ -1123,7 +1123,7 @@ h6 {
   // La misma banda oscura de las cuatro pantallas: al abrir un formulario se sigue
   // viendo la misma aplicacion, y no una pantalla blanca que llego de otro lado.
   .mc-form-drawer__header {
-    padding: 8px 12px 10px;
+    padding: 8px var(--mc-lado, 14px) 10px;
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
     gap: 2px;
     justify-content: flex-start;
@@ -1143,7 +1143,7 @@ h6 {
   }
 
   .mc-form-drawer__body {
-    padding: 12px;
+    padding: var(--mc-lado, 14px);
     // Con la barra de guardar encima, el ultimo grupo necesita a donde subirse.
     padding-bottom: 24px;
     display: flex;
@@ -1167,7 +1167,7 @@ h6 {
   .q-field--with-bottom:not(.q-field--error) { padding-bottom: 4px; }
 
   .mc-form-drawer__save {
-    padding: 10px 12px;
+    padding: 10px var(--mc-lado, 14px);
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 
     .q-btn {
@@ -1175,6 +1175,38 @@ h6 {
       padding: 9px 0;
       font-size: 14px;
     }
+  }
+}
+
+
+// ============================================
+// EL RESPIRO DE LA APLICACION EN CELULAR
+// ============================================
+//
+// Un solo margen lateral para todo. Antes andaba entre 13, 14, 16 y 24 px segun la
+// pantalla, y peor: el titulo de la banda caia a 16 mientras las filas de abajo caian
+// a 13, asi que nada quedaba en la misma columna. Esa clase de desalineacion no se
+// nota como "esta a tres pixeles", se nota como "se ve mal hecho".
+//
+// Los bloques que se pegan al borde cancelan el respiro del contenedor con el MISMO
+// token, no con un numero suelto: asi cambiar el respiro es cambiar una linea.
+body.mc-modo-app {
+  // El borde de la tarjeta que envuelve cada pantalla corria su contenido un pixel:
+  // la banda arrancaba en 1 y su titulo caia en 15 mientras las filas caian en 14.
+  .mc-admin-card {
+    border: 0;
+  }
+
+  --mc-lado: 14px;      // margen lateral de todo lo de primer nivel
+  --mc-hueco: 8px;      // entre dos filas de una misma lista
+  --mc-salto: 14px;     // entre dos bloques distintos
+
+  // El respiro del contenedor es el token. Abajo NO se toca: lo pone la barra de
+  // pestañas, que tiene que dejar libre su alto mas el gesto de inicio.
+  .mc-admin-content {
+    padding-left: var(--mc-lado);
+    padding-right: var(--mc-lado);
+    padding-top: var(--mc-lado);
   }
 }
 
@@ -1192,7 +1224,7 @@ h6 {
 .mc-head {
   background: #0d1015;
   color: #fff;
-  padding: 12px 16px 13px;
+  padding: 12px var(--mc-lado, 14px) 13px;
   padding-top: calc(12px + env(safe-area-inset-top, 0px));
 
   &__fila {
@@ -1378,7 +1410,7 @@ h6 {
 // La tabla de escritorio no se toca: esto solo aparece abajo de 1024 px.
 
 .mc-lista {
-  padding: 10px 13px 6px;
+  padding: 10px var(--mc-lado) 6px;
 
   &__fila {
     display: flex;
@@ -1387,7 +1419,7 @@ h6 {
     background: var(--color-surface);
     border-radius: 14px;
     padding: 11px;
-    margin-bottom: 8px;
+    margin-bottom: var(--mc-hueco);
     box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
   }
 
@@ -1463,7 +1495,7 @@ h6 {
 // Las secciones que se abren desde "Mas" tambien se pegan al borde: la banda oscura
 // no puede quedar con margen blanco a los lados mientras el resto no lo tiene.
 .mc-seccion-app {
-  margin: -16px -16px 0 !important;
+  margin: calc(-1 * var(--mc-lado, 14px)) calc(-1 * var(--mc-lado, 14px)) 0 !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -1483,11 +1515,11 @@ body.mc-modo-app {
   // Solo a los lados: el tiron hacia arriba es para cuando la banda es lo primero de
   // la pantalla. Con un aviso encima, ese tiron le comia el titulo.
   .mc-admin-content > .mc-head {
-    margin: 0 -16px;
+    margin: 0 calc(-1 * var(--mc-lado));
   }
 
   .mc-admin-content > .mc-head:first-child {
-    margin-top: -16px;
+    margin-top: calc(-1 * var(--mc-lado));
   }
 
   // La tarjeta de la seccion pierde su marco: sobre el fondo gris de la aplicacion,
@@ -1498,11 +1530,11 @@ body.mc-modo-app {
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-    margin: 0 -16px;
+    margin: 0 calc(-1 * var(--mc-lado));
   }
 
   .mc-admin-content > .mc-head ~ * .mc-admin-card__header {
-    padding: 11px 13px;
+    padding: 11px var(--mc-lado);
     border-bottom: 0;
     gap: 8px;
     flex-wrap: wrap;
@@ -1534,6 +1566,34 @@ body.mc-modo-app {
     display: none;
   }
 
+  // Cada pantalla de formulario nombro a su contenedor a su manera -sections, panel,
+  // body- y todas le pusieron el respiro de escritorio. En celular eso deja su
+  // contenido en una columna distinta a la de la banda de arriba, que es la clase de
+  // desalineacion que se lee como descuido aunque nadie sepa decir por que.
+  .mc-theme-sections,
+  .mc-loyalty-sections,
+  .mc-seo-sections,
+  .mc-fb-sections,
+  .mc-fb-body,
+  .mc-plan-body,
+  .mc-crm-body {
+    padding-left: var(--mc-lado) !important;
+    padding-right: var(--mc-lado) !important;
+  }
+
+  // Los rellenos de Quasar valen 16 y 24 px. En escritorio estan bien; aqui hacen que
+  // el contenido de Tema, SEO o Mi plan caiga en otra columna que la banda de arriba.
+  .mc-admin-content > .mc-head ~ * {
+    .q-card-section,
+    .q-pa-md,
+    .q-pa-lg,
+    .q-px-md,
+    .q-px-lg {
+      padding-left: var(--mc-lado) !important;
+      padding-right: var(--mc-lado) !important;
+    }
+  }
+
   // El buscador de esas cabeceras traia un ancho minimo pensado para escritorio y
   // empujaba al boton de agregar fuera de la pantalla.
   .mc-admin-content > .mc-head ~ * .mc-admin-search {
@@ -1545,7 +1605,7 @@ body.mc-modo-app {
   // sueltas y pasan a ser una franja de sistema pegada al borde, como la que usan las
   // aplicaciones para avisar de una prueba por vencer. Siguen diciendo lo mismo.
   .mc-setup-banners {
-    margin: -16px -16px 0;
+    margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0;
   }
 
   // Pegada a la banda: la franja de aviso y la cabecera son el mismo bloque de arriba.
@@ -1557,7 +1617,7 @@ body.mc-modo-app {
     border-radius: 0;
     border-left: 0;
     border-bottom: 0.5px solid var(--color-border);
-    padding: 9px 14px;
+    padding: 9px var(--mc-lado);
     gap: 10px;
 
     &__icon {
@@ -1576,4 +1636,130 @@ body.mc-modo-app {
 
     .q-btn { font-size: 11px; }
   }
+}
+
+// ============================================
+// HOJA DE ACCIONES (RowActionsMenu.vue)
+// ============================================
+//
+// El menu de los tres puntitos en celular. Era un desplegable anclado al boton: se
+// abria encima de la lista, tapaba las filas de al lado y sus renglones tenian el alto
+// de un menu de escritorio, o sea objetivos de 32 px para un dedo.
+//
+// Va abajo -donde alcanza el pulgar sin cambiar la mano-, agrupado en tarjetas, con
+// lo que borra separado del resto y su propio "Cancelar", que es como se resuelve
+// esto en el telefono desde hace anos y por lo tanto lo que la gente ya sabe usar.
+
+.mc-acciones__abrir {
+  appearance: none;
+  border: 0;
+  background: none;
+  width: 30px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  transform: rotate(90deg);
+}
+
+.mc-acciones {
+  .q-dialog__inner--bottom {
+    padding: 0;
+  }
+
+  .q-dialog__inner > div {
+    box-shadow: none;
+    background: transparent;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+.mc-acciones__hoja {
+  padding: 0 8px calc(8px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-acciones__grupo {
+  border-radius: 14px;
+  overflow: hidden;
+  // Translucido como las hojas del sistema: deja ver que la lista sigue ahi abajo.
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+.mc-acciones__titulo {
+  padding: 11px 16px 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  border-bottom: 0.5px solid var(--color-border-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-acciones__item {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  background: none;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 480;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  // 50 px de alto: el minimo comodo para un dedo, y el que usan las hojas del sistema.
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  position: relative;
+
+  // El icono a la derecha, como en las hojas del sistema: la vista baja por los
+  // verbos, que es lo que se esta eligiendo, no por los dibujos.
+  .q-icon { color: var(--color-text-tertiary); flex-shrink: 0; }
+
+  & + &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 0;
+    height: 0.5px;
+    background: var(--color-border-subtle);
+  }
+
+  &:active { background: rgba(13, 16, 21, 0.06); }
+
+  &--rojo {
+    color: var(--q-negative);
+    font-weight: 540;
+    .q-icon { color: var(--q-negative); }
+  }
+}
+
+.mc-acciones__cancelar {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: saturate(180%) blur(20px);
+  padding: 15px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 660;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  &:active { background: rgba(13, 16, 21, 0.06); }
 }

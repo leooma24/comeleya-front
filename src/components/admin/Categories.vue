@@ -51,6 +51,7 @@
           </div>
           <div class="mc-lista__der">
             <row-actions-menu
+              :titulo="element.name"
               :actions="[
                 { key: 'edit', icon: 'edit', color: 'grey-7', label: 'Editar', handler: () => editCategory(element) },
                 { key: 'delete', icon: 'delete_outline', color: 'negative', label: 'Eliminar', handler: () => deleteCategory(element) },

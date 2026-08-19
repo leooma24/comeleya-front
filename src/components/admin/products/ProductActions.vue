@@ -1,51 +1,16 @@
 <template>
-  <!-- Escritorio: iconos en línea (como siempre) -->
-  <template v-if="$q.screen.gt.sm">
-    <q-btn
-      v-for="a in actions"
-      :key="a.key"
-      flat size="sm" dense round
-      :icon="a.icon"
-      :color="a.color"
-      @click="a.handler"
-    >
-      <q-tooltip>{{ a.label }}</q-tooltip>
-    </q-btn>
-  </template>
-
-  <!-- Móvil / tablet: un solo botón que despliega el menú de acciones -->
-  <q-btn
-    v-else
-    flat dense round
-    icon="more_vert"
-    color="grey-8"
-    @click.stop
-  >
-    <q-menu anchor="bottom right" self="top right" auto-close>
-      <q-list style="min-width: 200px">
-        <q-item
-          v-for="a in actions"
-          :key="a.key"
-          clickable
-          @click="a.handler"
-        >
-          <q-item-section avatar>
-            <q-icon :name="a.icon" :color="a.color" />
-          </q-item-section>
-          <q-item-section>{{ a.label }}</q-item-section>
-        </q-item>
-      </q-list>
-    </q-menu>
-  </q-btn>
+  <!-- Este componente ya solo arma la lista de acciones del platillo; dibujarlas es
+       trabajo de RowActionsMenu, que es el mismo que usan Categorias y Extras. Antes
+       tenia su propia copia del menu, y por eso en celular se veia distinto al de las
+       otras dos pantallas. -->
+  <row-actions-menu :actions="actions" :titulo="product.name" />
 </template>
 
 <script setup>
 defineOptions({ name: "ProductActions" });
 
 import { computed } from "vue";
-import { useQuasar } from "quasar";
-
-const $q = useQuasar();
+import RowActionsMenu from "../RowActionsMenu.vue";
 
 const props = defineProps({
   product: { type: Object, required: true },

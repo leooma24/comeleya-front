@@ -223,14 +223,14 @@ const salir = () => {
   padding: 0 0 4px;
   /* Al borde, como las otras tres pantallas: la banda oscura no puede quedar flotando
      con margen blanco a los lados. */
-  margin: -16px -16px 0;
+  margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0;
 }
 
 /* El aire que antes ponia la cabecera propia de esta pantalla. */
 .mc-mas__plan { margin-top: 12px; }
 
 .mc-mas__plan {
-  margin: 0 13px 4px;
+  margin: 0 var(--mc-lado) 4px;
   border-radius: 16px;
   padding: 14px;
   color: #fff;
@@ -267,11 +267,11 @@ const salir = () => {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-text-tertiary);
-  padding: 16px 18px 7px;
+  padding: 16px calc(var(--mc-lado) + 4px) 7px;
 }
 
 .mc-mas__lista {
-  margin: 0 13px;
+  margin: 0 var(--mc-lado);
   background: var(--color-surface);
   border-radius: 15px;
   overflow: hidden;
@@ -341,7 +341,7 @@ const salir = () => {
 }
 
 .mc-mas__pie {
-  padding: 22px 13px 8px;
+  padding: 22px var(--mc-lado) 8px;
 }
 
 .mc-mas__salir {

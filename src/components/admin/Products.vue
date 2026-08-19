@@ -824,7 +824,7 @@ const removeOffer = async () => {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  padding: 4px 13px 12px;
+  padding: 4px var(--mc-lado) 12px;
 }
 
 .mc-vermas__btn {
@@ -873,7 +873,7 @@ const removeOffer = async () => {
 .mc-menu-app-card {
   background: transparent !important;
   box-shadow: none !important;
-  margin: -16px -16px 0 !important;
+  margin: calc(-1 * var(--mc-lado)) calc(-1 * var(--mc-lado)) 0 !important;
   border-radius: 0 !important;
 }
 
@@ -907,7 +907,7 @@ body.mc-modo-app {
 }
 
 /* ===== Lista de celular: la tabla de 8 columnas no cabe en 390 px ===== */
-.mc-menu-app { padding: 8px 12px 4px; }
+.mc-menu-app { padding: 8px var(--mc-lado) 4px; }
 
 .mc-mrow {
   display: flex;
