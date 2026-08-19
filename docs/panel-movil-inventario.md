@@ -59,8 +59,11 @@ ticket impreso, para que el papel y la pantalla no digan cosas distintas.
 - [x] Gráfica de los últimos 7 días
 - [x] Salud del menú y sus avisos
 - [x] Oportunidades de mejora, cada una con su acción
-- [ ] Lista de clientes con segmentación — sigue visible, pendiente de rediseño
-- [ ] WhatsApp por cliente — sigue visible, pendiente de rediseño
+- [x] Lista de clientes con segmentación — en filas, con el filtro en tira que se
+      desliza y sin los segmentos vacíos
+- [x] WhatsApp por cliente
+- [x] El buscador de clientes **no filtraba nada en celular**: la tabla lo aplicaba por
+      dentro con `:filter` y la lista nueva no pasa por la tabla
 - [x] Botones de oferta flash, corte de caja, insertar en web y compartir
 - [x] Selector de periodo: hoy / semana / mes
 
@@ -81,6 +84,31 @@ ticket impreso, para que el papel y la pantalla no digan cosas distintas.
 
 ---
 
+## Categorías (`Categories.vue`)
+
+- [x] Lista con nombre y estado
+- [x] Buscador
+- [x] Editar y eliminar
+- [ ] Arrastrar para reordenar y paginador — **solo escritorio**
+
+## Extras (`Extras.vue`)
+
+- [x] Lista de grupos con su estado
+- [x] Cuántas opciones tiene cada grupo — dato nuevo: un grupo sin opciones no le
+      aparece al cliente y eso solo se veía entrando a abrirlo
+- [x] Buscador, editar y eliminar
+
+## Lo demás (Cupones, Reseñas, Repartidores, Reservaciones, Lealtad, Analíticas,
+## Tema, SEO, Facebook, Mi plan)
+
+- [x] Todas reciben la banda desde `AdminPage`, con el título de la sección y el
+      regreso a "Más". Su contenido no se tocó: lo que cambia es cómo empieza la
+      pantalla.
+- [x] La cabecera de escritorio de cada una pierde su título en celular —lo dice la
+      banda— y conserva sus acciones, que toman el ancho de la pantalla.
+- [x] Los avisos de plan y configuración pendiente pasan a ser una franja de sistema
+      pegada al borde, encima de la banda. Siguen diciendo lo mismo.
+
 ## Reglas que no se tocan
 
 1. **De 1024 px para arriba no cambia nada.** El panel de escritorio se queda como está.
@@ -89,3 +117,8 @@ ticket impreso, para que el papel y la pantalla no digan cosas distintas.
    del menú y no flotando. Ver `mainStore.isExternal`.
 3. **Una sola fuente de verdad.** La vista de celular usa los mismos datos y las mismas
    funciones que la de escritorio; no se duplica lógica.
+4. **Una sola forma de empezar.** Toda pantalla arranca con `Encabezado.vue`. Si una
+   sección nueva necesita cifras propias en la banda, se agrega a
+   `SECCIONES_CON_BANDA_PROPIA` en `AdminPage` y las pone ella; si no, no hace nada y
+   la recibe hecha. Lo que se rompió antes fue justamente que cada pantalla resolvía
+   su cabecera y su lista a su manera.

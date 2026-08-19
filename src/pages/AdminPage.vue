@@ -224,11 +224,23 @@
         </div>
       </div>
 
-      <!-- Regreso a "Mas". Las secciones que se abren desde ahi -cupones, reseñas,
-           repartidores- no son ninguna de las cuatro pestañas, asi que sin esto el
-           dueño entraba y no tenia como salir mas que adivinando. -->
+      <!-- La banda de arriba para las secciones que no traen la suya.
+           Antes cada una empezaba con su propia cabecera blanca y una pastilla suelta
+           de "Más" encima, asi que entrar a Cupones se sentia como salir del panel.
+           Ahora todas arrancan igual: la misma franja oscura, el mismo regreso.
+           Las que tienen cifras propias -Pedidos, Hoy, Menú, Categorías, Extras- traen
+           la suya y aqui no se dibuja. -->
+      <mc-encabezado
+        v-if="bandaGenerica"
+        atras
+        :titulo="tituloSeccion"
+        :subtitulo="adminStore.company?.name || 'Tu negocio'"
+        @atras="volverAMas"
+      />
+
+      <!-- Regreso a "Mas" en escritorio: ahi no hay banda que lo lleve dentro. -->
       <button
-        v-if="mostrarAtras && !SECCIONES_CON_BANDA.includes(adminStore.tab)"
+        v-if="mostrarAtras && !modoApp"
         type="button"
         class="mc-atras"
         @click="volverAMas"
@@ -255,6 +267,7 @@ import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "src/components/admin/movil/McIcon.vue";
+import McEncabezado from "src/components/admin/movil/Encabezado.vue";
 import { useOrderAlerts } from "src/composables/useOrderAlerts";
 
 // Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
@@ -294,8 +307,43 @@ const enPedidos = computed(() => String(adminStore.tab || "").startsWith("pedido
 
 // Las cuatro pestañas de la barra. Cualquier otra seccion se abrio desde "Mas".
 const TABS_PRINCIPALES = ["dashboard", "productos", "mc_mas"];
-/** Las secciones que ya llevan la banda con su propia flecha de regreso. */
-const SECCIONES_CON_BANDA = ["categorias", "extras"];
+/**
+ * Las secciones que traen su propia banda, porque tienen cifras que mostrar en ella.
+ * El resto la recibe de aqui, con el titulo de esta tabla.
+ */
+const SECCIONES_CON_BANDA_PROPIA = [
+  "pedidos_pendientes",
+  "dashboard",
+  "productos",
+  "mc_mas",
+  "categorias",
+  "extras",
+];
+
+/** El nombre de cada seccion, el mismo que aparece en su renglon de "Más". */
+const TITULOS = {
+  cupones: "Cupones",
+  resenas: "Reseñas",
+  repartidores: "Repartidores",
+  reservaciones: "Reservaciones",
+  lealtad: "Lealtad",
+  analiticas: "Analíticas",
+  tema: "Tema del menú",
+  seo: "SEO",
+  facebook: "Facebook",
+  mi_plan: "Mi plan",
+  crm: "Prospectos",
+  goals: "Metas de venta",
+};
+
+const tituloSeccion = computed(() => TITULOS[adminStore.tab] || "Panel");
+
+const bandaGenerica = computed(
+  () =>
+    modoApp.value &&
+    adminStore.isEstablishment &&
+    !SECCIONES_CON_BANDA_PROPIA.includes(adminStore.tab)
+);
 
 const mostrarAtras = computed(
   () =>

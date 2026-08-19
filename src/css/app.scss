@@ -1469,3 +1469,111 @@ h6 {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+// ============================================
+// SECCIONES SECUNDARIAS EN CELULAR
+// ============================================
+//
+// Las que se abren desde "Mas" -Cupones, Reseñas, Repartidores...- reciben la banda
+// desde AdminPage. Aqui se acomoda lo que queda de su cabecera de escritorio: el
+// titulo se va -ya lo dice la banda, repetirlo dos veces se lee como un error- y sus
+// acciones se quedan, que es lo unico de esa fila que hace algo.
+
+body.mc-modo-app {
+  // Solo a los lados: el tiron hacia arriba es para cuando la banda es lo primero de
+  // la pantalla. Con un aviso encima, ese tiron le comia el titulo.
+  .mc-admin-content > .mc-head {
+    margin: 0 -16px;
+  }
+
+  .mc-admin-content > .mc-head:first-child {
+    margin-top: -16px;
+  }
+
+  // La tarjeta de la seccion pierde su marco: sobre el fondo gris de la aplicacion,
+  // una tarjeta que ocupa toda la pantalla no delimita nada, solo mete un borde.
+  .mc-admin-content > .mc-head ~ * .mc-admin-card,
+  .mc-admin-content > .mc-head ~ .mc-admin-card {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    margin: 0 -16px;
+  }
+
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__header {
+    padding: 11px 13px;
+    border-bottom: 0;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  // Sin el titulo, la fila queda con un solo boton pegado a la izquierda y media
+  // pantalla vacia al lado. Las acciones toman el ancho: en el pulgar, un boton ancho
+  // es mas facil de acertar que uno chico en una esquina.
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__header > .row {
+    width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  // El boton toma el ancho lo mismo si viene envuelto en una fila que suelto: cada
+  // seccion lo escribio a su manera y con un solo selector la mitad quedaba encogida
+  // en una esquina.
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__header > .row > .q-btn,
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__header > .q-btn {
+    flex: 1 1 auto;
+    border-radius: 12px;
+  }
+
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__header > .q-btn {
+    width: 100%;
+  }
+
+  .mc-admin-content > .mc-head ~ * .mc-admin-card__title {
+    display: none;
+  }
+
+  // El buscador de esas cabeceras traia un ancho minimo pensado para escritorio y
+  // empujaba al boton de agregar fuera de la pantalla.
+  .mc-admin-content > .mc-head ~ * .mc-admin-search {
+    min-width: 0 !important;
+    flex: 1 1 140px;
+  }
+
+  // Los avisos de plan y de configuracion pendiente: en celular dejan de ser tarjetas
+  // sueltas y pasan a ser una franja de sistema pegada al borde, como la que usan las
+  // aplicaciones para avisar de una prueba por vencer. Siguen diciendo lo mismo.
+  .mc-setup-banners {
+    margin: -16px -16px 0;
+  }
+
+  // Pegada a la banda: la franja de aviso y la cabecera son el mismo bloque de arriba.
+  .mc-setup-banners:not(:empty) {
+    margin-bottom: 0;
+  }
+
+  .mc-setup-banner {
+    border-radius: 0;
+    border-left: 0;
+    border-bottom: 0.5px solid var(--color-border);
+    padding: 9px 14px;
+    gap: 10px;
+
+    &__icon {
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      border-radius: 8px;
+
+      .q-icon { font-size: 15px !important; }
+    }
+
+    &__text {
+      strong { font-size: 12.5px; }
+      span { font-size: 11px; }
+    }
+
+    .q-btn { font-size: 11px; }
+  }
+}
