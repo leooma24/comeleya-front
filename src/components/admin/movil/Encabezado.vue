@@ -1,6 +1,15 @@
 <template>
   <header class="mc-head">
     <div class="mc-head__fila">
+      <button
+        v-if="atras"
+        type="button"
+        class="mc-head__atras"
+        aria-label="Volver"
+        @click="$emit('atras')"
+      >
+        <mc-icon name="flecha" :size="17" />
+      </button>
       <div class="mc-head__id">
         <div class="mc-head__tit">{{ titulo }}</div>
         <div class="mc-head__sub">
@@ -27,6 +36,9 @@
 
 <script setup>
 defineOptions({ name: "McEncabezado" });
+import McIcon from "./McIcon.vue";
+
+defineEmits(["atras"]);
 
 /**
  * La banda de arriba de cada pantalla del panel en celular.
@@ -52,5 +64,7 @@ defineProps({
   vivo: { type: Boolean, default: false },
   // [{ v: "25", l: "Activos" }, ...]. Se reparten el ancho en partes iguales.
   cifras: { type: Array, default: () => [] },
+  // Las secciones que se abren desde "Más" traen su propio regreso dentro de la banda.
+  atras: { type: Boolean, default: false },
 });
 </script>

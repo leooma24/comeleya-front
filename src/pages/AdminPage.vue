@@ -227,7 +227,12 @@
       <!-- Regreso a "Mas". Las secciones que se abren desde ahi -cupones, reseñas,
            repartidores- no son ninguna de las cuatro pestañas, asi que sin esto el
            dueño entraba y no tenia como salir mas que adivinando. -->
-      <button v-if="mostrarAtras" type="button" class="mc-atras" @click="volverAMas">
+      <button
+        v-if="mostrarAtras && !SECCIONES_CON_BANDA.includes(adminStore.tab)"
+        type="button"
+        class="mc-atras"
+        @click="volverAMas"
+      >
         <mc-icon name="flecha" :size="16" />
         Más
       </button>
@@ -289,6 +294,9 @@ const enPedidos = computed(() => String(adminStore.tab || "").startsWith("pedido
 
 // Las cuatro pestañas de la barra. Cualquier otra seccion se abrio desde "Mas".
 const TABS_PRINCIPALES = ["dashboard", "productos", "mc_mas"];
+/** Las secciones que ya llevan la banda con su propia flecha de regreso. */
+const SECCIONES_CON_BANDA = ["categorias", "extras"];
+
 const mostrarAtras = computed(
   () =>
     modoApp.value &&

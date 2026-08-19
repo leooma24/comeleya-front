@@ -1,7 +1,70 @@
 <template>
   <div>
-    <q-card flat class="mc-admin-card">
-      <div class="mc-admin-card__header">
+    <q-card flat class="mc-admin-card" :class="{ 'mc-seccion-app': modoApp }">
+      <mc-encabezado
+        v-if="modoApp"
+        atras
+        titulo="Categorías"
+        @atras="volverAMas"
+        :subtitulo="adminStore.company?.name || 'Tu negocio'"
+        :cifras="[
+          { v: adminStore.categories.length, l: 'Categorías' },
+          { v: activasCuenta, l: 'Activas' },
+          { v: adminStore.categories.length - activasCuenta, l: 'Inactivas' },
+        ]"
+      >
+        <template v-slot:acciones>
+          <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
+            <mc-icon name="buscar" :size="17" />
+          </button>
+          <button type="button" class="mc-head__ic mc-head__ic--fuerte" @click="adminStore.addCategory()">
+            <mc-icon name="plus" :size="17" />
+          </button>
+        </template>
+        <template v-slot:pie>
+          <div class="mc-head__pie" v-if="buscarAbierto">
+            <q-input
+              filled dense rounded debounce="300" v-model="filter"
+              placeholder="Buscar categoría..." autofocus
+            >
+              <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+            </q-input>
+          </div>
+        </template>
+      </mc-encabezado>
+
+      <!-- La lista de celular. La tabla sigue intacta para escritorio: el arrastre
+           para reordenar necesita un cursor, con el dedo pelea con el desplazamiento. -->
+      <div class="mc-lista" v-if="modoApp">
+        <div
+          v-for="element in filteredCategories"
+          :key="element.id"
+          class="mc-lista__fila"
+          :class="{ 'mc-lista__fila--off': element.status !== 'Activa' }"
+        >
+          <span class="mc-lista__ini">{{ (element.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
+          <div class="mc-lista__txt">
+            <div class="mc-lista__nom">{{ element.name }}</div>
+            <div class="mc-lista__meta" v-if="element.status !== 'Activa'">
+              <span class="mc-lista__apagado">Oculta del menú</span>
+            </div>
+          </div>
+          <div class="mc-lista__der">
+            <row-actions-menu
+              :actions="[
+                { key: 'edit', icon: 'edit', color: 'grey-7', label: 'Editar', handler: () => editCategory(element) },
+                { key: 'delete', icon: 'delete_outline', color: 'negative', label: 'Eliminar', handler: () => deleteCategory(element) },
+              ]"
+            />
+          </div>
+        </div>
+
+        <div v-if="!filteredCategories.length" class="mc-lista__vacio">
+          {{ filter ? "Ninguna categoría con ese nombre." : "Todavía no hay categorías." }}
+        </div>
+      </div>
+
+      <div class="mc-admin-card__header" v-if="!modoApp">
         <div class="mc-admin-card__title">
           <q-icon name="category" size="24px" color="primary" class="q-mr-sm" />
           Categorías
@@ -33,7 +96,7 @@
         </div>
       </div>
 
-      <div class="mc-admin-table-wrapper">
+      <div class="mc-admin-table-wrapper" v-if="!modoApp">
       <table class="mc-admin-table">
         <thead>
           <tr>
@@ -97,7 +160,7 @@
       </div>
 
       <div
-        v-if="filteredCategories.length === 0"
+        v-if="filteredCategories.length === 0 && !modoApp"
         class="mc-empty-state"
       >
         <q-icon name="category" size="48px" color="grey-4" />
@@ -105,7 +168,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="mc-pagination">
+      <div v-if="totalPages > 1 && !modoApp" class="mc-pagination">
         <span class="mc-pagination__info">
           {{ (currentPage - 1) * rowsPerPage + 1 }}-{{ Math.min(currentPage * rowsPerPage, filteredCategories.length) }}
           de {{ filteredCategories.length }}
@@ -137,6 +200,9 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { useModoApp } from "src/composables/useModoApp";
+import McIcon from "./movil/McIcon.vue";
+import McEncabezado from "./movil/Encabezado.vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
@@ -150,7 +216,14 @@ defineOptions({
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
+const { modoApp } = useModoApp();
+/** Regresar a "Más", que es de donde se llega a esta sección en celular. */
+const volverAMas = () => { adminStore.tab = "mc_mas"; };
+const buscarAbierto = ref(false);
 const filter = ref("");
+const activasCuenta = computed(
+  () => (adminStore.categories || []).filter((c) => c.status === "Activa").length
+);
 const currentPage = ref(1);
 const rowsPerPage = ref(10);
 const rowsPerPageOptions = [5, 10, 15, 20, 50];

@@ -1365,3 +1365,107 @@ h6 {
   .q-field__label,
   .q-icon { color: rgba(255, 255, 255, 0.55); }
 }
+
+// ============================================
+// LISTA DE SECCION EN CELULAR
+// ============================================
+//
+// La forma comun de las pantallas simples del panel -Categorias, Extras y las que
+// siguen-: una fila blanca con su nombre, un dato al lado y sus acciones a la derecha.
+// Es global y no de cada pantalla porque justamente el problema era que cada seccion
+// resolvia su lista a su manera y el panel parecia cuatro productos distintos.
+//
+// La tabla de escritorio no se toca: esto solo aparece abajo de 1024 px.
+
+.mc-lista {
+  padding: 10px 13px 6px;
+
+  &__fila {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: var(--color-surface);
+    border-radius: 14px;
+    padding: 11px;
+    margin-bottom: 8px;
+    box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
+  }
+
+  // El cuadro con la inicial o el icono. Da un punto de anclaje a la vista al bajar
+  // por la lista, que es lo que hace que se lea rapido y no como un parrafo.
+  &__ini {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--color-surface-variant);
+    color: var(--color-text-secondary);
+  }
+
+  &__txt {
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__nom {
+    font-size: 13.5px;
+    font-weight: 590;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-top: 1px;
+  }
+
+  // Apagado: el renglon sigue ahi pero se lee de lejos que no esta a la venta.
+  &__fila--off &__nom { color: var(--color-text-tertiary); }
+  &__apagado { color: #b06f00; font-weight: 600; }
+
+  &__der {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  &__vacio {
+    text-align: center;
+    padding: 26px 12px;
+    font-size: 12.5px;
+    color: var(--color-text-secondary);
+  }
+}
+
+// La flecha de regresar dentro de la banda. Gira media vuelta porque el trazo del
+// icono apunta a la derecha: es el mismo que usan los renglones de "Mas".
+.mc-head__atras {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 0 8px 0 0;
+  margin-top: 3px;
+  cursor: pointer;
+  transform: rotate(180deg);
+  transform-origin: 40% 50%;
+}
+
+// Las secciones que se abren desde "Mas" tambien se pegan al borde: la banda oscura
+// no puede quedar con margen blanco a los lados mientras el resto no lo tiene.
+.mc-seccion-app {
+  margin: -16px -16px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
