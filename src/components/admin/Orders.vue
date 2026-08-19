@@ -459,10 +459,13 @@
       <button
         v-if="currentPage > 1"
         type="button"
-        class="mc-vermas__btn mc-vermas__btn--menos"
+        class="mc-vermas__menos"
+        :class="{ 'mc-vermas__menos--solo': currentPage >= totalPages }"
+        :aria-label="currentPage >= totalPages ? 'Ver menos' : 'Colapsar la lista'"
         @click="verMenos"
       >
-        Ver menos
+        <mc-icon name="sube" :size="16" />
+        <span v-if="currentPage >= totalPages">Ver menos</span>
       </button>
     </div>
 
@@ -961,11 +964,22 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 }
 
 
-/* "Ver más" en lugar del paginador de escritorio. */
-.mc-vermas { padding: 4px 13px 12px; }
+/* "Ver más" en lugar del paginador de escritorio.
+   Los dos botones van en el MISMO renglon: apilados se leian como dos decisiones
+   distintas -y del mismo tamaño- cuando en realidad una es la que se usa y la otra
+   es para deshacer. Colapsar es una flecha; solo se escribe "Ver menos" cuando ya no
+   queda nada por cargar y la flecha se quedaria sola sin decir de que es. */
+.mc-vermas {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 4px 13px 12px;
+}
+
 .mc-vermas__btn {
   appearance: none;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   border: 0.5px solid var(--color-border);
   background: var(--color-surface);
   border-radius: 13px;
@@ -981,14 +995,26 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
   gap: 8px;
 
   small { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); }
+}
 
-  &--menos {
-    margin-top: 8px;
-    background: transparent;
-    border-color: transparent;
-    color: var(--color-text-secondary);
-    font-weight: 550;
-  }
+.mc-vermas__menos {
+  appearance: none;
+  flex: 0 0 46px;
+  border: 0.5px solid var(--color-border);
+  background: transparent;
+  border-radius: 13px;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 560;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  /* Cuando ya se cargo todo, es el unico control del renglon y toma el ancho. */
+  &--solo { flex: 1; }
 }
 
 
