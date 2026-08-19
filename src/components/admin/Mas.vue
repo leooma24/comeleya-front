@@ -70,6 +70,7 @@ import { computed } from "vue";
 import { useQuasar } from "quasar";
 import { useAdminStore } from "src/stores/admin-store";
 import McIcon from "./movil/McIcon.vue";
+import { useAyuda } from "src/composables/useAyuda";
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
@@ -146,6 +147,7 @@ const grupos = computed(() => [
     items: [
       { cajon: "perfil", texto: "Mi perfil", icono: "gente" },
       { tab: "mi_plan", texto: "Mi plan", icono: "tarjeta" },
+      { cajon: "ayuda", texto: "Ayuda y guías", icono: "chat" },
     ],
   },
 ]);
@@ -159,7 +161,10 @@ const otrosNegocios = computed(() => {
 
 const verMenu = () => window.open(`/${adminStore.slug}`, "_blank");
 
+const { abrirAyuda } = useAyuda();
+
 const CAJONES = {
+  ayuda: () => abrirAyuda(),
   perfil: (v) => adminStore.setProfileDrawer(v),
   horario: (v) => adminStore.setScheduleDrawer(v),
   establecimiento: (v) => adminStore.setEstablishmentDrawer(v),

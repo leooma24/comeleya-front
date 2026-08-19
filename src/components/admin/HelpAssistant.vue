@@ -1,6 +1,8 @@
 <template>
-  <!-- Floating button -->
+  <!-- Floating button. En celular no se dibuja: flotaba encima de la ultima fila de
+       cada lista y tapaba su boton. Ahi la ayuda se abre desde "Mas". -->
   <q-btn
+    v-if="!modoApp"
     fab
     icon="support_agent"
     color="primary"
@@ -107,9 +109,13 @@ defineOptions({ name: "HelpAssistant" });
 
 import { ref } from "vue";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
+import { useAyuda } from "src/composables/useAyuda";
 
 const adminStore = useAdminStore();
-const show = ref(false);
+const { modoApp } = useModoApp();
+// El mismo interruptor que usa "Más": la rueda solo es una de las dos entradas.
+const { ayudaAbierta: show } = useAyuda();
 const activeGuide = ref(null);
 
 const doAction = (action) => {

@@ -499,7 +499,7 @@
 
     </template>
     <!-- Driver selection dialog -->
-    <q-dialog v-model="driverDialog">
+    <q-dialog v-model="driverDialog" :position="modoApp ? 'bottom' : 'standard'" :maximized="false">
       <q-card style="min-width: 350px">
         <q-card-section>
           <div class="text-h6">{{ reassigning ? 'Cambiar' : 'Asignar' }} repartidor</div>
@@ -952,6 +952,16 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+
+/* Los diálogos como hoja en celular: llegan desde abajo, cerca del pulgar, y toman
+   todo el ancho. La esquina inferior queda recta porque la hoja nace del borde. */
+body.mc-modo-app .q-dialog__inner--bottom > div {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 18px 18px 0 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 
 /* "Ver más" en lugar del paginador de escritorio. */
 .mc-vermas { padding: 4px 13px 12px; }

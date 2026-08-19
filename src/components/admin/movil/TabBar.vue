@@ -138,10 +138,4 @@ body.mc-modo-app .mc-admin-content {
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
 }
 
-// El botón de ayuda vivía a 24 px del fondo, o sea justo detrás de la barra: se veía
-// media rueda roja asomando entre las pestañas. Sube por encima de ella.
-body.mc-modo-app .mc-help-fab {
-  bottom: calc(74px + env(safe-area-inset-bottom, 0px));
-  right: 14px;
-}
 </style>

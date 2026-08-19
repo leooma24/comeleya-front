@@ -294,19 +294,54 @@
     </q-card>
 
     <!-- CUSTOMERS SECTION -->
-    <q-card v-if="stats.customers?.length && !loading" flat class="mc-admin-card q-mt-md">
+    <q-card
+      v-if="stats.customers?.length && !loading"
+      flat
+      class="mc-admin-card q-mt-md"
+      :class="{ 'mc-clicard': modoApp }"
+    >
       <div class="mc-admin-card__header">
         <div class="mc-admin-card__title">
-          <q-icon name="people" size="24px" color="primary" class="q-mr-sm" />
+          <!-- El icono grande de escritorio ocupa en celular el ancho de dos palabras
+               del titulo y no dice nada que el titulo no diga. -->
+          <q-icon v-if="!modoApp" name="people" size="24px" color="primary" class="q-mr-sm" />
           Tus clientes ({{ stats.customers.length }})
         </div>
         <div class="row q-gutter-sm">
-          <q-btn outline no-caps color="green" icon="fab fa-whatsapp" label="Compartir menú" size="sm" @click="shareMenuWa" />
+          <q-btn
+            outline no-caps color="green" icon="fab fa-whatsapp"
+            :label="modoApp ? 'Compartir' : 'Compartir menú'"
+            :dense="modoApp" size="sm" @click="shareMenuWa"
+          />
+        </div>
+      </div>
+
+      <!-- ===== Filtro por segmento en celular =====
+           Las fichas de escritorio se envuelven en tres renglones y empujan la lista
+           fuera de la pantalla. Aqui van en una tira que se desliza, y los segmentos
+           sin nadie no se dibujan: una ficha "VIP (0)" ocupa lugar y no lleva a ningun
+           lado. Debajo, el segmento elegido dice que significa, porque "Inactivo" solo
+           sirve si uno sabe que son los que ya no vuelven. -->
+      <div class="mc-cfil" v-if="modoApp">
+        <div class="mc-cfil__tira">
+          <button
+            v-for="s in segmentosVisibles"
+            :key="s"
+            type="button"
+            :class="['mc-cfil__c', 'mc-cfil__c--' + s, { 'mc-cfil__c--on': segmentFilter === s }]"
+            @click="segmentFilter = s"
+          >
+            {{ s === "all" ? "Todos" : segmentMeta[s].label }}
+            <i>{{ segmentCounts[s] }}</i>
+          </button>
+        </div>
+        <div class="mc-cfil__pie" v-if="segmentFilter !== 'all'">
+          {{ SEGMENTO_EXPLICA[segmentFilter] }}
         </div>
       </div>
 
       <!-- Filtros por segmento -->
-      <div class="mc-segment-filters">
+      <div class="mc-segment-filters" v-if="!modoApp">
         <q-chip
           v-for="s in ['all', 'nuevo', 'frecuente', 'vip', 'inactivo']"
           :key="s"
@@ -320,7 +355,44 @@
         </q-chip>
       </div>
 
-      <q-table flat :rows="filteredCustomers" :columns="customerColumns" row-key="phone"
+      <!-- ===== Clientes en celular =====
+           La tabla tenia siete columnas: en 390 px se corta y deja fuera justo lo que
+           dispara la accion -cuanto gasto y hace cuanto no vuelve-. Aqui va en una
+           fila, con el WhatsApp a la mano, que es la herramienta de venta mas directa
+           que tiene el dueño. Mismos datos y misma funcion de siempre. -->
+      <div class="mc-cli" v-if="modoApp">
+        <q-input
+          v-model="customerSearch" filled dense rounded debounce="300"
+          placeholder="Buscar cliente..." class="q-mb-sm"
+        >
+          <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+        </q-input>
+
+        <div v-for="c in clientesMovil" :key="c.phone" class="mc-cli__fila">
+          <span class="mc-cli__ini" :class="'mc-cli__ini--' + segmentOf(c)">
+            {{ (c.customer_name || '?').trim().slice(0, 2).toUpperCase() }}
+          </span>
+          <div class="mc-cli__txt">
+            <div class="mc-cli__nom">{{ c.customer_name || 'Sin nombre' }}</div>
+            <div class="mc-cli__meta">
+              {{ c.order_count }} {{ c.order_count === 1 ? 'pedido' : 'pedidos' }}
+              · ${{ Number(c.total_spent || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 }) }}
+              <span :class="{ 'mc-cli__frio': segmentOf(c) === 'inactivo' }">
+                · {{ hace(c.last_order_at) }}
+              </span>
+            </div>
+          </div>
+          <button type="button" class="mc-cli__wa" @click="sendWaToCustomer(c)" aria-label="Escribir por WhatsApp">
+            <mc-icon name="chat" :size="17" />
+          </button>
+        </div>
+
+        <div v-if="!clientesMovil.length" class="mc-cli__vacio">
+          {{ customerSearch ? "Ningún cliente con ese nombre o teléfono." : "Todavía no hay clientes en este segmento." }}
+        </div>
+      </div>
+
+      <q-table v-if="!modoApp" flat :rows="filteredCustomers" :columns="customerColumns" row-key="phone"
         :pagination="{ rowsPerPage: 10 }" rows-per-page-label="Por página:" class="mc-inner-table"
         :filter="customerSearch"
       >
@@ -1018,6 +1090,46 @@ const filteredCustomers = computed(() => {
   return list.filter((c) => segmentOf(c) === segmentFilter.value);
 });
 
+/** Que es cada segmento, en la unica frase que importa: por que llamarlo. */
+const SEGMENTO_EXPLICA = {
+  nuevo: "Pidieron una o dos veces. La tercera es la que los vuelve clientes.",
+  frecuente: "De 3 a 5 pedidos. Ya te conocen: un cupón los sube a VIP.",
+  vip: "6 pedidos o más. Son los que sostienen el mes; cuídalos.",
+  inactivo: "Llevan más de 30 días sin pedir. Un mensaje suele traerlos de vuelta.",
+};
+
+/** Un segmento vacío no lleva a ningún lado: solo ocupa espacio en la tira. */
+const segmentosVisibles = computed(() =>
+  ["all", "nuevo", "frecuente", "vip", "inactivo"].filter(
+    (s) => s === "all" || segmentCounts.value[s] > 0
+  )
+);
+
+/**
+ * En escritorio el buscador lo aplicaba la tabla por dentro (`:filter`). La lista de
+ * celular no pasa por la tabla, así que el filtro se hace aquí: sin esto se escribía
+ * en el buscador y no pasaba nada. Busca por nombre y por teléfono, que es como el
+ * dueño identifica a un cliente cuando le suena el nombre pero no lo recuerda bien.
+ */
+const clientesMovil = computed(() => {
+  const q = customerSearch.value.trim().toLowerCase();
+  if (!q) return filteredCustomers.value;
+  return filteredCustomers.value.filter((c) =>
+    `${c.customer_name || ""} ${c.phone || ""}`.toLowerCase().includes(q)
+  );
+});
+
+/** "hace 3 meses" mueve a escribirle; "2026-05-12" no le dice nada a nadie. */
+const hace = (fecha) => {
+  if (!fecha) return "sin pedidos";
+  const d = daysSince(fecha);
+  if (d <= 0) return "hoy";
+  if (d === 1) return "ayer";
+  if (d < 30) return `hace ${d} días`;
+  const m = Math.floor(d / 30);
+  return m < 12 ? `hace ${m} ${m === 1 ? "mes" : "meses"}` : "hace +1 año";
+};
+
 const sendWaToCustomer = (customer) => {
   const name = adminStore.company?.name || "nuestro restaurante";
   const first = (customer.customer_name || "").split(" ")[0] || "";
@@ -1086,6 +1198,149 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* La tarjeta de clientes en celular: sin marco propio, como el resto de "Hoy". */
+.mc-clicard {
+  &.mc-admin-card { border-radius: 16px; }
+
+  .mc-admin-card__header { padding: 12px 14px 10px !important; }
+  .mc-admin-card__title { font-size: 14.5px !important; font-weight: 660; }
+  .q-btn { font-size: 11px; border-radius: 10px; }
+}
+
+
+/* ===== Filtro de clientes en celular ===== */
+.mc-cfil { padding: 2px 0 6px; }
+
+.mc-cfil__tira {
+  display: flex;
+  gap: 7px;
+  padding: 4px 13px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  // El degradado del borde avisa que la tira sigue, sin gastar una flecha.
+  -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, #000 92%, transparent);
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.mc-cfil__c {
+  appearance: none;
+  border: 0;
+  flex: 0 0 auto;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 545;
+  padding: 6px 9px 6px 11px;
+  border-radius: 10px;
+  background: var(--color-surface-variant);
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  i {
+    font-style: normal;
+    font-size: 9.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    background: rgba(13, 16, 21, 0.08);
+    border-radius: 999px;
+    padding: 0.5px 5px;
+  }
+
+  // Seleccionado toma el color del segmento: el mismo que la inicial de cada fila,
+  // así la tira y la lista se leen como una sola cosa.
+  &--on { background: #0d1015; color: #fff; font-weight: 630; }
+  &--on i { background: rgba(255, 255, 255, 0.22); }
+  &--vip.mc-cfil__c--on { background: #c62828; }
+  &--frecuente.mc-cfil__c--on { background: #2560c8; }
+  &--inactivo.mc-cfil__c--on { background: #b06f00; }
+}
+
+.mc-cfil__pie {
+  padding: 7px 16px 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-text-secondary);
+}
+
+
+/* ===== Clientes en celular ===== */
+.mc-cli { padding: 4px 13px 8px; }
+
+.mc-cli__fila {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 10px 11px;
+  margin-bottom: 8px;
+  box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
+}
+
+.mc-cli__ini {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: var(--color-surface-variant);
+  color: var(--color-text-secondary);
+
+  // El color dice el segmento sin gastar un renglón en decirlo.
+  &--vip { background: #fdecec; color: #c62828; }
+  &--frecuente { background: #eaf1fc; color: #2560c8; }
+  &--inactivo { background: #fdf3e2; color: #b06f00; }
+}
+
+.mc-cli__txt { min-width: 0; flex: 1; }
+.mc-cli__nom {
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-cli__meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-cli__frio { color: #b06f00; font-weight: 600; }
+
+.mc-cli__wa {
+  appearance: none;
+  border: 0;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 11px;
+  background: #e9f6ee;
+  color: #12915a;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.mc-cli__vacio {
+  text-align: center;
+  padding: 22px 10px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary);
+}
+
 
 /* El orden importa: en celular lo primero tiene que ser el numero del dia, no el
    asesor del menu. En escritorio el orden de siempre se respeta. */
