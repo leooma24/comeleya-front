@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="{ 'mc-hoy-orden': modoApp }">
     <!-- ONBOARDING WIZARD (only if setup incomplete) -->
     <q-card v-if="showWizard && !loading" flat class="mc-admin-card q-mb-md">
       <div class="mc-admin-card__header">
@@ -112,8 +112,38 @@
     </q-card>
 
     <!-- MAIN DASHBOARD (existing stats) -->
-    <q-card flat class="mc-admin-card">
-      <div class="mc-admin-card__header">
+    <q-card flat class="mc-admin-card" :class="{ 'mc-hoy-app': modoApp }">
+      <!-- Cabecera de celular: la seccion, la fecha y el periodo como control
+           segmentado. Las acciones pasan a dos botones parejos abajo. -->
+      <div class="mc-hhead" v-if="modoApp">
+        <div class="mc-hhead__fila">
+          <div>
+            <div class="mc-hhead__tit">Hoy</div>
+            <div class="mc-hhead__sub">{{ fechaLarga }}</div>
+          </div>
+        </div>
+        <div class="mc-hhead__seg">
+          <button
+            v-for="op in [{ l: 'Hoy', v: 'today' }, { l: 'Semana', v: 'week' }, { l: 'Mes', v: 'month' }]"
+            :key="op.v"
+            type="button"
+            :class="['mc-hhead__op', { 'mc-hhead__op--on': period === op.v }]"
+            @click="period = op.v"
+          >
+            {{ op.l }}
+          </button>
+        </div>
+        <div class="mc-hhead__acc">
+          <button type="button" class="mc-hhead__btn mc-hhead__btn--rojo" @click="showFlashOffer = true">
+            <mc-icon name="alerta" :size="15" /> Oferta flash
+          </button>
+          <button type="button" class="mc-hhead__btn" @click="openCashCut">
+            <mc-icon name="caja" :size="15" /> Corte de caja
+          </button>
+        </div>
+      </div>
+
+      <div class="mc-admin-card__header" v-if="!modoApp">
         <div class="mc-admin-card__title">
           <q-icon name="dashboard" size="24px" color="primary" class="q-mr-sm" />
           Dashboard
@@ -519,8 +549,16 @@ defineOptions({ name: "DashboardComponent" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
+import McIcon from "./movil/McIcon.vue";
 
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
+const fechaLarga = new Date().toLocaleDateString("es-MX", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 const loading = ref(true);
 const period = ref("today");
 const showTemplates = ref(false);
@@ -1048,6 +1086,133 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* El orden importa: en celular lo primero tiene que ser el numero del dia, no el
+   asesor del menu. En escritorio el orden de siempre se respeta. */
+.mc-hoy-orden {
+  display: flex;
+  flex-direction: column;
+
+  // La tarjeta de cifras y grafica sube al principio.
+  > .mc-hoy-app { order: -1; }
+}
+
+/* Los bloques de consejo se aprietan: en 390 px sus titulos grandes y sus parrafos
+   completos gastaban dos pantallas antes de la primera cifra. */
+.mc-hoy-orden {
+  .mc-admin-card__title { font-size: 15px !important; letter-spacing: -0.02em; }
+  .mc-admin-card__header { padding: 12px 14px !important; }
+  .mc-mh-finding,
+  .mc-optimization-row { padding: 11px 14px !important; }
+  .mc-mh-finding p,
+  .mc-optimization-row p { font-size: 12px; line-height: 1.4; }
+}
+
+
+/* ===== Hoy en celular =====
+   El tablero de escritorio es correcto en pantalla ancha, pero en 390 px sus tarjetas
+   con cuadro de icono parten el texto en tres renglones y las cifras -que son lo unico
+   que importa- quedan chicas. Aqui manda el numero. */
+.mc-hoy-app {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: -16px -16px 0 !important;
+  border-radius: 0 !important;
+}
+
+.mc-hhead {
+  background: var(--color-surface);
+  border-bottom: 0.5px solid var(--color-border);
+  padding: 10px 16px 12px;
+}
+.mc-hhead__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
+.mc-hhead__sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: capitalize;
+}
+.mc-hhead__seg {
+  display: flex;
+  gap: 3px;
+  margin-top: 11px;
+  background: var(--color-surface-variant);
+  border-radius: 12px;
+  padding: 3px;
+}
+.mc-hhead__op {
+  appearance: none;
+  border: 0;
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 9.5px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--color-text-secondary);
+  background: none;
+  cursor: pointer;
+
+  &--on {
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-weight: 640;
+    box-shadow: 0 1px 2px rgba(13, 16, 21, 0.08);
+  }
+}
+.mc-hhead__acc { display: flex; gap: 8px; margin-top: 10px; }
+.mc-hhead__btn {
+  appearance: none;
+  flex: 1;
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 10px 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+
+  &--rojo {
+    background: var(--q-primary);
+    border-color: var(--q-primary);
+    color: #fff;
+  }
+}
+
+/* Las cifras: fuera el cuadro de icono, el numero manda. */
+.mc-hoy-app .mc-stats-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  padding: 11px 13px 0 !important;
+}
+.mc-hoy-app .mc-stat-card {
+  display: block !important;
+  padding: 12px 13px !important;
+  border-radius: 15px;
+  min-height: 0 !important;
+
+  &__icon { display: none !important; }
+  &__value { font-size: 22px !important; font-weight: 700; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+  &__label { font-size: 10.5px !important; color: var(--color-text-secondary); }
+  &__change { font-size: 10px !important; margin-top: 3px; }
+}
+
+/* Los avisos: tarjeta propia, no renglones apretados contra el borde. */
+.mc-hoy-app .mc-suggestion {
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 12px 13px;
+  margin-bottom: 8px;
+  box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
+}
+.mc-hoy-app .q-px-lg { padding-left: 13px !important; padding-right: 13px !important; }
+
 .mc-dashboard-loading { display: flex; justify-content: center; align-items: center; min-height: 300px; }
 
 // Wizard

@@ -1,6 +1,47 @@
 <template>
-  <q-card flat class="mc-admin-card">
-    <div class="mc-admin-card__header">
+  <q-card flat class="mc-admin-card" :class="{ 'mc-menu-app-card': modoApp }">
+    <!-- Cabecera de celular: el nombre de la seccion, cuantos platillos hay y las dos
+         acciones como iconos. Lo demas -buscador, categoria, PDF- se despliega al
+         tocar la lupa, para que la lista empiece arriba. -->
+    <div class="mc-mhead" v-if="modoApp">
+      <div>
+        <div class="mc-mhead__tit">Menú</div>
+        <div class="mc-mhead__sub">
+          {{ adminStore.products.length }} platillos
+          <template v-if="agotadosCuenta">· {{ agotadosCuenta }} agotados</template>
+        </div>
+      </div>
+      <div class="mc-mhead__acc">
+        <button type="button" class="mc-mhead__ic" @click="buscarAbierto = !buscarAbierto">
+          <mc-icon name="buscar" :size="17" />
+        </button>
+        <button type="button" class="mc-mhead__ic mc-mhead__ic--on" @click="adminStore.addProduct()">
+          <mc-icon name="plus" :size="17" />
+        </button>
+      </div>
+    </div>
+
+    <div class="mc-mhead__extra" v-if="modoApp && buscarAbierto">
+      <q-input
+        filled dense rounded debounce="300" v-model="filter"
+        placeholder="Buscar platillo..." autofocus
+      >
+        <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+      </q-input>
+      <q-select
+        v-model="categoryFilter"
+        :options="categoryOptions"
+        filled dense rounded emit-value map-options
+        label="Categoría"
+        class="q-mt-sm"
+      />
+      <q-btn
+        flat no-caps dense color="primary" icon="picture_as_pdf"
+        label="Exportar menú a PDF" class="q-mt-sm full-width" :loading="exportingPdf" @click="exportMenuPdf"
+      />
+    </div>
+
+    <div class="mc-admin-card__header" v-if="!modoApp">
       <div class="mc-admin-card__title">
         <q-icon name="restaurant_menu" size="24px" color="primary" class="q-mr-sm" />
         Productos
@@ -128,7 +169,7 @@
     </div>
 
     <!-- Table view with drag-and-drop -->
-    <template v-if="showResults === 'table'">
+    <template v-if="showResults === 'table' && !modoApp">
       <div class="mc-admin-table-wrapper">
       <table class="mc-admin-table">
         <thead>
@@ -240,7 +281,61 @@
     </template>
 
     <!-- Card/grid view -->
-    <template v-if="showResults === 'card'">
+    <!-- ===== Lista de celular =====
+         Una tabla de 8 columnas en 390 px no se puede leer: se corta a la mitad y
+         obliga a arrastrar de lado. Esto es la misma informacion en una fila que cabe,
+         con la accion de servicio -marcar agotado- a la mano y el resto en el mismo
+         menu de siempre. Datos y acciones son los de arriba; no se duplica nada. -->
+    <div class="mc-menu-app" v-if="modoApp">
+      <div
+        v-for="(element, index) in filteredProducts"
+        :key="element.id"
+        v-show="isInPage(index)"
+        class="mc-mrow"
+        :class="{ 'mc-mrow--agotado': element.is_sold_out }"
+      >
+        <div class="mc-mrow__foto">
+          <img v-if="element.photo" :src="element.photo" :alt="element.name" loading="lazy" />
+          <mc-icon v-else name="menu" :size="18" />
+        </div>
+
+        <div class="mc-mrow__txt" @click="editProduct(element)">
+          <div class="mc-mrow__nom">{{ element.name }}</div>
+          <div class="mc-mrow__meta">
+            <span class="mc-mrow__precio">{{ sinCentavos(element.price) }}</span>
+            <span v-if="element.dish_category?.name">&nbsp;· {{ element.dish_category.name }}</span>
+            <span v-if="element.special_price" class="mc-mrow__oferta">&nbsp;· oferta {{ sinCentavos(element.special_price) }}</span>
+          </div>
+        </div>
+
+        <!-- El interruptor es la accion de hora pico: se acabo el producto y hay que
+             bajarlo del menu sin abrir nada. Prendido = a la venta. -->
+        <q-toggle
+          :model-value="!element.is_sold_out"
+          @update:model-value="adminStore.toggleSoldOut(element)"
+          color="green-7"
+          dense
+          class="mc-mrow__sw"
+        />
+
+        <product-actions
+          :product="element"
+          @featured="adminStore.toggleFeatured(element)"
+          @offer="openOfferDialog(element)"
+          @soldout="adminStore.toggleSoldOut(element)"
+          @edit="editProduct(element)"
+          @extras="adminStore.extraProduct(element)"
+          @clone="cloneProduct(element)"
+          @delete="deleteProduct(element)"
+        />
+      </div>
+
+      <div v-if="!filteredProducts.length" class="mc-menu-app__vacio">
+        No hay platillos que coincidan.
+      </div>
+    </div>
+
+    <template v-if="showResults === 'card' && !modoApp">
       <div class="row q-pa-md">
         <div
           v-for="(product, index) in filteredProducts"
@@ -303,7 +398,17 @@
     </template>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="mc-pagination">
+    <!-- En celular un paginador con flechas, numeros y selector de filas es de
+         escritorio: son seis controles chiquitos donde solo hace falta uno. Se cambia
+         por "Ver mas", que es lo que se espera en una lista de telefono. -->
+    <div v-if="modoApp && currentPage < totalPages" class="mc-vermas">
+      <button type="button" class="mc-vermas__btn" @click="currentPage++">
+        Ver más
+        <small>{{ Math.min(currentPage * rowsPerPage, filteredProducts.length) }} de {{ filteredProducts.length }}</small>
+      </button>
+    </div>
+
+    <div v-if="totalPages > 1 && !modoApp" class="mc-pagination">
       <span class="mc-pagination__info">
         {{ (currentPage - 1) * rowsPerPage + 1 }}-{{ Math.min(currentPage * rowsPerPage, filteredProducts.length) }}
         de {{ filteredProducts.length }}
@@ -404,6 +509,8 @@ defineProps(["status"]);
 import { ref, computed, watch } from "vue";
 import { VueDraggableNext } from "vue-draggable-next";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
+import McIcon from "./movil/McIcon.vue";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
 import ProductActions from "./products/ProductActions.vue";
@@ -411,6 +518,7 @@ import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
 
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const { confirm, confirmDelete } = useConfirmDialog();
 
 const filter = ref("");
@@ -421,6 +529,14 @@ const rowsPerPage = ref(10);
 const rowsPerPageOptions = [5, 10, 15, 20, 50];
 
 const categoryFilter = ref(null); // id de categoría o null (todas)
+
+// Cabecera de celular
+const buscarAbierto = ref(false);
+/** En una fila de celular los centavos solo estorban: casi siempre son .00. */
+const sinCentavos = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+const agotadosCuenta = computed(
+  () => (adminStore.products || []).filter((x) => x.is_sold_out).length
+);
 
 const statusFilters = [
   { value: "all", label: "Todos", icon: "apps" },
@@ -661,6 +777,167 @@ const removeOffer = async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* "Ver más" en lugar del paginador de escritorio. */
+.mc-vermas { padding: 4px 13px 12px; }
+.mc-vermas__btn {
+  appearance: none;
+  width: 100%;
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 13px;
+  padding: 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  small { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); }
+}
+
+
+/* ===== Cabecera compacta de celular ===== */
+.mc-menu-app-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin: -16px -16px 0 !important;
+  border-radius: 0 !important;
+}
+
+.mc-mhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px 12px;
+  background: var(--color-surface);
+  border-bottom: 0.5px solid var(--color-border);
+}
+.mc-mhead__tit { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.15; }
+.mc-mhead__sub { font-size: 11px; color: var(--color-text-secondary); }
+.mc-mhead__acc { margin-left: auto; display: flex; gap: 7px; }
+.mc-mhead__ic {
+  appearance: none;
+  border: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--color-surface-variant);
+  color: var(--color-text-secondary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+
+  &--on { background: var(--q-primary); color: #fff; }
+}
+.mc-mhead__extra {
+  padding: 11px 14px;
+  background: var(--color-surface);
+  border-bottom: 0.5px solid var(--color-border);
+}
+
+
+/* ===== Cabecera y filtros en celular =====
+   Los chips se apilaban en tres renglones y empujaban la lista fuera de pantalla, y
+   los botones competian con el buscador. Todo se compacta en una sola franja que se
+   desliza, con lo mas usado a la izquierda. */
+.mc-menu-app-head {
+  .mc-admin-card__title { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; }
+}
+
+body.mc-modo-app {
+  .mc-status-filters {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, #000 92%, transparent);
+
+    &::-webkit-scrollbar { display: none; }
+
+    > * { flex: 0 0 auto; }
+  }
+
+  // El selector de vista tabla/tarjeta no aplica en celular: la lista es siempre la
+  // misma. Se oculta para no ofrecer un cambio que no hace nada.
+  .mc-view-toggle { display: none; }
+}
+
+/* ===== Lista de celular: la tabla de 8 columnas no cabe en 390 px ===== */
+.mc-menu-app { padding: 8px 12px 4px; }
+
+.mc-mrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 9px 6px 9px 9px;
+  margin-bottom: 8px;
+  box-shadow: 0 0 0 0.5px rgba(13, 16, 21, 0.05), 0 1px 1px rgba(13, 16, 21, 0.04);
+
+  &--agotado .mc-mrow__foto,
+  &--agotado .mc-mrow__txt {
+    opacity: 0.45;
+  }
+}
+
+.mc-mrow__foto {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 11px;
+  overflow: hidden;
+  background: var(--color-surface-variant);
+  color: var(--color-text-tertiary);
+  display: grid;
+  place-items: center;
+
+  img { width: 100%; height: 100%; object-fit: cover; display: block; }
+}
+
+.mc-mrow__txt { min-width: 0; flex: 1; cursor: pointer; }
+
+.mc-mrow__nom {
+  font-size: 13px;
+  font-weight: 590;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mc-mrow__meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mc-mrow__precio {
+  font-weight: 650;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.mc-mrow__oferta { color: var(--q-primary); font-weight: 620; }
+.mc-mrow__sw { margin-left: auto; }
+
+.mc-menu-app__vacio {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
 .mc-view-toggle {
   display: flex;
   gap: 2px;

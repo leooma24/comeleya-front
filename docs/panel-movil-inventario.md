@@ -55,28 +55,29 @@ ticket impreso, para que el papel y la pantalla no digan cosas distintas.
 
 ## Hoy (`Dashboard.vue`)
 
-- [ ] Pedidos, ingresos y ticket promedio del día, con comparativa
-- [ ] Gráfica de los últimos 7 días
-- [ ] Salud del menú y sus avisos
-- [ ] Oportunidades de mejora, cada una con su acción
-- [ ] Lista de clientes con segmentación (nuevo / frecuente / VIP / inactivo)
-- [ ] WhatsApp por cliente
-- [ ] Botones de oferta flash, corte de caja, insertar en web y compartir
-- [ ] Selector de periodo: hoy / semana / mes
+- [x] Pedidos, ingresos y ticket promedio del día, con comparativa
+- [x] Gráfica de los últimos 7 días
+- [x] Salud del menú y sus avisos
+- [x] Oportunidades de mejora, cada una con su acción
+- [ ] Lista de clientes con segmentación — sigue visible, pendiente de rediseño
+- [ ] WhatsApp por cliente — sigue visible, pendiente de rediseño
+- [x] Botones de oferta flash, corte de caja, insertar en web y compartir
+- [x] Selector de periodo: hoy / semana / mes
 
 ---
 
 ## Menú (`Products.vue`)
 
-- [ ] Lista con foto, nombre, categoría, estado y precio
-- [ ] Filtros: todos, destacados, en oferta, agotados, disponibles, activos, inactivos
-- [ ] Buscador y filtro por categoría
-- [ ] Marcar agotado (`toggleSoldOut`) y destacado (`toggleFeatured`)
-- [ ] Crear oferta / editar oferta
-- [ ] Editar, clonar y borrar platillo
-- [ ] Acciones masivas y orden por arrastre
-- [ ] Exportar menú a PDF
-- [ ] Agregar platillo
+- [x] Lista con foto, nombre, categoría, estado y precio
+- [x] Filtros: todos, destacados, en oferta, agotados, disponibles, activos, inactivos
+- [x] Buscador y filtro por categoría
+- [x] Marcar agotado (`toggleSoldOut`) y destacado (`toggleFeatured`)
+- [x] Crear oferta / editar oferta
+- [x] Editar, clonar y borrar platillo
+- [ ] Acciones masivas y orden por arrastre — **solo escritorio**: arrastrar para
+      reordenar no funciona con el dedo mientras la lista scrollea
+- [x] Exportar menú a PDF
+- [x] Agregar platillo
 
 ---
 

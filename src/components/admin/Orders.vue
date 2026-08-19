@@ -444,7 +444,17 @@
     </div>
 
     <!-- Pagination -->
-    <div v-if="totalPages > 1" class="mc-pagination">
+    <!-- En celular un paginador con flechas, numeros y selector de filas es de
+         escritorio: son seis controles chiquitos donde solo hace falta uno. Se cambia
+         por "Ver mas", que es lo que se espera en una lista de telefono. -->
+    <div v-if="modoApp && currentPage < totalPages" class="mc-vermas">
+      <button type="button" class="mc-vermas__btn" @click="currentPage++">
+        Ver más
+        <small>{{ Math.min(currentPage * rowsPerPage, filteredOrders.length) }} de {{ filteredOrders.length }}</small>
+      </button>
+    </div>
+
+    <div v-if="totalPages > 1 && !modoApp" class="mc-pagination">
       <span class="mc-pagination__info">
         {{ (currentPage - 1) * rowsPerPage + 1 }}-{{ Math.min(currentPage * rowsPerPage, filteredOrders.length) }}
         de {{ filteredOrders.length }}
@@ -920,6 +930,29 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+
+/* "Ver más" en lugar del paginador de escritorio. */
+.mc-vermas { padding: 4px 13px 12px; }
+.mc-vermas__btn {
+  appearance: none;
+  width: 100%;
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 13px;
+  padding: 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  small { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); }
+}
+
 
 /* ===========================================================================
    Vista de celular. Todo cuelga de .mc-orders-app, asi que nada de esto puede
