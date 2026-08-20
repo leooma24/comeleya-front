@@ -120,6 +120,7 @@ const featureFields = [
   'has_analytics', 'has_loyalty', 'has_reservations', 'has_drivers',
   'has_online_payments', 'has_notifications', 'has_ticket_printing',
   'has_seo', 'has_theme_customization', 'has_google_business', 'has_facebook',
+  'has_branches',
 ];
 
 const countFeatures = (row) => {

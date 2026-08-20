@@ -92,6 +92,7 @@ const tieneFuncion = (nombre) => {
     seo: "has_seo",
     theme: "has_theme_customization",
     facebook: "has_facebook",
+    branches: "has_branches",
   };
   return !!pkg[mapa[nombre]];
 };
@@ -134,10 +135,11 @@ const grupos = computed(() => [
     titulo: "Tu negocio",
     items: [
       { cajon: "establecimiento", texto: "Datos del establecimiento", icono: "caja" },
+      tieneFuncion("branches") && { tab: "sucursales", texto: "Sucursales", icono: "pin" },
       { cajon: "horario", texto: "Horario", icono: "reloj" },
       { cajon: "direccion", texto: "Dirección", icono: "pin" },
       { cajon: "configuracion", texto: "Configuración", icono: "engrane" },
-    ],
+    ].filter(Boolean),
   },
   {
     titulo: "Tu cuenta",

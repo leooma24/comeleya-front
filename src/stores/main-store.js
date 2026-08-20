@@ -27,6 +27,9 @@ const ESPERAS_DE_REINTENTO = [1000, 3000];
 
 export const useMainStore = defineStore("main", {
   state: () => ({
+    // La sucursal que el cliente eligio a mano. Null = la que decida la cercania.
+    branchId: null,
+
     addCartDrawer: false,
     cartDrawer: false,
     dataDrawer: false,
@@ -145,6 +148,38 @@ export const useMainStore = defineStore("main", {
     },
     bussinessMap() {
       return this.companyStore.company.coordinates ?? "";
+    },
+    /**
+     * Las sucursales que se le ofrecen al cliente. Vacío en la enorme mayoría de los
+     * negocios, que no tienen: ahí todo el flujo sigue exactamente igual que antes.
+     */
+    sucursales() {
+      return this.establishment?.active_branches ?? [];
+    },
+    /**
+     * De dónde sale el pedido. La sucursal elegida, o la más cercana si el cliente no
+     * ha tocado nada. El servidor vuelve a decidir con la misma regla: esto es para
+     * poder MOSTRAR el costo antes de mandar, no para fijarlo.
+     */
+    sucursalElegida() {
+      const lista = this.sucursales;
+      if (!lista.length) return null;
+      const puesta = lista.find((s) => s.id === this.branchId);
+      return puesta || this.sucursalMasCercana || lista[0];
+    },
+    /** La sucursal más cercana a la dirección ya ubicada del cliente. */
+    sucursalMasCercana() {
+      const { latitude, longitude } = this.data;
+      if (latitude == null || longitude == null) return null;
+      const conDistancia = this.sucursales
+        .map((s) => ({ s, km: this.kmEntre(s.coordinates, latitude, longitude) }))
+        .filter((x) => x.km !== null)
+        .sort((a, b) => a.km - b.km);
+      return conDistancia.length ? conDistancia[0].s : null;
+    },
+    /** El punto desde el que se mide el envío: la sucursal, o el negocio si no hay. */
+    origenDelEnvio() {
+      return this.sucursalElegida?.coordinates || this.companyStore.companyMap;
     },
     deliveryCharge() {
       if (this.data.delivery !== "Envio") return 0;
@@ -467,6 +502,9 @@ export const useMainStore = defineStore("main", {
         payment: this.payment,
         coupon_id: this.coupon.applied ? this.coupon.id : null,
         use_loyalty: this.loyalty.use && this.canRedeemLoyalty,
+        // El servidor vuelve a decidir con la misma regla; esto es lo que eligio el
+        // cliente, no una orden.
+        branch_id: this.sucursalElegida?.id ?? null,
         schedule_at:
           this.schedule.enabled && this.schedule.at
             ? this.schedule.at.replace("T", " ") + ":00"
@@ -811,7 +849,14 @@ export const useMainStore = defineStore("main", {
       );
     },
     buildWhatsAppUrl() {
-      const rawPhone = (this.company.whatsapp || "").replace(/\D/g, "");
+      // El pedido se va al WhatsApp de la sucursal que lo va a preparar. Sin numero
+      // propio cae al del negocio, que es lo que pasa hoy en todos lados: asi una
+      // sucursal recien dada de alta no se queda sin recibir nada.
+      const rawPhone = (
+        this.sucursalElegida?.whatsapp ||
+        this.company.whatsapp ||
+        ""
+      ).replace(/\D/g, "");
       const phoneNumber = rawPhone.length === 10 ? "52" + rawPhone : rawPhone;
       const f = (n) => Number(n || 0).toFixed(2);
       // Limpia el texto para que las negritas de WhatsApp (*texto*) siempre
@@ -827,6 +872,11 @@ export const useMainStore = defineStore("main", {
 
       // Order number
       lines.push(`*Orden #${this.orderStore.orderCode}*`);
+      // De que sucursal es. Si el negocio no tiene, no se dice nada: un renglon
+      // "Sucursal:" en un negocio de un solo local es ruido.
+      if (this.sucursalElegida) {
+        lines.push(`🏪 *Sucursal:* ${b(this.sucursalElegida.name)}`);
+      }
       if (this.schedule.enabled && this.schedule.at) {
         lines.push(`🕒 *Programado para:* ${this.schedule.at.replace("T", " ")}`);
       }
@@ -976,10 +1026,38 @@ export const useMainStore = defineStore("main", {
         this.clearGeo();
       }
     },
+    /** Km entre unas coordenadas "lat,lng" y un punto. Null si no se puede medir. */
+    kmEntre(coordenadas, lat2, lng2) {
+      const p = (coordenadas || "").replaceAll(" ", "").split(",");
+      if (p.length < 2) return null;
+      const lat = parseFloat(p[0]);
+      const lng = parseFloat(p[1]);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+      const R = 6371;
+      const dLat = ((lat2 - lat) * Math.PI) / 180;
+      const dLng = ((lng2 - lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    },
+
+    /** Cambiar de sucursal recalcula el envio: cambia el punto desde el que se mide. */
+    elegirSucursal(id) {
+      this.branchId = id;
+      if (this.data.latitude != null && this.data.longitude != null) {
+        this.getDistance();
+      }
+    },
+
     getDistance() {
       const { latitude, longitude } = this.userStore.data;
 
-      const coordinates = this.companyStore.companyMap
+      // Desde la sucursal cuando el negocio tiene, desde el negocio cuando no.
+      const coordinates = (this.origenDelEnvio || "")
         .replaceAll(" ", "")
         .split(",");
 

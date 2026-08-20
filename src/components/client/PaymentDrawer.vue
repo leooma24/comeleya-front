@@ -140,6 +140,36 @@
         </div>
       </div>
 
+      <!-- De que sucursal sale.
+           Va ANTES del resumen y no despues: el costo del envio que se muestra abajo
+           depende de esta eleccion, y un control que cambia una cifra tiene que estar
+           arriba de la cifra que cambia. Solo aparece si el negocio tiene sucursales;
+           en los demas -que son casi todos- el flujo no cambia en nada. -->
+      <div class="mc-sucursal" v-if="mainStore.sucursales.length > 1">
+        <div class="mc-sucursal__tit">¿De qué sucursal?</div>
+        <div class="mc-sucursal__lista">
+          <button
+            v-for="s in mainStore.sucursales"
+            :key="s.id"
+            type="button"
+            :class="[
+              'mc-sucursal__op',
+              { 'mc-sucursal__op--on': mainStore.sucursalElegida?.id === s.id },
+            ]"
+            @click="mainStore.elegirSucursal(s.id)"
+          >
+            <span class="mc-sucursal__nom">
+              {{ s.name }}
+              <em v-if="mainStore.sucursalMasCercana?.id === s.id">la más cerca</em>
+            </span>
+            <span class="mc-sucursal__dir">{{ s.full_address }}</span>
+            <span class="mc-sucursal__km" v-if="kmDe(s) !== null">
+              a {{ kmDe(s).toFixed(1) }} km
+            </span>
+          </button>
+        </div>
+      </div>
+
       <!-- Order Summary -->
       <div class="mc-order-summary">
         <div class="mc-summary-row">
@@ -147,7 +177,12 @@
           <span class="mc-summary-value">${{ Number(mainStore.total).toFixed(2) }}</span>
         </div>
         <div class="mc-summary-row">
-          <span>Costo del envío</span>
+          <span>
+            Costo del envío
+            <em class="mc-summary-desde" v-if="mainStore.sucursalElegida">
+              desde {{ mainStore.sucursalElegida.name }}
+            </em>
+          </span>
           <span class="mc-summary-value">+ ${{ Number(mainStore.deliveryCharge).toFixed(2) }}</span>
         </div>
         <div class="mc-summary-row">
@@ -330,6 +365,13 @@ import { useMainStore } from "src/stores/main-store";
 import CheckoutSteps from "./CheckoutSteps.vue";
 const mainStore = useMainStore();
 
+/** Que tan lejos le queda cada sucursal al cliente, para poder decidir. */
+const kmDe = (sucursal) => {
+  const { latitude, longitude } = mainStore.data;
+  if (latitude == null || longitude == null) return null;
+  return mainStore.kmEntre(sucursal.coordinates, latitude, longitude);
+};
+
 // Mínimo para programar: 15 min en el futuro, en formato datetime-local.
 const minDateTime = computed(() => {
   const pad = (n) => String(n).padStart(2, "0");
@@ -369,6 +411,79 @@ const submitOrder = async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* ===== Elegir sucursal ===== */
+.mc-sucursal {
+  margin-bottom: var(--space-md);
+}
+
+.mc-sucursal__tit {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-primary);
+}
+
+.mc-sucursal__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-sucursal__op {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+
+  /* El borde en el color del negocio: es el mismo lenguaje que el resto del menu,
+     que ya se pinta con el tema de cada restaurante. */
+  &--on {
+    border-color: var(--q-primary);
+    box-shadow: inset 0 0 0 1px var(--q-primary);
+  }
+}
+
+.mc-sucursal__nom {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+
+  em {
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--q-primary);
+    margin-left: 6px;
+  }
+}
+
+.mc-sucursal__dir {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.mc-sucursal__km {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+}
+
+/* Que el cobro salga de una sucursal y no de "el restaurante" tiene que estar dicho
+   donde esta el cobro, si no parece que el precio cambio solo. */
+.mc-summary-desde {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--color-text-tertiary);
+  display: block;
+}
+
 .mc-section-caption {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);

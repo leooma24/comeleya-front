@@ -148,5 +148,6 @@ const features = [
   { field: "has_theme_customization", label: "Personalización de tema" },
   { field: "has_google_business", label: "Google Business" },
   { field: "has_facebook", label: "Facebook (Píxel/Messenger)" },
+  { field: "has_branches", label: "Sucursales" },
 ];
 </script>
