@@ -39,7 +39,7 @@ const visita = () => {
  * Reporta un paso del embudo.
  *
  * @param {string} slug   el negocio
- * @param {string} evento menu | carrito | pago | pedido
+ * @param {string} evento menu | carrito | pago | pedido | enviado
  */
 export function marcar(slug, evento) {
   if (!slug || !evento) return;

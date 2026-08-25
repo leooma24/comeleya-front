@@ -220,6 +220,7 @@ defineOptions({
 
 import { ref, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { marcar } from "src/utils/embudo";
 import { fitPageToContent } from "src/utils/ticketPageSize";
 const mainStore = useMainStore();
 
@@ -236,6 +237,13 @@ watch(
 
 // Avanza a la confirmación (lo dispara el botón de WhatsApp y el enlace de respaldo)
 const goToConfirmation = () => {
+  // El paso que de verdad avisa al negocio.
+  //
+  // El pedido se guarda en la base ANTES de esto, pero al restaurante le llega
+  // cuando el cliente toca el boton: la operacion va por WhatsApp, no por el panel.
+  // Asi que un pedido guardado sin este toque es un pedido del que nadie se entero,
+  // y hasta hoy no habia forma de saber cuantos son.
+  marcar(mainStore.companyStore.slug, "enviado");
   step.value = 2;
 };
 

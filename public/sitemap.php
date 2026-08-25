@@ -70,9 +70,19 @@ foreach ($fijas as [$ruta, $prioridad, $frecuencia]) {
     $xml->endElement();
 }
 
+// Los negocios de muestra y las pruebas no van al buscador: ocupan un lugar en los
+// resultados como si fueran un restaurante de verdad, y quien llega a uno se
+// encuentra platillos inventados.
+$noPublicables = ['/^demo-/', '/^zz-/', '/^(prueba|test)-/', '/-(prueba|test)$/'];
+
 foreach ($negocios as $n) {
     if (empty($n['slug'])) {
         continue;
+    }
+    foreach ($noPublicables as $patron) {
+        if (preg_match($patron, $n['slug'])) {
+            continue 2;
+        }
     }
     $xml->startElement('url');
     $xml->writeElement('loc', $host . '/' . rawurlencode($n['slug']));

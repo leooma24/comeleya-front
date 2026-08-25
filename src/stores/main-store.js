@@ -985,6 +985,15 @@ export const useMainStore = defineStore("main", {
       }
 
       // Footer
+      // La liga para seguir el pedido.
+      //
+      // Va DENTRO del mensaje, no solo en el dialogo: el dialogo se cierra y ya no se
+      // recupera. Aqui le queda al cliente una copia permanente en su propia
+      // conversacion de WhatsApp, y de paso el restaurante tiene a la mano la pantalla
+      // donde va cambiando el estado.
+      lines.push(``);
+      lines.push(`Seguimiento: ${window.location.origin}/${this.companyStore.slug}/pedido/${this.orderStore.orderCode}`);
+
       lines.push(``);
       lines.push(`_Pedido generado desde ${this.establishment.name}_`);
 

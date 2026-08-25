@@ -311,6 +311,7 @@ const pasos = computed(() => {
     { clave: "carrito", label: "Armaron su pedido", valor: e.carrito, pct: p(e.carrito) },
     { clave: "pago", label: "Llegaron a pagar", valor: e.pago, pct: p(e.pago) },
     { clave: "pedido", label: "Pidieron", valor: e.pedido, pct: p(e.pedido) },
+    { clave: "enviado", label: "Te lo mandaron", valor: e.enviado, pct: p(e.enviado) },
   ];
 });
 
@@ -326,6 +327,10 @@ const lectura = computed(() => {
   }
   if (!e.pedido) {
     return `${e.carrito} de ${e.menu} armaron su pedido pero ninguna lo mandó. Revisa el costo de envío y el mínimo de compra.`;
+  }
+  const sinAvisar = embudo.value?.sin_avisar || 0;
+  if (sinAvisar > 0) {
+    return `De cada 100 que ven tu menú, ${Math.round((e.pedido / e.menu) * 100)} terminan pidiendo. Ojo: ${sinAvisar} ${sinAvisar === 1 ? "pedido se quedó" : "pedidos se quedaron"} sin que el cliente te ${sinAvisar === 1 ? "lo" : "los"} mandara por WhatsApp — revísalos en Pedidos.`;
   }
   return `De cada 100 que ven tu menú, ${Math.round((e.pedido / e.menu) * 100)} terminan pidiendo.`;
 });
