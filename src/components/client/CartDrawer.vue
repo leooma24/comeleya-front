@@ -244,6 +244,7 @@ defineOptions({
 });
 import { computed, ref } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { marcar } from "src/utils/embudo";
 import CheckoutSteps from "./CheckoutSteps.vue";
 import ItemNotesDialog from "./ItemNotesDialog.vue";
 const mainStore = useMainStore();
@@ -308,6 +309,8 @@ const checkoutBlocked = computed(
 
 const continueCheckout = () => {
   if (checkoutBlocked.value) return;
+  // Segundo paso: paso del menu a dar sus datos.
+  marcar(mainStore.companyStore.slug, "carrito");
   mainStore.dataDrawer = true;
 };
 </script>

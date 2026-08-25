@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { marcar } from "src/utils/embudo";
 
 export const useCompanyStore = defineStore("company", {
   persist: true,
@@ -183,6 +184,9 @@ export const useCompanyStore = defineStore("company", {
     },
     setCompany(company) {
       this.company = company;
+      // Primer paso del embudo. Aqui y no en el router: aqui es donde consta que el
+      // menu de verdad cargo y el comensal esta viendo algo.
+      if (company?.slug) marcar(company.slug, "menu");
     },
     addCompany(company) {
       this.companies.push(company);

@@ -123,6 +123,9 @@ const grupos = computed(() => [
   {
     titulo: "Crecimiento",
     items: [
+      // Arriba del resto a proposito: es lo unico de este grupo que sirve el primer
+      // dia, y el primer dia es cuando el negocio decide si esto le sirve o no.
+      { tab: "difusion", texto: "Comparte tu menú", icono: "mundo" },
       tieneFuncion("analytics") && { tab: "analiticas", texto: "Analíticas", icono: "grafica" },
       tieneFuncion("theme") && { tab: "tema", texto: "Tema del menú", icono: "paleta" },
       tieneFuncion("seo") && { tab: "seo", texto: "SEO", icono: "mundo" },

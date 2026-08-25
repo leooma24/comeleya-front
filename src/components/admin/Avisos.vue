@@ -161,6 +161,43 @@ const avisos = computed(() => {
     });
   }
 
+  // El numero al que llegan los pedidos. Es lo primero que hay que revisar y era
+  // justo lo unico que ningun aviso mencionaba: el panel pedia categorias, productos,
+  // horario, direccion y servicios, pero no el telefono al que se va la venta.
+  const wa = (adminStore.company?.whatsapp || "").trim();
+  const tel = (adminStore.company?.phone || "").trim();
+
+  if (!wa && !tel) {
+    lista.push({
+      clave: "sin-numero",
+      tono: "malo",
+      icono: "phone_disabled",
+      titulo: "No hay número para recibir pedidos",
+      detalle:
+        "Sin un WhatsApp o un teléfono, el cliente termina su pedido y no tiene a dónde mandártelo.",
+      accion: {
+        label: "Agregar",
+        icono: "add",
+        handler: () => { adminStore.establishmentDrawer = true; },
+      },
+    });
+  } else if (!wa) {
+    lista.push({
+      clave: "whatsapp-sin-confirmar",
+      tono: "pendiente",
+      icono: "chat",
+      titulo: `Los pedidos llegarán al ${tel}`,
+      detalle:
+        "No tienes un WhatsApp aparte, así que usamos tu teléfono. Confirma que ese número tenga WhatsApp, o pon otro.",
+      accion: {
+        label: "Revisar",
+        icono: "edit",
+        compacta: "Revisar",
+        handler: () => { adminStore.establishmentDrawer = true; },
+      },
+    });
+  }
+
   if (!adminStore.categories?.length) {
     lista.push({
       clave: "sin-categorias",

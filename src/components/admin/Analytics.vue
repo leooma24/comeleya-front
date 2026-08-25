@@ -1,5 +1,32 @@
 <template>
   <q-card flat class="mc-admin-card">
+    <!-- El embudo del menu.
+         Contesta la pregunta que antes no se podia contestar: si a un negocio no le
+         llegan pedidos, ¿es que nadie lo visita, o que lo visitan y se van? Son dos
+         problemas distintos y hasta hoy se veian iguales. -->
+    <div class="mc-embudo" v-if="embudo">
+      <div class="mc-embudo__tit">
+        Últimos {{ embudo.dias }} días
+        <small v-if="embudo.robots"> · {{ embudo.robots }} visitas de buscadores, no contadas</small>
+      </div>
+
+      <div class="mc-embudo__pasos" v-if="embudo.embudo.menu">
+        <div v-for="p in pasos" :key="p.clave" class="mc-embudo__paso">
+          <div class="mc-embudo__n">{{ p.valor }}</div>
+          <div class="mc-embudo__l">{{ p.label }}</div>
+          <div class="mc-embudo__pct" v-if="p.pct !== null">{{ p.pct }}%</div>
+        </div>
+      </div>
+
+      <p class="mc-embudo__lectura" v-if="embudo.embudo.menu">{{ lectura }}</p>
+
+      <p class="mc-embudo__lectura" v-else>
+        Todavía no hay visitas registradas. Empezamos a medir el
+        {{ new Date().toLocaleDateString("es-MX", { day: "numeric", month: "long" }) }};
+        los datos de antes de esa fecha no existen.
+      </p>
+    </div>
+
     <div class="mc-admin-card__header">
       <div class="mc-admin-card__title">
         <q-icon name="analytics" size="24px" color="primary" class="q-mr-sm" />
@@ -143,7 +170,7 @@
 <script setup>
 defineOptions({ name: "AnalyticsComponent" });
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { fitPageToContent } from "src/utils/ticketPageSize";
@@ -271,7 +298,44 @@ const printTicketContent = () => {
   printWindow.close();
 };
 
+/** El embudo se pide aparte: si falla, las analiticas de siempre siguen saliendo. */
+const embudo = ref(null);
+
+const pasos = computed(() => {
+  const e = embudo.value?.embudo;
+  if (!e) return [];
+  const base = e.menu || 0;
+  const p = (v) => (base > 0 ? Math.round((v / base) * 100) : null);
+  return [
+    { clave: "menu", label: "Vieron el menú", valor: e.menu, pct: null },
+    { clave: "carrito", label: "Armaron su pedido", valor: e.carrito, pct: p(e.carrito) },
+    { clave: "pago", label: "Llegaron a pagar", valor: e.pago, pct: p(e.pago) },
+    { clave: "pedido", label: "Pidieron", valor: e.pedido, pct: p(e.pedido) },
+  ];
+});
+
+/**
+ * La lectura en una frase. El numero solo no le dice nada a quien no vive de mirar
+ * tableros: lo que necesita saber es si su problema es de gente o de menu.
+ */
+const lectura = computed(() => {
+  const e = embudo.value?.embudo;
+  if (!e || !e.menu) return "";
+  if (!e.carrito) {
+    return `${e.menu} personas vieron tu menú y ninguna armó un pedido. Revisa que tus platillos tengan foto y precio claro.`;
+  }
+  if (!e.pedido) {
+    return `${e.carrito} de ${e.menu} armaron su pedido pero ninguna lo mandó. Revisa el costo de envío y el mínimo de compra.`;
+  }
+  return `De cada 100 que ven tu menú, ${Math.round((e.pedido / e.menu) * 100)} terminan pidiendo.`;
+});
+
 onMounted(async () => {
+  api
+    .get(`/admin/${adminStore.slug}/funnel?dias=30`)
+    .then(({ data }) => { embudo.value = data; })
+    .catch(() => {});
+
   try {
     const { data } = await api.get(`/admin/${adminStore.slug}/stats/export`);
     rows.value = data.data;
@@ -285,6 +349,69 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* ===== El embudo del menu ===== */
+.mc-embudo {
+  padding: var(--space-md) var(--space-lg) 0;
+}
+
+.mc-embudo__tit {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-sm);
+
+  small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+}
+
+.mc-embudo__pasos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.mc-embudo__paso {
+  background: var(--color-surface-variant);
+  border-radius: var(--radius-md);
+  padding: 11px 12px;
+}
+
+.mc-embudo__n {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-embudo__l {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+/* El porcentaje va contra los que vieron el menu, no contra el paso anterior: lo que
+   el dueño quiere saber es cuantos de los que llegaron terminaron comprando. */
+.mc-embudo__pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.mc-embudo__lectura {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: var(--space-sm) 0 0;
+}
+
+@media (max-width: 1023px) {
+  .mc-embudo { padding: 12px var(--mc-lado, 14px) 0; }
+  .mc-embudo__pasos { grid-template-columns: repeat(2, 1fr); }
+}
+
 .mc-loading {
   display: flex;
   justify-content: center;

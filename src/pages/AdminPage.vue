@@ -63,6 +63,7 @@ const Mas = lazy("Mas");
 const Products = lazy("Products");
 const Categories = lazy("Categories");
 const Sucursales = lazy("Sucursales");
+const Difusion = lazy("Difusion");
 const Extras = lazy("Extras");
 const Coupons = lazy("Coupons");
 const Orders = lazy("Orders");
@@ -104,6 +105,7 @@ const SECCIONES_CON_BANDA_PROPIA = [
   "categorias",
   "extras",
   "sucursales",
+  "difusion",
 ];
 
 /** El nombre de cada seccion, el mismo que aparece en su renglon de "Más". */
@@ -166,6 +168,8 @@ const getComponentName = (tab) => {
     return Categories;
   } else if (tab === "sucursales") {
     return Sucursales;
+  } else if (tab === "difusion") {
+    return Difusion;
   } else if (tab === "extras") {
     return Extras;
   } else if (tab === "cupones") {

@@ -294,6 +294,7 @@ defineOptions({
 });
 import { ref, nextTick, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
+import { marcar } from "src/utils/embudo";
 import CheckoutSteps from "./CheckoutSteps.vue";
 
 const mainStore = useMainStore();
@@ -426,6 +427,8 @@ const validateData = async () => {
     return;
   }
 
+  // Tercer paso: ya dio nombre y direccion, va a pagar.
+  marcar(mainStore.companyStore.slug, "pago");
   mainStore.paymentDrawer = true;
 };
 

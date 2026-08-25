@@ -438,6 +438,12 @@
     <div v-else class="mc-empty-state">
       <q-icon name="receipt_long" size="56px" color="grey-4" />
       <p>No se encontraron pedidos</p>
+
+      <!-- El negocio que nunca ha vendido pasa aqui todo su tiempo. Es el momento
+           exacto para ofrecerle la prueba: no hay nada que revisar en la pantalla y
+           la duda que tiene es si esto de verdad funciona. Solo cuando no ha vendido
+           NUNCA -si ya tuvo pedidos, esta pantalla solo significa que hoy no hay-. -->
+      <prueba-de-pedido v-if="!hayPedidosAlguna" />
     </div>
 
     <!-- Pagination -->
@@ -559,6 +565,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
+import PruebaDePedido from "./PruebaDePedido.vue";
 import { orderTotals } from "src/utils/orderTotals";
 import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { api } from "boot/axios";
+import { marcar } from "src/utils/embudo";
 import { scrollOffsetFor } from "src/utils/categoryScroll";
 
 import { useProductStore } from "./products";
@@ -517,6 +518,11 @@ export const useMainStore = defineStore("main", {
           `/establishment/${this.companyStore.slug}/order`,
           payload
         );
+        // Cuarto y ultimo paso del embudo: el pedido quedo guardado. Aqui y no en el
+        // boton de WhatsApp -que puede no tocarse nunca- porque a partir de este
+        // momento el negocio ya lo tiene en su panel.
+        marcar(this.companyStore.slug, "pedido");
+
         this.orderStore.setOrder(data);
         this.orderStore.saveToHistory({
           order_code: data.order_code,
@@ -849,12 +855,18 @@ export const useMainStore = defineStore("main", {
       );
     },
     buildWhatsAppUrl() {
-      // El pedido se va al WhatsApp de la sucursal que lo va a preparar. Sin numero
-      // propio cae al del negocio, que es lo que pasa hoy en todos lados: asi una
-      // sucursal recien dada de alta no se queda sin recibir nada.
+      // A que numero se va el pedido, en orden: la sucursal que lo va a preparar, el
+      // WhatsApp del negocio, y de ultimo su telefono.
+      //
+      // Ese ultimo respaldo NO es un detalle: 58 de los 106 negocios de produccion
+      // tienen el WhatsApp vacio -venian de cuando esto solo mostraba el menu y nunca
+      // hubo que llenarlo- y TODOS tienen telefono. Sin el respaldo, la liga quedaba
+      // en "https://wa.me/" sin destinatario: el cliente tocaba Enviar, WhatsApp le
+      // pedia elegir un contacto que no conoce, y el pedido se moria ahi.
       const rawPhone = (
         this.sucursalElegida?.whatsapp ||
         this.company.whatsapp ||
+        this.company.phone ||
         ""
       ).replace(/\D/g, "");
       const phoneNumber = rawPhone.length === 10 ? "52" + rawPhone : rawPhone;

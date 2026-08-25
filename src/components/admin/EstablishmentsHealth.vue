@@ -51,6 +51,40 @@
               {{ stateMeta[props.row.state].label }}
             </q-chip>
           </q-td>
+          <!-- Lo unico que hay que resolver para que ese negocio pueda estrenarse.
+               Con esto la lista deja de ser un tablero y pasa a ser una lista de
+               llamadas: a cada uno se le sabe que pedirle antes de marcar. -->
+          <q-td key="falta" :props="props">
+            <div class="mc-eh-falta">
+              <q-chip
+                v-if="props.row.puede_vender"
+                dense size="sm" color="positive" text-color="white" label="Ya puede vender"
+              />
+              <q-chip
+                v-for="f in props.row.falta"
+                :key="f"
+                dense size="sm" color="grey-3" text-color="grey-9"
+                :label="ETIQUETA_FALTA[f] || f"
+              />
+              <q-chip
+                v-if="props.row.numero_por_confirmar"
+                dense size="sm" color="orange-8" text-color="white" label="número sin confirmar"
+              >
+                <q-tooltip>
+                  No tiene WhatsApp aparte: los pedidos le llegarían a su teléfono, y
+                  nadie ha comprobado que ese número reciba WhatsApp
+                </q-tooltip>
+              </q-chip>
+              <q-btn
+                v-if="props.row.phone"
+                flat dense round size="sm" color="green-7" icon="fab fa-whatsapp"
+                @click="escribirle(props.row)"
+              >
+                <q-tooltip>Escribirle al dueño</q-tooltip>
+              </q-btn>
+            </div>
+          </q-td>
+
           <q-td key="orders_month" :props="props">
             <span class="text-weight-bold">{{ props.row.orders_month }}</span>
           </q-td>
@@ -126,11 +160,17 @@ const search = ref("");
 
 const filters = [
   { value: "all", label: "Todos", color: "primary" },
+  // Los que nunca han recibido un pedido van primero: es el grupo mas grande y el
+  // que se trabaja distinto -no hay que recuperarlos, hay que estrenarlos-.
+  { value: "sin_estrenar", label: "Sin estrenar", color: "indigo-7" },
+  { value: "listos", label: "Listos para vender", color: "positive" },
+  { value: "por_confirmar", label: "Número por confirmar", color: "orange-8" },
   { value: "en_riesgo", label: "En riesgo", color: "negative" },
   { value: "dormido", label: "Dormidos", color: "orange-8" },
   { value: "activo", label: "Activos", color: "positive" },
 ];
 const stateMeta = {
+  sin_estrenar: { label: "Sin estrenar", color: "indigo-7" },
   activo: { label: "Activo", color: "positive" },
   dormido: { label: "Dormido", color: "orange-8" },
   en_riesgo: { label: "En riesgo", color: "negative" },
@@ -139,6 +179,7 @@ const stateMeta = {
 const columns = [
   { name: "name", label: "Negocio", align: "left", field: "name", sortable: true },
   { name: "state", label: "Estado", align: "left", field: "state" },
+  { name: "falta", label: "Para poder vender", align: "left", field: "falta" },
   { name: "orders_month", label: "Pedidos (mes)", align: "center", field: "orders_month", sortable: true },
   { name: "last_order", label: "Última actividad", align: "left", field: "last_order_at", sortable: true },
   { name: "photo_pct", label: "Menú con foto", align: "left", field: "photo_pct", sortable: true },
@@ -150,9 +191,47 @@ const columns = [
   { name: "actions", label: "", align: "right" },
 ];
 
-const filteredRows = computed(() =>
-  filter.value === "all" ? rows.value : rows.value.filter((r) => r.state === filter.value)
-);
+/** Como se lee cada carencia en la lista de llamadas. */
+const ETIQUETA_FALTA = {
+  numero: "falta número",
+  platillos: "sin menú",
+  fotos: "sin fotos",
+};
+
+/**
+ * Escribirle al dueño desde aquí, con el mensaje ya empezado.
+ *
+ * La campaña se cae en el paso mas tonto: buscar el numero, abrir WhatsApp, acordarse
+ * de que le falta a ESE negocio. Aqui sale todo junto.
+ */
+const escribirle = (row) => {
+  const n = (row.phone || "").replace(/\D/g, "");
+  if (!n) return;
+  const conLada = n.length === 10 ? "52" + n : n;
+  const liga = `https://comeleya.com/${row.slug}`;
+
+  const texto = row.puede_vender
+    ? `Hola, le hablo de ComeleYa. Su menú de ${row.name} ya está listo para recibir pedidos en línea: ${liga}
+
+¿Le muestro cómo le llegan al WhatsApp?`
+    : `Hola, le hablo de ComeleYa. Para que ${row.name} pueda recibir pedidos por el menú solo falta ${row.falta.map((f) => ETIQUETA_FALTA[f] || f).join(" y ")}.
+
+¿Se lo dejo listo?`;
+
+  window.open(`https://wa.me/${conLada}?text=${encodeURIComponent(texto)}`, "_blank");
+};
+
+const filteredRows = computed(() => {
+  const f = filter.value;
+  if (f === "all") return rows.value;
+  // Dos filtros son cortes, no estados: los que ya podrian vender y no lo saben, y
+  // aquellos a los que les mandariamos los pedidos a un numero sin confirmar.
+  if (f === "listos") {
+    return rows.value.filter((r) => r.state === "sin_estrenar" && r.puede_vender);
+  }
+  if (f === "por_confirmar") return rows.value.filter((r) => r.numero_por_confirmar);
+  return rows.value.filter((r) => r.state === f);
+});
 
 const timeAgo = (d) => {
   const days = Math.floor((Date.now() - new Date(d)) / 86400000);
