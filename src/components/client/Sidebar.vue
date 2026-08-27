@@ -170,7 +170,7 @@
     </div>
 
     <!-- El indice completo -->
-    <q-dialog v-model="indiceAbierto" position="bottom">
+    <q-dialog v-model="indiceAbierto" position="bottom" @hide="alCerrarIndice">
       <div class="mc-indice">
         <div class="mc-indice__tit">
           Categorías
@@ -598,8 +598,26 @@ const mostrarIndice = computed(() => {
   return visibleCategories.value.length >= 6;
 });
 
+/**
+ * Elegir una categoria desde el indice.
+ *
+ * El salto NO puede ir aqui: mientras el dialogo esta abierto, Quasar bloquea el scroll
+ * del cuerpo, asi que un `scrollTo` disparado en el mismo instante en que se cierra no
+ * hace nada -medido en produccion: desde la tira bajaba a 10,623 y desde el indice a
+ * cero-. Se guarda la categoria y se salta en `@hide`, cuando Quasar ya devolvio el
+ * scroll.
+ */
+const categoriaPendiente = ref(null);
+
 const irDesdeIndice = (id) => {
+  categoriaPendiente.value = id;
   indiceAbierto.value = false;
+};
+
+const alCerrarIndice = () => {
+  if (categoriaPendiente.value === null) return;
+  const id = categoriaPendiente.value;
+  categoriaPendiente.value = null;
   goToCategory(id);
 };
 
