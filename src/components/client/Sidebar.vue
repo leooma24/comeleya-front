@@ -366,6 +366,7 @@ import ReservationDialog from "./ReservationDialog.vue";
 import LoyaltyBanner from "./LoyaltyBanner.vue";
 import { cartBarCta } from "src/utils/cartBarCta";
 import { centerTabScroll } from "src/utils/categoryScroll";
+import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
 
 const $q = useQuasar();
 const mainStore = useMainStore();
@@ -648,12 +649,16 @@ function shareMenu() {
 }
 
 function openMap() {
-  const addr = mainStore.businessAddress;
-  if (mainStore.bussinessMap) {
-    window.open(`https://maps.google.com/?q=${mainStore.bussinessMap}`, "_blank");
-  } else {
-    window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`, "_blank");
-  }
+  const url = urlDelMapa({
+    coordenadas: mainStore.bussinessMap,
+    direccion: mainStore.businessAddress,
+  });
+  abrirEnMapa(url, {
+    alFallar: () =>
+      mainStore.messageStore.error(
+        "Este sitio no deja abrir el mapa. Manten presionada la direccion para abrirla aparte."
+      ),
+  });
 }
 
 const indiceAbierto = ref(false);

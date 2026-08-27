@@ -148,6 +148,21 @@
       srcWin = e.source;
       updateCart(d);
       notify(e.source);
+    } else if (d.type === "comeleya:abrir") {
+      /* Abrir un enlace por cuenta del menu.
+         Dentro de un iframe con sandbox, el menu no puede abrir una pestaña nueva:
+         window.open le devuelve null y el boton se queda mudo. Esta pagina no esta
+         dentro del sandbox, asi que lo abre ella y contesta para que el menu sepa que
+         si se pudo. Solo mapas de Google: este script vive en el sitio del negocio y no
+         tiene por que abrir cualquier cosa que le pidan. */
+      var u = typeof d.url === "string" ? d.url : "";
+      var esMapa =
+        u.indexOf("https://www.google.com/maps") === 0 ||
+        u.indexOf("https://maps.google.com/") === 0;
+      if (esMapa) {
+        var w = window.open(u, "_blank", "noopener");
+        if (w && e.source) e.source.postMessage({ type: "comeleya:abierto" }, "*");
+      }
     }
   });
 })();

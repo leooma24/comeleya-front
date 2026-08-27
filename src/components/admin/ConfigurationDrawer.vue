@@ -107,6 +107,78 @@
           />
         </admin-section>
 
+        <!-- Ubicacion del negocio.
+
+             Vivia DENTRO de "Envio a domicilio", y ahi no la veia quien solo da para
+             recoger: en produccion 19 de 107 negocios no tienen ubicacion puesta, y a
+             esos el boton "Ver en Mapa" del comensal no los podia llevar a ningun lado.
+             Sacarla a su propia seccion es lo que hace que la vean.
+
+             Y se pone a mano a proposito: sacarla de la direccion escrita da 1.15 km de
+             error en la mediana y 2.69 km en el peor caso -medido contra 10 negocios que
+             si la tienen puesta, ninguno cayo a menos de 200 m-. Parado en el negocio,
+             el boton de abajo acierta a unos metros. -->
+        <admin-section
+          class="q-mt-md"
+          icon="place"
+          title="Ubicación del negocio"
+          description="El punto exacto en el mapa. Es lo que se le abre al comensal que va a recoger, y lo que se usa para cobrar el envío por distancia."
+        >
+          <q-banner
+            v-if="!adminStore.companyConfiguration.coordinates"
+            dense
+            class="bg-orange-1 text-orange-9 q-mb-sm"
+            rounded
+          >
+            <template #avatar><q-icon name="warning" class="mc-ic-sm" /></template>
+            Todavía no la pones. Párate en tu negocio y toca el botón de abajo.
+            <template v-if="adminStore.companyConfiguration.delivery_mode === 'distance'">
+              Sin ella no se puede calcular el envío por distancia.
+            </template>
+          </q-banner>
+
+        <div class="mc-location">
+          <q-btn
+            unelevated
+            no-caps
+            color="primary"
+            icon="my_location"
+            label="Usar mi ubicación actual"
+            size="sm"
+            :loading="locating"
+            class="q-mb-sm full-width"
+            @click="useMyLocation"
+          />
+
+          <q-input
+            v-model="adminStore.companyConfiguration.coordinates"
+            label="Coordenadas (lat, lng)"
+            placeholder="19.432608, -99.133209"
+            filled
+            dense
+            hint="Párate en tu negocio y toca el botón, o pégalas desde Google Maps."
+          />
+
+          <div v-if="mapSrc" class="mc-location__map q-mt-sm">
+            <iframe
+              :src="mapSrc"
+              title="Mapa del negocio"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          </div>
+          <a
+            v-if="googleMapsLink"
+            :href="googleMapsLink"
+            target="_blank"
+            rel="noopener"
+            class="mc-location__link"
+          >
+            Ver en Google Maps
+          </a>
+        </div>
+        </admin-section>
+
         <!-- Envío a domicilio -->
         <admin-section
           class="q-mt-md"
@@ -143,57 +215,6 @@
             Usa la ubicación del cliente y las coordenadas de tu negocio para calcular la distancia.
           </p>
 
-          <!-- Ubicación del negocio (coordenadas) -->
-          <div class="mc-location q-mt-md">
-            <div class="mc-location__label">
-              Ubicación del negocio
-              <span
-                v-if="adminStore.companyConfiguration.delivery_mode === 'distance'"
-                class="text-negative"
-              >
-                (necesaria para "Por distancia")
-              </span>
-            </div>
-
-            <q-btn
-              unelevated
-              no-caps
-              color="primary"
-              icon="my_location"
-              label="Usar mi ubicación actual"
-              size="sm"
-              :loading="locating"
-              class="q-mb-sm full-width"
-              @click="useMyLocation"
-            />
-
-            <q-input
-              v-model="adminStore.companyConfiguration.coordinates"
-              label="Coordenadas (lat, lng)"
-              placeholder="19.432608, -99.133209"
-              filled
-              dense
-              hint="Párate en tu negocio y toca el botón, o pégalas desde Google Maps."
-            />
-
-            <div v-if="mapSrc" class="mc-location__map q-mt-sm">
-              <iframe
-                :src="mapSrc"
-                title="Mapa del negocio"
-                loading="lazy"
-                referrerpolicy="no-referrer"
-              ></iframe>
-            </div>
-            <a
-              v-if="googleMapsLink"
-              :href="googleMapsLink"
-              target="_blank"
-              rel="noopener"
-              class="mc-location__link"
-            >
-              Ver en Google Maps
-            </a>
-          </div>
         </admin-section>
 
         <!-- Bank transfer section -->

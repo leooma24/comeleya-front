@@ -229,7 +229,7 @@
           mandar tu pedido.
         </p>
         <q-btn
-          v-if="direccionDelLocal"
+          v-if="urlMapa"
           color="primary"
           label="Ver en Mapa"
           dense
@@ -237,7 +237,11 @@
           no-caps
           icon="location_on"
           class="mc-ic-sm"
-          @click="getMapDirection"
+          type="a"
+          :href="urlMapa"
+          target="_blank"
+          rel="noopener"
+          @click.prevent="getMapDirection"
         />
       </div>
 
@@ -303,6 +307,7 @@ defineOptions({
 import { ref, computed, nextTick, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
+import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
 import CheckoutSteps from "./CheckoutSteps.vue";
 
 const mainStore = useMainStore();
@@ -446,11 +451,23 @@ const validateData = async () => {
   mainStore.paymentDrawer = true;
 };
 
+// La direccion del mapa. Va tambien en el `href` del boton: si el sitio que embebe el
+// menu bloquea las pestañas nuevas, al menos se puede mantener presionado y abrirlo desde
+// el menu del navegador.
+const urlMapa = computed(() =>
+  urlDelMapa({
+    coordenadas: mainStore.bussinessMap,
+    direccion: direccionDelLocal.value,
+  })
+);
+
 const getMapDirection = () => {
-  const coordinates = (mainStore.bussinessMap || "").replace(/\s/g, "");
-  if (!coordinates) return; // Sin coordenadas configuradas: no abrir un mapa vacío
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`;
-  window.open(url, "_blank");
+  abrirEnMapa(urlMapa.value, {
+    alFallar: () =>
+      mainStore.messageStore.error(
+        "Este sitio no deja abrir el mapa. Manten presionado \"Ver en Mapa\" para abrirlo aparte."
+      ),
+  });
 };
 </script>
 
