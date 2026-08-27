@@ -762,12 +762,31 @@ function goToCategory(id) {
 
 .mc-sidebar-establishment--compacta {
   .mc-restaurant-cover {
-    height: 62px;
+    height: 64px;
   }
 
-  /* El nombre baja de tamaño para caber en la barra sin cortarse. */
+  /* El logo y el nombre se centran en la barra.
+     Con la ficha abierta el bloque cuelga del borde de abajo de la portada, que es lo
+     que se quiere ahi. Al encogerse, ese mismo anclaje dejaba el logo 8 px por debajo
+     del borde -medido en produccion- y la portada lo recortaba: se veia un circulo
+     partido. Ocupando la barra entera, se centra y no hay nada que recortar. */
+  .mc-restaurant-cover .mc-restaurant-cover__identity {
+    position: absolute;
+    inset: 0;
+    padding: 0 var(--space-md);
+  }
+
+  /* El logo encoge con la barra, en el mismo movimiento. QAvatar saca su tamaño del
+     font-size, y lo trae en linea, de ahi el !important. */
+  .mc-restaurant-avatar {
+    font-size: 44px !important;
+  }
+
+  /* El nombre NO cambia de tamaño: encogerlo se notaba como un brinco de la letra a
+     media pasada, porque el font-size no se puede animar junto con lo demas. Lo que si
+     cambia es que se queda en un renglon, que es lo que cabe en la barra. */
   .mc-restaurant-cover__name {
-    font-size: var(--text-lg);
+    -webkit-line-clamp: 1;
   }
 
   .mc-restaurant-info {
@@ -796,6 +815,15 @@ function goToCategory(id) {
   .mc-sidebar-establishment--compacta {
     .mc-restaurant-cover { height: 132px; }
     .mc-restaurant-info { height: auto; opacity: 1; overflow: visible; }
+
+    /* Y tampoco encoge el logo ni sube el nombre: por si se estira la ventana de
+       celular a escritorio con la ficha ya encogida. */
+    .mc-restaurant-avatar { font-size: 62px !important; }
+
+    .mc-restaurant-cover .mc-restaurant-cover__identity {
+      inset: auto 0 0 0;
+      padding: var(--space-md);
+    }
   }
 }
 
@@ -982,6 +1010,7 @@ function goToCategory(id) {
 
 .mc-restaurant-avatar {
   border: 3px solid #fff;
+  transition: font-size var(--transition-normal);
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
   background: #fff;
