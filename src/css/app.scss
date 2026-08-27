@@ -529,22 +529,29 @@ h6 {
     // normal se filtra y el sidebar tapa el tope del contenido (hueco gris + tarjetas
     // cortadas en web).
     position: static;
-    // Deja espacio para los tabs fijos (ver abajo)
-    padding-top: 56px;
+    // Deja espacio para el renglon fijo (ver abajo). Sale de la medida real y no de un
+    // numero escrito a mano, que es lo que dejaba un hueco cuando el renglon cambiaba.
+    padding-top: var(--mc-sidebar-total-height, 56px);
 
-    .mc-sidebar-tabs {
-      max-width: 100%;
-      width: 100%;
-      // Alto natural (evita el calc(100vh-340px) del modo escritorio normal)
-      height: auto !important;
-      // Embebido en iframe: se fijan al tope del iframe para que no se pierdan al
-      // hacer scroll (el iframe scrollea internamente, así que fixed queda visible).
+    // Se fija el RENGLON, no solo la tira.
+    //
+    // Fijando solo la tira, el boton del indice se quedaba en flujo normal y aparecia
+    // en un renglon aparte, suelto debajo de las categorias: en el menu normal esto ya
+    // se habia corregido y el embebido se quedo atras, por eso se veia distinto.
+    .mc-tabs-fila {
       position: fixed;
       top: 0;
       left: 0;
+      width: 100%;
       z-index: 20;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
+    }
+
+    .mc-sidebar-tabs {
+      max-width: 100%;
+      // Alto natural (evita el calc(100vh-340px) del modo escritorio normal)
+      height: auto !important;
     }
   }
 }

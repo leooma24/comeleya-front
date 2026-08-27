@@ -394,7 +394,10 @@ let medidoExpandido = false;
 
 const updateSidebarHeight = () => {
   nextTick(() => {
-    if (!fijoRef.value || $q.screen.width >= 1024) return;
+    // El embebido tambien mide, aunque el iframe sea ancho: ahi el renglon de
+    // categorias va fijo al tope y hay que reservarle su espacio igual que en celular.
+    if (!fijoRef.value) return;
+    if ($q.screen.width >= 1024 && !mainStore.isExternal) return;
 
     // Con la ficha ya encogida NO se vuelve a medir, y esto es lo que evita el brinco.
     //
@@ -409,7 +412,15 @@ const updateSidebarHeight = () => {
     // Una sola medida: el bloque entero, que ya trae la ficha y la tira. Antes se median
     // por separado para poder colocar la tira debajo de la ficha; ahora van juntas y no
     // hay nada que colocar.
-    altoExpandido = fijoRef.value.offsetHeight;
+    // En embebido el que va fijo es el renglon de categorias, asi que el envoltorio se
+    // queda sin alto y hay que medir el renglon. En el menu normal es al reves: el que
+    // va fijo es el envoltorio, con la ficha y el renglon dentro.
+    const medible = mainStore.isExternal
+      ? fijoRef.value.querySelector('.mc-tabs-fila')
+      : fijoRef.value;
+    if (!medible) return;
+
+    altoExpandido = medible.offsetHeight;
     if (!fichaCompacta.value) medidoExpandido = true;
     document.documentElement.style.setProperty(
       '--mc-sidebar-total-height',
