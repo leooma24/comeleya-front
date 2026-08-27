@@ -34,8 +34,7 @@
               <q-icon
                 name="search"
                 color="grey-6"
-                size="20px"
-                class="cursor-pointer"
+                class="cursor-pointer mc-ic-md"
                 role="button"
                 aria-label="Buscar"
                 @click="searchExpanded = true"
@@ -45,8 +44,7 @@
               <q-icon
                 name="close"
                 color="grey-6"
-                size="16px"
-                class="cursor-pointer mc-search-clear"
+                class="cursor-pointer mc-search-clear mc-ic-md"
                 role="button"
                 aria-label="Limpiar búsqueda"
                 @click="mainStore.search = ''; searchExpanded = false"
@@ -65,6 +63,7 @@
             dense
             round
             size="sm"
+            class="mc-ic-md"
             :color="mainStore.viewType === 'Tarjeta' ? 'primary' : 'grey-6'"
             icon="grid_view"
             aria-label="Vista cuadrícula"
@@ -77,6 +76,7 @@
             dense
             round
             size="sm"
+            class="mc-ic-md"
             :color="mainStore.viewType === 'Lista' ? 'primary' : 'grey-6'"
             icon="view_list"
             aria-label="Vista lista"
@@ -93,7 +93,7 @@
           dense
           :icon="isDark ? 'light_mode' : 'dark_mode'"
           :color="isDark ? 'amber-6' : 'grey-8'"
-          class="q-ml-sm"
+          class="q-ml-sm mc-ic-md"
           :aria-label="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
           @click="toggleTheme"
         >

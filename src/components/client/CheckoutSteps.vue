@@ -1,7 +1,10 @@
 <template>
   <div class="mc-steps">
+    <!-- Tambien en el paso 1. Los cajones son `persistent no-swipe-open`: Quasar no
+         cierra ni con ESC ni tocando fuera, asi que sin esto la unica salida del
+         carrito era la X de la esquina. -->
     <q-btn
-      v-if="current > 1"
+      v-if="$attrs.onBack || current > 1"
       flat
       round
       dense

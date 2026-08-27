@@ -13,8 +13,6 @@
       flat
       round
       icon="close"
-      color="grey-8"
-      size="md"
       class="mc-drawer-close"
       @click="mainStore.paymentDrawer = false"
     />

@@ -207,6 +207,10 @@ const defaultTheme = () => ({
   font_family: "Inter",
   border_radius: "12px",
   card_style: "elevated",
+  // El circulo del boton de cerrar de los cajones. Blanco por defecto porque es lo que
+  // hay hoy y porque se recorta bien sobre la foto del platillo, que es donde mas se usa.
+  // La X de adentro NO se configura: se calcula para que contraste con este color.
+  close_button_color: "#FFFFFF",
   show_banner: false,
   banner_text: "",
   cart_image: "",
@@ -252,6 +256,7 @@ const colorLabels = {
   accent_color: "Color de acento",
   background_color: "Fondo",
   text_color: "Texto",
+  close_button_color: "Botón de cerrar",
 };
 
 const fontOptions = [

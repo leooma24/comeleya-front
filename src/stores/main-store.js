@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { api } from "boot/axios";
 import { marcar } from "src/utils/embudo";
+import { encimaDe } from "src/utils/contraste";
 import { scrollOffsetFor } from "src/utils/categoryScroll";
 
 import { useProductStore } from "./products";
@@ -388,6 +389,18 @@ export const useMainStore = defineStore("main", {
       if (config.border_radius) {
         body.style.setProperty("--mc-radius", config.border_radius + "px");
       }
+
+      // El boton de cerrar de los cajones. Se publican DOS variables: el color del
+      // circulo, que elige el negocio, y el de la X, que NO se elige — se calcula para
+      // que contraste con el circulo.
+      //
+      // Antes la X era `grey-8` escrito a mano en los seis cajones, asi que no
+      // respondia ni al tema oscuro: sobre el fondo oscuro quedaba en 2.7:1, por debajo
+      // del minimo, y como el circulo tambien era del color de la superficie, el boton
+      // entero desaparecia. Era la unica salida del pedido.
+      const circulo = config.close_button_color || "#FFFFFF";
+      body.style.setProperty("--mc-cerrar-fondo", circulo);
+      body.style.setProperty("--mc-cerrar-icono", encimaDe(circulo));
     },
     setSlug(slug) {
       if (!this.companyStore.changeSlug(slug)) return;

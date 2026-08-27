@@ -71,7 +71,7 @@
               class="mc-rating-badge cursor-pointer"
               @click="reviewsDrawer = true"
             >
-              <q-icon name="star" size="14px" color="amber-8" />
+              <q-icon name="star" class="mc-ic-sm" color="amber-8" />
               <span class="mc-rating-badge__score">{{ reviewData.avg.toFixed(1) }}</span>
               <span class="mc-rating-badge__count">({{ reviewData.total }})</span>
               <q-tooltip>Ver reseñas</q-tooltip>
@@ -95,26 +95,33 @@
             class="mc-address"
             @click="openMap"
           >
-            <q-icon name="location_on" size="14px" />
+            <q-icon name="location_on" class="mc-ic-sm" />
             <span>{{ mainStore.businessAddress }}</span>
           </div>
           <div
             v-if="!mainStore.company.isOpen && mainStore.nextOpenText"
             class="mc-next-open"
           >
-            <q-icon name="access_time" size="14px" class="q-mr-xs" />
+            <q-icon name="access_time" class="q-mr-xs mc-ic-sm" />
             {{ mainStore.nextOpenText }}
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Establishment Banner -->
-    <div
-      v-if="mainStore.company.theme_config?.show_banner && mainStore.company.theme_config?.banner_text"
-      class="mc-establishment-banner"
-    >
-      {{ mainStore.company.theme_config.banner_text }}
+      <!-- El aviso que escribe el negocio desde su Tema.
+           Va DENTRO de la ficha a proposito: en celular la ficha es `position: fixed` y
+           su alto es el que se mide para colocar las categorias y el contenido. Fuera de
+           aqui el banner quedaba en flujo normal, o sea tapado por la propia ficha.
+
+           Ademas leia de `mainStore.company`, que NO es el negocio sino el store
+           completo, y ahi theme_config nunca existio: la condicion era falsa siempre,
+           para los 106 negocios, desde el primer commit. Nunca se habia visto. -->
+      <div
+        v-if="temaDelNegocio.show_banner && temaDelNegocio.banner_text"
+        class="mc-establishment-banner"
+      >
+        {{ temaDelNegocio.banner_text }}
+      </div>
     </div>
 
     <q-tabs
@@ -347,6 +354,12 @@ const categoryCount = (id) =>
   mainStore.productStore.items.filter((p) => p.dish_category_id === id).length;
 
 // Solo categorías con productos (evita tabs que no llevan a nada)
+/**
+ * El tema del negocio. Se lee de `establishment`, que es el objeto que devuelve el API,
+ * y no de `mainStore.company`, que es el store: ahi theme_config no existe.
+ */
+const temaDelNegocio = computed(() => mainStore.establishment?.theme_config || {});
+
 const visibleCategories = computed(() =>
   mainStore.categories.filter((c) => categoryCount(c.id) > 0)
 );
@@ -572,6 +585,12 @@ function goToCategory(id) {
 
 .mc-hours-btn {
   transition: var(--transition-fast);
+
+  // Horario, compartir y reseñas son la misma clase de acción y van al mismo tamaño.
+  // Se pone aquí y no icono por icono porque los tres ya comparten esta clase.
+  :deep(.q-icon) {
+    font-size: var(--icono-sm);
+  }
 
   &:hover {
     background: var(--color-surface-variant);

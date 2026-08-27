@@ -12,15 +12,13 @@
       flat
       round
       icon="close"
-      color="grey-8"
-      size="md"
       class="mc-drawer-close"
       @click="mainStore.cartDrawer = false"
     />
 
     <q-scroll-area style="height: calc(100vh - 100px)">
       <div class="q-pa-md">
-        <checkout-steps :current="1" />
+        <checkout-steps :current="1" @back="mainStore.cartDrawer = false" />
 
         <!-- Header -->
         <div class="mc-drawer-header q-mb-md">

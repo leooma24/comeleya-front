@@ -13,8 +13,6 @@
       flat
       round
       icon="close"
-      color="grey-8"
-      size="md"
       class="mc-drawer-close"
       @click="mainStore.dataDrawer = false"
     />
@@ -221,14 +219,24 @@
         v-if="mainStore.data.delivery === 'Recoger'"
       >
         <h6 class="mc-section-title">Dirección del Comercio</h6>
-        <p class="mc-text-secondary">{{ mainStore.businessAddress }}</p>
+        <!-- La direccion se arma interpolando campos sueltos, asi que a un negocio con
+             la ficha incompleta le salia "undefined undefined, Culiacan" justo en la
+             pantalla donde el cliente necesita saber a donde ir. La ficha del menu ya
+             filtraba lo mismo (Sidebar.vue); aqui faltaba. -->
+        <p class="mc-text-secondary" v-if="direccionDelLocal">{{ direccionDelLocal }}</p>
+        <p class="mc-text-secondary" v-else>
+          Este negocio todavía no publicó su dirección. Pregúntasela por WhatsApp al
+          mandar tu pedido.
+        </p>
         <q-btn
+          v-if="direccionDelLocal"
           color="primary"
           label="Ver en Mapa"
           dense
           flat
           no-caps
           icon="location_on"
+          class="mc-ic-sm"
           @click="getMapDirection"
         />
       </div>
@@ -292,12 +300,18 @@
 defineOptions({
   name: "DataDrawer",
 });
-import { ref, nextTick, watch } from "vue";
+import { ref, computed, nextTick, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
 import CheckoutSteps from "./CheckoutSteps.vue";
 
 const mainStore = useMainStore();
+
+/** La direccion del local, o vacio si viene incompleta. Misma regla que la ficha. */
+const direccionDelLocal = computed(() => {
+  const d = mainStore.businessAddress || "";
+  return d && !d.includes("undefined") ? d : "";
+});
 const formRef = ref(null);
 const loadingTowns = ref(false);
 

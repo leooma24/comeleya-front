@@ -47,6 +47,23 @@ html {
   --space-xl: 32px;
   --space-2xl: 48px;
 
+  // Iconos
+  //
+  // Tres tamaños y ni uno más. Antes cada componente escribia el suyo y llegaron a
+  // convivir nueve valores distintos: en la barra de arriba se veian juntos un icono de
+  // 20, dos de 17 y uno de 22, y en la ficha del negocio uno de 13, tres de 17 y uno de
+  // 14. Eso es lo que se lee como "disparejo" aunque nadie sepa decir por que.
+  //
+  // La pregunta al escribir un icono nuevo deja de ser "¿cuantos pixeles?" y pasa a ser
+  // "¿de que tipo es?", que es una pregunta que si tiene respuesta correcta.
+  --icono-sm: 18px;   // acciones dentro de una fila: compartir, editar, borrar, +/-
+  --icono-md: 22px;   // la escala normal: cerrar, navegar, la barra del pedido, toggles
+  --icono-lg: 28px;   // solo lo que encabeza una accion principal
+
+  // El area que toca el dedo. No es lo mismo que el icono: un icono de 18 px puede vivir
+  // en un boton de 44, y de hecho debe.
+  --toque-min: 44px;
+
   // Radius
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -99,6 +116,39 @@ body.body--dark {
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.55);
   --shadow-cart: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
+
+// ============================================
+// LA ESCALA DE ICONOS
+// ============================================
+//
+// Se aplica con una clase y no con el atributo `size` de cada icono. La razon es que en
+// un q-btn el tamaño del icono NO sale de su propio atributo: Quasar lo deriva del
+// tamaño del boton (`font-size: 1.715em`), asi que dos botones con distinto `size`
+// terminan con iconos distintos aunque uno quiera lo contrario. Poniendolo por CSS se
+// controla el icono sin tocar el area que toca el dedo, que son dos cosas separadas y
+// conviene que sigan separadas.
+//
+// Funciona igual sobre un `q-icon` suelto que sobre un `q-btn` que lo contiene.
+
+.mc-ic-sm,
+.mc-ic-sm .q-icon {
+  font-size: var(--icono-sm);
+}
+
+.mc-ic-md,
+.mc-ic-md .q-icon {
+  font-size: var(--icono-md);
+}
+
+.mc-ic-lg,
+.mc-ic-lg .q-icon {
+  font-size: var(--icono-lg);
+}
+
+// Un SVG dentro de un boton no entiende de font-size: hay que darle medida.
+.mc-ic-sm img, .mc-ic-sm svg { width: var(--icono-sm); height: var(--icono-sm); }
+.mc-ic-md img, .mc-ic-md svg { width: var(--icono-md); height: var(--icono-md); }
+.mc-ic-lg img, .mc-ic-lg svg { width: var(--icono-lg); height: var(--icono-lg); }
 
 // ============================================
 // GLOBAL BASE STYLES
@@ -603,18 +653,46 @@ h6 {
   z-index: 10000;
 }
 
+// El boton de cerrar de los seis cajones del comensal.
+//
+// Es la UNICA salida: los cajones son `persistent no-swipe-open`, asi que Quasar no
+// cierra ni con ESC ni tocando fuera, y en el paso 1 del carrito tampoco hay flecha de
+// atras. Si este boton no se ve, el comensal se queda encerrado en su pedido.
+//
+// El color del circulo lo elige el negocio desde su Tema; el de la X se calcula para
+// que contraste con el circulo (ver src/utils/contraste.js). Los valores por defecto
+// son los de siempre —circulo blanco, X oscura— para que nada cambie en quien no toque
+// el ajuste.
 .mc-drawer-close {
   position: absolute;
   top: var(--space-md);
   right: var(--space-md);
   z-index: 10;
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+
+  // 44 px es el minimo comodo para un dedo. Antes eran 42 y el icono mandaba sobre el
+  // area: ahora el area se fija aqui y el icono va aparte, que son dos cosas distintas.
+  min-width: var(--toque-min);
+  min-height: var(--toque-min);
+
+  // Blanco por defecto, tambien en tema oscuro: es lo que pidio el cliente y es lo que
+  // se recorta sobre la foto del platillo, que es donde mas se usa este boton. El
+  // negocio puede cambiarlo desde su Tema, y entonces la X se recalcula sola.
+  background: var(--mc-cerrar-fondo, #ffffff);
+  color: var(--mc-cerrar-icono, #1c1c21);
+
+  // El borde es lo que separa el circulo de una foto clara o de un fondo del mismo
+  // tono. Sin el, un circulo blanco sobre una foto blanca no existe.
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   transition: var(--transition-fast);
 
+  .q-icon {
+    color: var(--mc-cerrar-icono, #1c1c21);
+    font-size: var(--icono-md);
+  }
+
   &:hover {
-    background: var(--color-surface-variant);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
   }
 }
 
