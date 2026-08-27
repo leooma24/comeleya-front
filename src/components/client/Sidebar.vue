@@ -473,29 +473,39 @@ const alDeslizar = () => {
   if (!antes && y > BAJAR) fichaCompacta.value = true;
   else if (antes && y < SUBIR) fichaCompacta.value = false;
 
-  // Al cambiar de alto hay que volver a medir: de esas variables cuelgan la posicion de
-  // las categorias y el hueco que reserva el contenido.
-  //
-  // Dos veces, y la segunda es la que cuenta: la ficha se encoge con una transicion, y
-  // medir de inmediato devuelve una altura a medio camino. Con solo la primera medida
-  // quedaba una franja de 15 px entre la ficha y las categorias por donde se veia el
-  // contenido pasar por debajo.
-  if (antes !== fichaCompacta.value) {
-    updateSidebarHeight();
-    setTimeout(updateSidebarHeight, 320);
-  }
+  // No hace falta medir aqui: el observador de abajo lo hace solo cuando la ficha
+  // termina de encogerse.
 };
+
+/**
+ * Vuelve a medir cada vez que la ficha o la tira cambian de alto, sea por lo que sea:
+ * al contraerse, al cargar el logo, al cambiar de tamaño la letra.
+ *
+ * Antes se medía con un temporizador despues de contraer, o sea adivinando cuando
+ * terminaba la animacion. En un iPhone 13 acertaba y en un SE no: quedaban 16 px de
+ * hueco entre la ficha y las categorias por donde se veia pasar el contenido. Un
+ * observador no adivina, se entera.
+ */
+let observador = null;
 
 onMounted(async () => {
   setTimeout(updateSidebarHeight, 200);
   window.addEventListener('resize', updateSidebarHeight);
   window.addEventListener('scroll', alDeslizar, { passive: true });
+
+  if (typeof ResizeObserver !== 'undefined') {
+    observador = new ResizeObserver(() => updateSidebarHeight());
+    if (establishmentRef.value) observador.observe(establishmentRef.value);
+    if (tabsRef.value?.$el) observador.observe(tabsRef.value.$el);
+  }
+
   await refreshReviews();
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateSidebarHeight);
   window.removeEventListener('scroll', alDeslizar);
+  observador?.disconnect();
 });
 
 
