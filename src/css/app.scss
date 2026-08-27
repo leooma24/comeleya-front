@@ -117,15 +117,29 @@ body.body--dark {
   --shadow-cart: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 
-// La tira de categorias y el boton del indice viajan juntos: en celular el renglon
-// completo es el que se fija bajo la ficha del negocio.
+// En celular, la ficha del negocio y la tira de categorias se fijan como UN bloque.
+//
+// Es lo unico que garantiza que no se abra una franja entre las dos mientras la ficha se
+// encoge: dentro del bloque, la tira va en flujo normal detras de la ficha, asi que no
+// hay dos posiciones fijas que sincronizar. La variable que queda solo separa el
+// contenido de abajo; si esa llega tarde no se ve, porque la barra es opaca y el menu
+// pasa por debajo.
+//
+// El bloque abarca la ficha y la tira, NO el resto del sidebar: el aviso de lealtad, el
+// boton de reservar y el historial van en flujo, como siempre.
 @media screen and (max-width: 1023px) {
-  .mc-tabs-fila {
+  // El modo embebido queda fuera: ahi el sidebar va en flujo y la tira se fija sola al
+  // tope del iframe, que es otra cosa.
+  .mc-sidebar:not(.mc-sidebar-external) .mc-sidebar-fijo {
     position: fixed;
-    top: var(--mc-establishment-height, 180px);
+    top: 56px;
     left: 0;
     width: 100vw;
     z-index: 3;
+    background: var(--color-surface);
+  }
+
+  .mc-tabs-fila {
     background: var(--color-surface);
     border-bottom: 1px solid var(--color-border);
   }
@@ -400,14 +414,6 @@ h6 {
     background: var(--color-surface);
     padding: var(--space-md);
     border-bottom: 1px solid var(--color-border);
-
-    @media screen and (max-width: 1023px) {
-      position: fixed;
-      top: 56px;
-      left: 0;
-      width: 100vw;
-      z-index: 3;
-    }
 
     @media screen and (min-width: 1024px) {
       border-bottom: none;

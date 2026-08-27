@@ -1,172 +1,187 @@
 <template>
   <div
+    ref="sidebarRef"
     :class="[
       'mc-sidebar',
       mainStore.isExternal ? 'mc-sidebar-external' : '',
     ]"
     style="background: var(--color-surface-variant)"
   >
-    <div
-      ref="establishmentRef"
-      class="mc-sidebar-establishment"
-      :class="{ 'mc-sidebar-establishment--compacta': fichaCompacta }"
-      v-if="!mainStore.isExternal"
-    >
-      <!-- Portada / hero -->
+    <!-- La ficha del negocio y la tira de categorias, fijas COMO UN SOLO BLOQUE.
+
+         Antes se fijaba cada una por su cuenta y la tira se colocaba contra una
+         variable que medía la ficha desde JavaScript. Mientras la ficha se encogía esa
+         medida llegaba tarde: la barra del negocio ya había subido y las categorías
+         seguían donde estaban, así que al bajar se abría una franja blanca entre las
+         dos -14 px medidos en producción- que se cerraba sola un instante después. Eso
+         es la costura que se veía al deslizar.
+
+         Juntas en el mismo bloque, la tira va detrás de la ficha en flujo normal: no
+         hay dos posiciones que sincronizar y el hueco no puede existir aunque la
+         medición tarde. -->
+    <div ref="fijoRef" class="mc-sidebar-fijo">
       <div
-        class="mc-restaurant-cover"
-        :class="{ 'mc-restaurant-cover--placeholder': !mainStore.company.banner }"
-        :style="mainStore.company.banner ? { backgroundImage: `url(${mainStore.company.banner})` } : null"
+        ref="establishmentRef"
+        class="mc-sidebar-establishment"
+        :class="{ 'mc-sidebar-establishment--compacta': fichaCompacta }"
+        v-if="!mainStore.isExternal"
       >
-        <div class="mc-restaurant-cover__scrim"></div>
-        <div class="mc-restaurant-cover__identity">
-          <q-avatar
-            :size="$q.screen.lt.md ? '54px' : '62px'"
-            class="mc-restaurant-avatar"
-          >
-            <img :src="mainStore.company.logo" />
-          </q-avatar>
-          <h1 class="mc-restaurant-cover__name">{{ mainStore.company.name }}</h1>
+        <!-- Portada / hero -->
+        <div
+          class="mc-restaurant-cover"
+          :class="{ 'mc-restaurant-cover--placeholder': !mainStore.company.banner }"
+          :style="mainStore.company.banner ? { backgroundImage: `url(${mainStore.company.banner})` } : null"
+        >
+          <div class="mc-restaurant-cover__scrim"></div>
+          <div class="mc-restaurant-cover__identity">
+            <q-avatar
+              :size="$q.screen.lt.md ? '54px' : '62px'"
+              class="mc-restaurant-avatar"
+            >
+              <img :src="mainStore.company.logo" />
+            </q-avatar>
+            <h1 class="mc-restaurant-cover__name">{{ mainStore.company.name }}</h1>
+          </div>
         </div>
-      </div>
 
-      <div class="mc-restaurant-info">
-        <div class="mc-restaurant-details">
-          <div class="mc-restaurant-meta">
-            <q-chip
-              :color="mainStore.company.isOpen ? 'positive' : 'negative'"
-              text-color="white"
-              size="sm"
-              dense
-              :icon="mainStore.company.isOpen ? 'check_circle' : 'cancel'"
-              :label="mainStore.company.isOpen ? 'Abierto' : 'Cerrado'"
-            />
+        <div class="mc-restaurant-info">
+          <div class="mc-restaurant-details">
+            <div class="mc-restaurant-meta">
+              <q-chip
+                :color="mainStore.company.isOpen ? 'positive' : 'negative'"
+                text-color="white"
+                size="sm"
+                dense
+                :icon="mainStore.company.isOpen ? 'check_circle' : 'cancel'"
+                :label="mainStore.company.isOpen ? 'Abierto' : 'Cerrado'"
+              />
 
-            <q-btn
-              dense
-              flat
-              round
-              icon="schedule"
-              size="sm"
-              color="grey-7"
-              class="mc-hours-btn"
-              @click="dialog = true"
-            >
-              <q-tooltip>Horario</q-tooltip>
-            </q-btn>
+              <q-btn
+                dense
+                flat
+                round
+                icon="schedule"
+                size="sm"
+                color="grey-7"
+                class="mc-hours-btn"
+                @click="dialog = true"
+              >
+                <q-tooltip>Horario</q-tooltip>
+              </q-btn>
 
-            <q-btn
-              dense
-              flat
-              round
-              icon="share"
-              size="sm"
-              color="grey-7"
-              class="mc-hours-btn"
-              @click="shareMenu"
-            >
-              <q-tooltip>Compartir menú</q-tooltip>
-            </q-btn>
+              <q-btn
+                dense
+                flat
+                round
+                icon="share"
+                size="sm"
+                color="grey-7"
+                class="mc-hours-btn"
+                @click="shareMenu"
+              >
+                <q-tooltip>Compartir menú</q-tooltip>
+              </q-btn>
 
-            <q-separator vertical inset class="q-mx-xs" v-if="reviewData.total > 0" />
+              <q-separator vertical inset class="q-mx-xs" v-if="reviewData.total > 0" />
 
-            <!-- Rating inline -->
-            <div
-              v-if="reviewData.total > 0"
-              class="mc-rating-badge cursor-pointer"
-              @click="reviewsDrawer = true"
-            >
-              <q-icon name="star" class="mc-ic-sm" color="amber-8" />
-              <span class="mc-rating-badge__score">{{ reviewData.avg.toFixed(1) }}</span>
-              <span class="mc-rating-badge__count">({{ reviewData.total }})</span>
-              <q-tooltip>Ver reseñas</q-tooltip>
+              <!-- Rating inline -->
+              <div
+                v-if="reviewData.total > 0"
+                class="mc-rating-badge cursor-pointer"
+                @click="reviewsDrawer = true"
+              >
+                <q-icon name="star" class="mc-ic-sm" color="amber-8" />
+                <span class="mc-rating-badge__score">{{ reviewData.avg.toFixed(1) }}</span>
+                <span class="mc-rating-badge__count">({{ reviewData.total }})</span>
+                <q-tooltip>Ver reseñas</q-tooltip>
+              </div>
+              <q-btn
+                v-else
+                dense
+                flat
+                round
+                icon="rate_review"
+                size="sm"
+                color="grey-7"
+                class="mc-hours-btn"
+                @click="reviewsDrawer = true"
+              >
+                <q-tooltip>Reseñas</q-tooltip>
+              </q-btn>
             </div>
-            <q-btn
-              v-else
-              dense
-              flat
-              round
-              icon="rate_review"
-              size="sm"
-              color="grey-7"
-              class="mc-hours-btn"
-              @click="reviewsDrawer = true"
+            <div
+              v-if="mainStore.businessAddress && !mainStore.businessAddress.includes('undefined')"
+              class="mc-address"
+              @click="openMap"
             >
-              <q-tooltip>Reseñas</q-tooltip>
-            </q-btn>
+              <q-icon name="location_on" class="mc-ic-sm" />
+              <span>{{ mainStore.businessAddress }}</span>
+            </div>
+            <div
+              v-if="!mainStore.company.isOpen && mainStore.nextOpenText"
+              class="mc-next-open"
+            >
+              <q-icon name="access_time" class="q-mr-xs mc-ic-sm" />
+              {{ mainStore.nextOpenText }}
+            </div>
           </div>
-          <div
-            v-if="mainStore.businessAddress && !mainStore.businessAddress.includes('undefined')"
-            class="mc-address"
-            @click="openMap"
-          >
-            <q-icon name="location_on" class="mc-ic-sm" />
-            <span>{{ mainStore.businessAddress }}</span>
-          </div>
-          <div
-            v-if="!mainStore.company.isOpen && mainStore.nextOpenText"
-            class="mc-next-open"
-          >
-            <q-icon name="access_time" class="q-mr-xs mc-ic-sm" />
-            {{ mainStore.nextOpenText }}
-          </div>
+        </div>
+
+        <!-- El aviso que escribe el negocio desde su Tema.
+             Va DENTRO de la ficha a proposito: en celular la ficha es `position: fixed` y
+             su alto es el que se mide para colocar las categorias y el contenido. Fuera de
+             aqui el banner quedaba en flujo normal, o sea tapado por la propia ficha.
+
+             Ademas leia de `mainStore.company`, que NO es el negocio sino el store
+             completo, y ahi theme_config nunca existio: la condicion era falsa siempre,
+             para los 106 negocios, desde el primer commit. Nunca se habia visto. -->
+        <div
+          v-if="temaDelNegocio.show_banner && temaDelNegocio.banner_text"
+          class="mc-establishment-banner"
+        >
+          {{ temaDelNegocio.banner_text }}
         </div>
       </div>
 
-      <!-- El aviso que escribe el negocio desde su Tema.
-           Va DENTRO de la ficha a proposito: en celular la ficha es `position: fixed` y
-           su alto es el que se mide para colocar las categorias y el contenido. Fuera de
-           aqui el banner quedaba en flujo normal, o sea tapado por la propia ficha.
-
-           Ademas leia de `mainStore.company`, que NO es el negocio sino el store
-           completo, y ahi theme_config nunca existio: la condicion era falsa siempre,
-           para los 106 negocios, desde el primer commit. Nunca se habia visto. -->
-      <div
-        v-if="temaDelNegocio.show_banner && temaDelNegocio.banner_text"
-        class="mc-establishment-banner"
+      <div class="mc-tabs-fila" :class="{ 'mc-tabs-fila--con-indice': mostrarIndice }">
+      <q-tabs
+        ref="tabsRef"
+        v-model="mainStore.tab"
+        mobile-arrows
+        :vertical="tabsVertical"
+        class="mc-sidebar-tabs"
+        style="background: var(--color-surface)"
       >
-        {{ temaDelNegocio.banner_text }}
+        <q-tab
+          v-for="category in visibleCategories"
+          :key="category.id"
+          :name="category.id"
+          @click="goToCategory(category.id)"
+        >
+          <div class="mc-tab-inner">
+            <span class="mc-tab-name">{{ category.name }}</span>
+            <span
+              v-if="$q.screen.width >= 1024 && categoryCount(category.id)"
+              class="mc-tab-count"
+            >{{ categoryCount(category.id) }}</span>
+          </div>
+        </q-tab>
+      </q-tabs>
+
+        <!-- Ver todas.
+             La tira sirve para saber DONDE estas; el indice, para IR a donde quieres.
+             Son dos trabajos distintos y con 12 categorias la tira estaba haciendo los
+             dos mal: solo se alcanzan a ver tres. -->
+        <button
+          v-if="mostrarIndice"
+          type="button"
+          class="mc-indice-btn"
+          aria-label="Ver todas las categorías"
+          @click="indiceAbierto = true"
+        >
+          <q-icon name="menu" class="mc-ic-sm" />
+        </button>
       </div>
-    </div>
-
-    <div class="mc-tabs-fila" :class="{ 'mc-tabs-fila--con-indice': mostrarIndice }">
-    <q-tabs
-      ref="tabsRef"
-      v-model="mainStore.tab"
-      mobile-arrows
-      :vertical="tabsVertical"
-      class="mc-sidebar-tabs"
-      style="background: var(--color-surface)"
-    >
-      <q-tab
-        v-for="category in visibleCategories"
-        :key="category.id"
-        :name="category.id"
-        @click="goToCategory(category.id)"
-      >
-        <div class="mc-tab-inner">
-          <span class="mc-tab-name">{{ category.name }}</span>
-          <span
-            v-if="$q.screen.width >= 1024 && categoryCount(category.id)"
-            class="mc-tab-count"
-          >{{ categoryCount(category.id) }}</span>
-        </div>
-      </q-tab>
-    </q-tabs>
-
-      <!-- Ver todas.
-           La tira sirve para saber DONDE estas; el indice, para IR a donde quieres.
-           Son dos trabajos distintos y con 12 categorias la tira estaba haciendo los
-           dos mal: solo se alcanzan a ver tres. -->
-      <button
-        v-if="mostrarIndice"
-        type="button"
-        class="mc-indice-btn"
-        aria-label="Ver todas las categorías"
-        @click="indiceAbierto = true"
-      >
-        <q-icon name="menu" class="mc-ic-sm" />
-      </button>
     </div>
 
     <!-- El indice completo -->
@@ -355,6 +370,7 @@ import { centerTabScroll } from "src/utils/categoryScroll";
 const $q = useQuasar();
 const mainStore = useMainStore();
 const dialog = ref(false);
+const fijoRef = ref(null);
 const establishmentRef = ref(null);
 
 /**
@@ -368,17 +384,37 @@ const establishmentRef = ref(null);
  * tapado. Y como las categorias las pone cada negocio -de 3 a 13, con nombres de
  * distinto largo-, el alto real cambia de un menu a otro.
  */
+// El alto del encabezado CON la ficha abierta. Es el que reserva el contenido, y no
+// cambia cuando la ficha se encoge (ver abajo). No es reactivo: solo lo lee esta funcion.
+let altoExpandido = 0;
+// Si ya se alcanzo a medir con la ficha abierta. Recargar la pagina a media carta deja
+// al comensal deslizado y la ficha nace encogida: ahi todavia no hay un alto bueno que
+// conservar, asi que se sigue midiendo hasta que lo haya.
+let medidoExpandido = false;
+
 const updateSidebarHeight = () => {
   nextTick(() => {
-    if (!establishmentRef.value || $q.screen.width >= 1024) return;
+    if (!fijoRef.value || $q.screen.width >= 1024) return;
 
-    const ficha = establishmentRef.value.offsetHeight;
-    // El renglon completo -tira mas boton del indice-, no solo la tira.
-    const renglon = tabsRef.value?.$el?.closest('.mc-tabs-fila');
-    const tira = (renglon || tabsRef.value?.$el)?.offsetHeight || 50;
+    // Con la ficha ya encogida NO se vuelve a medir, y esto es lo que evita el brinco.
+    //
+    // El margen del contenido se queda con el alto de la ficha abierta. Si se actualizara
+    // al encogerse, el menu entero subiria de golpe: medido en produccion, un platillo
+    // saltaba 145 px hacia arriba bajo el dedo justo mientras uno deslizaba. Como el encabezado
+    // es fijo, al contraerse solo destapa contenido que ya venia pasando por debajo; y no
+    // se abre un hueco por dejar el margen largo, porque para cuando la ficha se encoge
+    // -pasados 140 px de deslizamiento- ese margen ya quedo arriba de la pantalla.
+    if (fichaCompacta.value && medidoExpandido) return;
 
-    document.documentElement.style.setProperty('--mc-establishment-height', (56 + ficha) + 'px');
-    document.documentElement.style.setProperty('--mc-sidebar-total-height', (ficha + tira) + 'px');
+    // Una sola medida: el bloque entero, que ya trae la ficha y la tira. Antes se median
+    // por separado para poder colocar la tira debajo de la ficha; ahora van juntas y no
+    // hay nada que colocar.
+    altoExpandido = fijoRef.value.offsetHeight;
+    if (!fichaCompacta.value) medidoExpandido = true;
+    document.documentElement.style.setProperty(
+      '--mc-sidebar-total-height',
+      altoExpandido + 'px'
+    );
   });
 };
 const reviewDialog = ref(false);
@@ -574,10 +610,7 @@ onMounted(async () => {
 
   if (typeof ResizeObserver !== 'undefined') {
     observador = new ResizeObserver(() => updateSidebarHeight());
-    if (establishmentRef.value) observador.observe(establishmentRef.value);
-    const renglon = tabsRef.value?.$el?.closest('.mc-tabs-fila');
-    if (renglon) observador.observe(renglon);
-    else if (tabsRef.value?.$el) observador.observe(tabsRef.value.$el);
+    if (fijoRef.value) observador.observe(fijoRef.value);
   }
 
   await refreshReviews();
@@ -715,8 +748,8 @@ function goToCategory(id) {
    busca de comer: el chip de abierto, la direccion y el proximo horario. Se queda el
    logo y el nombre, que es lo que dice en donde estas.
 
-   Las categorias no se tocan: ya se colocan contra --mc-establishment-height, asi que
-   suben solas cuando esa variable baja. */
+   Las categorias no se tocan: van dentro del mismo bloque fijo, asi que suben pegadas
+   a la ficha mientras esta se encoge. */
 .mc-sidebar-establishment {
   transition: none;
 
