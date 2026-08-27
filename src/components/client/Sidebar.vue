@@ -511,6 +511,15 @@ const SUBIR = 60;
 const alDeslizar = () => {
   if ($q.screen.width >= 1024 || mainStore.isExternal) return;
 
+  // Con un cajon o un dialogo abierto, NO.
+  //
+  // Para bloquear el scroll, Quasar le pone `position: fixed` al cuerpo, y entonces
+  // `window.scrollY` se lee como 0 aunque el comensal siga parado a media carta. Sin
+  // esta guarda, abrir el indice -o el carrito, o el detalle de un platillo- disparaba
+  // este detector como si hubiera vuelto arriba y la ficha se expandia DETRAS de la
+  // hoja: el fondo se movia solo mientras uno miraba el menu emergente.
+  if (document.body.classList.contains('q-body--prevent-scroll')) return;
+
   const y = window.scrollY || document.documentElement.scrollTop || 0;
   const antes = fichaCompacta.value;
 
@@ -531,11 +540,29 @@ const alDeslizar = () => {
  * observador no adivina, se entera.
  */
 let observador = null;
+let vigilanteDelCuerpo = null;
 
 onMounted(async () => {
   setTimeout(updateSidebarHeight, 200);
   window.addEventListener('resize', updateSidebarHeight);
   window.addEventListener('scroll', alDeslizar, { passive: true });
+
+  // Cuando se cierra un cajon, Quasar devuelve el scroll y quita su marca de bloqueo,
+  // pero el evento de scroll llega mientras la marca sigue puesta: la guarda de
+  // `alDeslizar` lo descarta y ya nadie vuelve a decidir si la ficha va compacta. Se
+  // quedaba expandida aunque el comensal siguiera a media carta. Esto se entera de
+  // cuando la marca desaparece y recalcula.
+  if (typeof MutationObserver !== 'undefined') {
+    let bloqueadoAntes = document.body.classList.contains('q-body--prevent-scroll');
+    vigilanteDelCuerpo = new MutationObserver(() => {
+      const ahora = document.body.classList.contains('q-body--prevent-scroll');
+      // Un instante despues, no en el acto: Quasar quita su marca ANTES de devolver la
+      // posicion del scroll, asi que preguntando de inmediato se lee 0.
+      if (bloqueadoAntes && !ahora) setTimeout(resincronizar, 120);
+      bloqueadoAntes = ahora;
+    });
+    vigilanteDelCuerpo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
 
   if (typeof ResizeObserver !== 'undefined') {
     observador = new ResizeObserver(() => updateSidebarHeight());
@@ -552,6 +579,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', updateSidebarHeight);
   window.removeEventListener('scroll', alDeslizar);
   observador?.disconnect();
+  vigilanteDelCuerpo?.disconnect();
 });
 
 
@@ -608,6 +636,29 @@ const mostrarIndice = computed(() => {
  * scroll.
  */
 const categoriaPendiente = ref(null);
+
+/**
+ * Deja la ficha como corresponde a donde esta la pagina AHORA, sin histeresis.
+ *
+ * Los dos umbrales sirven mientras uno arrastra, para que el encabezado no parpadee.
+ * Al cerrar un cajon estorban: entre que Quasar quita su marca de bloqueo y devuelve la
+ * posicion, se cuela un evento de scroll con la pagina leyendose en 0, la ficha se
+ * expande, y al volver a -por decir- 118 ya no se vuelve a contraer, porque 118 no
+ * llega al umbral de bajada. Se quedaba expandida a media carta.
+ *
+ * Aqui no hay que evitar parpadeo: hay que decir la verdad de una vez.
+ */
+const resincronizar = () => {
+  if ($q.screen.width >= 1024 || mainStore.isExternal) return;
+  if (document.body.classList.contains('q-body--prevent-scroll')) return;
+
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const debeEstarCompacta = y > SUBIR;
+
+  if (fichaCompacta.value !== debeEstarCompacta) {
+    fichaCompacta.value = debeEstarCompacta;
+  }
+};
 
 const irDesdeIndice = (id) => {
   categoriaPendiente.value = id;
@@ -757,6 +808,9 @@ function goToCategory(id) {
 .mc-indice__lista {
   max-height: 52vh;
   overflow-y: auto;
+  /* Al llegar al final de la lista, el deslizamiento NO pasa a la pagina de atras.
+     Sin esto, seguir arrastrando arrastra el menu que esta debajo del menu emergente. */
+  overscroll-behavior: contain;
   margin: 0 calc(-1 * var(--space-md));
   padding: 0 var(--space-md);
 }
