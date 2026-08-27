@@ -131,6 +131,14 @@ body.body--dark {
   }
 }
 
+// El encabezado es translucido a proposito: sobre la portada del negocio se ve bien.
+// Pero en cuanto la ficha se compacta, lo que pasa por debajo es el menu, y se alcanza
+// a leer el titulo de una seccion en fantasma encima del logo. Ahi se vuelve solido.
+body.mc-encabezado-solido .q-header {
+  background: var(--color-surface) !important;
+  backdrop-filter: none !important;
+}
+
 // ============================================
 // LA ESCALA DE ICONOS
 // ============================================

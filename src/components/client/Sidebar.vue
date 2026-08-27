@@ -503,6 +503,14 @@ watch(() => mainStore.company?.name, () => {
  */
 const fichaCompacta = ref(false);
 
+// El encabezado de la aplicacion vive en MainLayout, no aqui, asi que se le avisa por
+// una clase en el cuerpo: translucido sobre la portada -que se ve bien- y solido en
+// cuanto la ficha se compacta, porque ahi el contenido pasa por debajo y se
+// transparenta. Se veia el titulo de una seccion en fantasma sobre el logo.
+watch(fichaCompacta, (compacta) => {
+  document.body.classList.toggle('mc-encabezado-solido', compacta);
+});
+
 // Dos umbrales y no uno: con uno solo, arrastrar despacio justo en ese pixel hace que
 // el encabezado parpadee entre las dos alturas.
 const BAJAR = 140;
@@ -737,6 +745,11 @@ function goToCategory(id) {
     padding-bottom: 0;
     margin: 0;
   }
+
+  /* Sin esto quedaba una franja blanca de 17 px entre la barra del negocio y las
+     categorias: el relleno de la ficha seguia ahi aunque su contenido ya no. Se veia
+     como una costura y era justo lo que se notaba al bajar. */
+  padding-bottom: 0;
 
   /* El aviso del negocio si se queda: es lo que el dueño quiso decir. */
   .mc-establishment-banner {
