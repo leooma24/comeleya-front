@@ -31,6 +31,21 @@
           </div>
         </admin-section>
 
+        <admin-section
+          icon="menu"
+          title="Navegación del menú"
+          description="En un celular solo se alcanzan a ver tres categorías de la tira de arriba. El índice es una lista con todas, que el cliente abre con un toque."
+        >
+          <q-select
+            filled dense rounded
+            v-model="theme.category_index"
+            :options="opcionesIndice"
+            label="Índice de categorías"
+            emit-value
+            map-options
+          />
+        </admin-section>
+
         <!-- Typography -->
         <admin-section
           icon="text_fields"
@@ -211,6 +226,10 @@ const defaultTheme = () => ({
   // hay hoy y porque se recorta bien sobre la foto del platillo, que es donde mas se usa.
   // La X de adentro NO se configura: se calcula para que contraste con este color.
   close_button_color: "#FFFFFF",
+  // Como navega el comensal entre categorias. "auto" enseña el indice cuando hay mas
+  // categorias de las que caben en la tira; es lo que sirve sin que nadie configure
+  // nada, y por eso es el default.
+  category_index: "auto",
   show_banner: false,
   banner_text: "",
   cart_image: "",
@@ -258,6 +277,12 @@ const colorLabels = {
   text_color: "Texto",
   close_button_color: "Botón de cerrar",
 };
+
+const opcionesIndice = [
+  { label: "Automático — aparece si tienes muchas categorías", value: "auto" },
+  { label: "Siempre visible", value: "siempre" },
+  { label: "No mostrarlo", value: "nunca" },
+];
 
 const fontOptions = [
   { label: "Inter", value: "Inter" },

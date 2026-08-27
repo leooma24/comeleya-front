@@ -117,6 +117,20 @@ body.body--dark {
   --shadow-cart: 0 -4px 20px rgba(0, 0, 0, 0.5);
 }
 
+// La tira de categorias y el boton del indice viajan juntos: en celular el renglon
+// completo es el que se fija bajo la ficha del negocio.
+@media screen and (max-width: 1023px) {
+  .mc-tabs-fila {
+    position: fixed;
+    top: var(--mc-establishment-height, 180px);
+    left: 0;
+    width: 100vw;
+    z-index: 3;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+  }
+}
+
 // ============================================
 // LA ESCALA DE ICONOS
 // ============================================
@@ -453,12 +467,11 @@ h6 {
     }
 
     @media screen and (max-width: 1023px) {
-      position: fixed;
-      top: var(--mc-establishment-height, 180px);
-      left: 0;
-      width: 100vw;
-      z-index: 3;
-      border-bottom: 1px solid var(--color-border);
+      // El `position: fixed` se mudo a `.mc-tabs-fila`, que es quien envuelve a la
+      // tira Y al boton del indice: fijando solo la tira, el boton se quedaba en flujo
+      // normal y aparecia mas abajo, suelto.
+      width: auto;
+      min-width: 0;
 
       // UN solo renglon que se desliza, como estaba.
       //

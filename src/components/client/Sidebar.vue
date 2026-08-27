@@ -129,6 +129,7 @@
       </div>
     </div>
 
+    <div class="mc-tabs-fila" :class="{ 'mc-tabs-fila--con-indice': mostrarIndice }">
     <q-tabs
       ref="tabsRef"
       v-model="mainStore.tab"
@@ -152,6 +153,47 @@
         </div>
       </q-tab>
     </q-tabs>
+
+      <!-- Ver todas.
+           La tira sirve para saber DONDE estas; el indice, para IR a donde quieres.
+           Son dos trabajos distintos y con 12 categorias la tira estaba haciendo los
+           dos mal: solo se alcanzan a ver tres. -->
+      <button
+        v-if="mostrarIndice"
+        type="button"
+        class="mc-indice-btn"
+        aria-label="Ver todas las categorías"
+        @click="indiceAbierto = true"
+      >
+        <q-icon name="menu" class="mc-ic-sm" />
+      </button>
+    </div>
+
+    <!-- El indice completo -->
+    <q-dialog v-model="indiceAbierto" position="bottom">
+      <div class="mc-indice">
+        <div class="mc-indice__tit">
+          Categorías
+          <span>{{ visibleCategories.length }}</span>
+        </div>
+        <div class="mc-indice__lista">
+          <button
+            v-for="c in visibleCategories"
+            :key="c.id"
+            type="button"
+            class="mc-indice__fila"
+            :class="{ 'mc-indice__fila--on': mainStore.tab === c.id }"
+            @click="irDesdeIndice(c.id)"
+          >
+            <span class="mc-indice__nom">{{ c.name }}</span>
+            <span class="mc-indice__n">{{ categoryCount(c.id) }}</span>
+          </button>
+        </div>
+        <button type="button" class="mc-indice__cerrar" @click="indiceAbierto = false">
+          Cerrar
+        </button>
+      </div>
+    </q-dialog>
 
     <!-- Loyalty Banner -->
     <loyalty-banner />
@@ -331,7 +373,9 @@ const updateSidebarHeight = () => {
     if (!establishmentRef.value || $q.screen.width >= 1024) return;
 
     const ficha = establishmentRef.value.offsetHeight;
-    const tira = tabsRef.value?.$el?.offsetHeight || 50;
+    // El renglon completo -tira mas boton del indice-, no solo la tira.
+    const renglon = tabsRef.value?.$el?.closest('.mc-tabs-fila');
+    const tira = (renglon || tabsRef.value?.$el)?.offsetHeight || 50;
 
     document.documentElement.style.setProperty('--mc-establishment-height', (56 + ficha) + 'px');
     document.documentElement.style.setProperty('--mc-sidebar-total-height', (ficha + tira) + 'px');
@@ -496,7 +540,9 @@ onMounted(async () => {
   if (typeof ResizeObserver !== 'undefined') {
     observador = new ResizeObserver(() => updateSidebarHeight());
     if (establishmentRef.value) observador.observe(establishmentRef.value);
-    if (tabsRef.value?.$el) observador.observe(tabsRef.value.$el);
+    const renglon = tabsRef.value?.$el?.closest('.mc-tabs-fila');
+    if (renglon) observador.observe(renglon);
+    else if (tabsRef.value?.$el) observador.observe(tabsRef.value.$el);
   }
 
   await refreshReviews();
@@ -529,6 +575,33 @@ function openMap() {
     window.open(`https://maps.google.com/?q=${encodeURIComponent(addr)}`, "_blank");
   }
 }
+
+const indiceAbierto = ref(false);
+
+/**
+ * Si se le ofrece al comensal el indice de categorias.
+ *
+ * En automatico -lo normal- aparece cuando hay mas categorias de las que caben en la
+ * tira. El numero sale de la medida real: en 390 px se ven tres, asi que de seis en
+ * adelante ya hay mas escondidas que a la vista y el indice empieza a hacer falta. Un
+ * negocio de cuatro categorias no necesita un indice de cuatro renglones.
+ *
+ * El negocio puede forzarlo o apagarlo desde su Tema. Los dos renglones NO son una
+ * opcion: escondian la categoria activa, y repartir eso como ajuste es repartir el
+ * fallo.
+ */
+const mostrarIndice = computed(() => {
+  if (tabsVertical.value) return false;          // escritorio: caben todas, en vertical
+  const modo = temaDelNegocio.value.category_index || "auto";
+  if (modo === "siempre") return visibleCategories.value.length > 1;
+  if (modo === "nunca") return false;
+  return visibleCategories.value.length >= 6;
+});
+
+const irDesdeIndice = (id) => {
+  indiceAbierto.value = false;
+  goToCategory(id);
+};
 
 function goToCategory(id) {
   // Misma acción que usa el deep-link ?cat= del iframe: fija el tab, bloquea el
@@ -609,6 +682,118 @@ function goToCategory(id) {
     .mc-restaurant-cover { height: 132px; }
     .mc-restaurant-info { height: auto; opacity: 1; overflow: visible; }
   }
+}
+
+/* ===== El indice de categorias ===== */
+
+/* La tira y el boton comparten renglon. El boton NO va dentro de la tira: ahi se
+   deslizaria con las pestañas y no estaria cuando hace falta. */
+.mc-tabs-fila {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.mc-tabs-fila .mc-sidebar-tabs {
+  min-width: 0;
+  flex: 1;
+}
+
+.mc-indice-btn {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.mc-indice {
+  width: 100%;
+  max-width: 100%;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-md) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+}
+
+.mc-indice__tit {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+
+  span {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--color-text-tertiary);
+  }
+}
+
+/* Con 13 categorias la lista no cabe en media pantalla: se desliza ella, no la hoja. */
+.mc-indice__lista {
+  max-height: 52vh;
+  overflow-y: auto;
+  margin: 0 calc(-1 * var(--space-md));
+  padding: 0 var(--space-md);
+}
+
+.mc-indice__fila {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  background: none;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 2px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle);
+
+  &:last-child { border-bottom: 0; }
+  &:active { background: var(--color-surface-variant); }
+
+  /* Donde esta parado ahora mismo: el indice tambien sirve para ubicarse. */
+  &--on {
+    color: var(--q-primary);
+    font-weight: 700;
+  }
+}
+
+.mc-indice__nom {
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+
+.mc-indice__n {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-indice__cerrar {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  margin-top: var(--space-sm);
+  padding: 13px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-variant);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
 }
 
 .mc-restaurant-cover {
