@@ -459,6 +459,45 @@ h6 {
       width: 100vw;
       z-index: 3;
       border-bottom: 1px solid var(--color-border);
+
+      // Dos renglones. Quasar fuerza `flex-wrap: nowrap` desde su clase interna
+      // `no-wrap`, asi que la tira quedaba en una sola linea y con 12 categorias solo
+      // se veian dos y media. Aqui se le quita el candado.
+      //
+      // No se reemplaza el componente: el indicador animado y el centrado automatico
+      // del tab activo se construyeron a proposito y siguen funcionando, porque el
+      // indicador es un fondo del propio tab y no una barra que se mueve por debajo.
+      // Sin `:deep()`: esto es una hoja global, no un estilo con ambito, y ahi `:deep`
+      // no es un selector valido — el navegador tira la regla ENTERA, incluida la parte
+      // buena que va despues de la coma.
+      // Dos renglones exactos. Sin tope se envuelve en cuatro -11 categorias no caben
+      // en dos- y el encabezado fijo se comeria 161 px de una pantalla que ya va justa.
+      // Con el tope, las que no alcanzan quedan a un deslizon corto DENTRO de la tira,
+      // en vez de a doce deslizones a lo largo de una sola linea.
+      height: auto;
+      max-height: var(--mc-tira-alto, 80px);
+
+      .q-tabs__content {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        // `scroll--mobile` le pone overflow horizontal; con renglones envueltos lo que
+        // hace falta es el vertical.
+        overflow-x: visible;
+        overflow-y: auto;
+        max-height: var(--mc-tira-alto, 80px);
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar { display: none; }
+      }
+
+      // Pestañas mas compactas para que quepan mas por renglon. Con las medidas de
+      // antes, dos renglones mostraban 7 de 12; asi se acercan a las 12.
+      .q-tab {
+        min-height: 34px;
+        padding: 0 10px;
+        margin: 3px;
+        font-size: var(--text-xs);
+      }
     }
 
     @media screen and (min-width: 1024px) {

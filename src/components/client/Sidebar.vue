@@ -6,7 +6,12 @@
     ]"
     style="background: var(--color-surface-variant)"
   >
-    <div ref="establishmentRef" class="mc-sidebar-establishment" v-if="!mainStore.isExternal">
+    <div
+      ref="establishmentRef"
+      class="mc-sidebar-establishment"
+      :class="{ 'mc-sidebar-establishment--compacta': fichaCompacta }"
+      v-if="!mainStore.isExternal"
+    >
       <!-- Portada / hero -->
       <div
         class="mc-restaurant-cover"
@@ -293,7 +298,7 @@
 defineOptions({
   name: "SidebarComponent",
 });
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { api } from "boot/axios";
 import { useMainStore } from "src/stores/main-store";
 import { useQuasar } from "quasar";
@@ -310,12 +315,26 @@ const mainStore = useMainStore();
 const dialog = ref(false);
 const establishmentRef = ref(null);
 
+/**
+ * El hueco que hay que reservarle al encabezado fijo.
+ *
+ * En celular la ficha y la tira de categorias estan fuera del flujo, asi que el
+ * contenido no las "ve": si nadie mide su alto, el menu arranca debajo de ellas.
+ *
+ * La tira SE MIDE. Antes eran 50 px escritos a mano, que valian mientras fuera una sola
+ * linea; con dos renglones ese numero deja de ser cierto y el primer platillo queda
+ * tapado. Y como las categorias las pone cada negocio -de 3 a 13, con nombres de
+ * distinto largo-, el alto real cambia de un menu a otro.
+ */
 const updateSidebarHeight = () => {
   nextTick(() => {
     if (!establishmentRef.value || $q.screen.width >= 1024) return;
-    const h = establishmentRef.value.offsetHeight;
-    document.documentElement.style.setProperty('--mc-establishment-height', (56 + h) + 'px');
-    document.documentElement.style.setProperty('--mc-sidebar-total-height', (h + 50) + 'px');
+
+    const ficha = establishmentRef.value.offsetHeight;
+    const tira = tabsRef.value?.$el?.offsetHeight || 50;
+
+    document.documentElement.style.setProperty('--mc-establishment-height', (56 + ficha) + 'px');
+    document.documentElement.style.setProperty('--mc-sidebar-total-height', (ficha + tira) + 'px');
   });
 };
 const reviewDialog = ref(false);
@@ -425,10 +444,58 @@ watch(() => mainStore.company?.name, () => {
   setTimeout(updateSidebarHeight, 100);
 });
 
+
+/**
+ * La ficha se compacta al bajar.
+ *
+ * En celular el encabezado es fijo y se comia el 45% de la pantalla en un iPhone 13 y
+ * el 53% en un SE -57 px de barra, 191 de ficha, mas las categorias-. Con dos renglones
+ * de categorias eso ya no cabia. Al bajar, la ficha se queda en una barra con el logo y
+ * el nombre, y las categorias suben con ella: el menu gana la pantalla que necesita.
+ *
+ * No hay salto de pagina: `.mc-content` conserva el margen de la altura expandida y el
+ * encabezado es fijo, asi que al contraerse solo destapa contenido que ya venia
+ * deslizandose.
+ */
+const fichaCompacta = ref(false);
+
+// Dos umbrales y no uno: con uno solo, arrastrar despacio justo en ese pixel hace que
+// el encabezado parpadee entre las dos alturas.
+const BAJAR = 140;
+const SUBIR = 60;
+
+const alDeslizar = () => {
+  if ($q.screen.width >= 1024 || mainStore.isExternal) return;
+
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const antes = fichaCompacta.value;
+
+  if (!antes && y > BAJAR) fichaCompacta.value = true;
+  else if (antes && y < SUBIR) fichaCompacta.value = false;
+
+  // Al cambiar de alto hay que volver a medir: de esas variables cuelgan la posicion de
+  // las categorias y el hueco que reserva el contenido.
+  //
+  // Dos veces, y la segunda es la que cuenta: la ficha se encoge con una transicion, y
+  // medir de inmediato devuelve una altura a medio camino. Con solo la primera medida
+  // quedaba una franja de 15 px entre la ficha y las categorias por donde se veia el
+  // contenido pasar por debajo.
+  if (antes !== fichaCompacta.value) {
+    updateSidebarHeight();
+    setTimeout(updateSidebarHeight, 320);
+  }
+};
+
 onMounted(async () => {
   setTimeout(updateSidebarHeight, 200);
   window.addEventListener('resize', updateSidebarHeight);
+  window.addEventListener('scroll', alDeslizar, { passive: true });
   await refreshReviews();
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateSidebarHeight);
+  window.removeEventListener('scroll', alDeslizar);
 });
 
 
@@ -480,6 +547,57 @@ function goToCategory(id) {
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+  }
+}
+
+/* ===== La ficha compacta =====
+   Al bajar, la portada se encoge y desaparece todo lo que no hace falta mientras uno
+   busca de comer: el chip de abierto, la direccion y el proximo horario. Se queda el
+   logo y el nombre, que es lo que dice en donde estas.
+
+   Las categorias no se tocan: ya se colocan contra --mc-establishment-height, asi que
+   suben solas cuando esa variable baja. */
+.mc-sidebar-establishment {
+  transition: none;
+
+  .mc-restaurant-cover,
+  .mc-restaurant-info {
+    transition: height var(--transition-normal), opacity var(--transition-fast),
+      padding var(--transition-normal), margin var(--transition-normal);
+  }
+}
+
+.mc-sidebar-establishment--compacta {
+  .mc-restaurant-cover {
+    height: 62px;
+  }
+
+  /* El nombre baja de tamaño para caber en la barra sin cortarse. */
+  .mc-restaurant-cover__name {
+    font-size: var(--text-lg);
+  }
+
+  .mc-restaurant-info {
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+  }
+
+  /* El aviso del negocio si se queda: es lo que el dueño quiso decir. */
+  .mc-establishment-banner {
+    padding: 5px var(--space-md);
+    font-size: var(--text-xs);
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  /* En escritorio la ficha no se contrae: ahi no compite por la pantalla. */
+  .mc-sidebar-establishment--compacta {
+    .mc-restaurant-cover { height: 132px; }
+    .mc-restaurant-info { height: auto; opacity: 1; overflow: visible; }
   }
 }
 
