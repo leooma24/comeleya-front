@@ -51,6 +51,12 @@
       </div>
     </div>
 
+    <logos-clientes
+      :clientes="clientes"
+      titulo="Negocios que ya usan ComeleYa"
+      variante="clara"
+    />
+
     <div class="options">
       <div class="curves curves-1"></div>
       <div class="container">
@@ -542,6 +548,11 @@
     </div>
 
     <footer>
+      <logos-clientes
+        :clientes="clientes"
+        titulo="Ellos ya venden con ComeleYa"
+        variante="oscura"
+      />
       <div class="container">
         <div class="row q-mb-md items-center">
           <div class="col-md-4 col-xs-12 text-center-mobile">
@@ -617,6 +628,7 @@ import { ref, computed, onMounted } from "vue";
 import { useMeta } from "quasar";
 import { api } from "boot/axios";
 import EmailCheckoutDialog from "src/components/EmailCheckoutDialog.vue";
+import LogosClientes from "src/components/LogosClientes.vue";
 
 // El <title> del index es "ComeleYa" a secas. La description NO va aqui: la estatica
 // de index.html (productDescription en package.json) ya dice lo correcto y Quasar no
@@ -733,6 +745,23 @@ const loadPackages = async () => {
   }
 };
 
+// Los negocios que ya pagan, para las dos tiras de logos. Un solo fetch: las dos
+// instancias reciben el mismo arreglo, porque pedirle dos veces lo mismo al
+// servidor en la misma visita no le sirve a nadie.
+const clientes = ref([]);
+
+const loadClientes = async () => {
+  try {
+    const { data } = await api.get("/clients");
+    clientes.value = data.clients || [];
+  } catch (e) {
+    // Sin respaldo hardcodeado, a diferencia de loadPackages. Los planes son
+    // nuestros y se pueden escribir a mano; los clientes no: inventar logos en
+    // una seccion que dice "estos ya nos usan" es exactamente lo que se nota.
+    clientes.value = [];
+  }
+};
+
 // Contact form
 const contactForm = ref({ name: "", business: "", email: "", phone: "", interest: "", message: "" });
 const sendingContact = ref(false);
@@ -760,7 +789,7 @@ const sendContact = async () => {
   }
 };
 
-onMounted(() => { resetTheme(); loadPackages(); });
+onMounted(() => { resetTheme(); loadPackages(); loadClientes(); });
 
 const newFeatures = ref([
   { icon: "auto_fix_high", title: "Fotos mejoradas con IA", desc: "Mejora las fotos de tus platillos con inteligencia artificial para que se vean irresistibles y profesionales." },
