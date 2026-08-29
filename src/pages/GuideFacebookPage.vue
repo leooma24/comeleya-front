@@ -46,14 +46,25 @@
           <h2>2. Catálogo (tu menú en Facebook)</h2>
         </div>
         <p class="mc-guide__desc">Publica tu menú como catálogo en tu fan page. Facebook lo consulta y lo mantiene actualizado solo.</p>
-        <p class="mc-guide__step-label">Conectar el feed en Commerce Manager</p>
+        <p class="mc-guide__step-label">Conectar el feed en el administrador de ventas</p>
         <ol class="mc-guide__steps">
           <li>En tu panel, en el tab Meta, copia la <strong>URL del catálogo</strong>.</li>
-          <li>Entra a <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">Meta Commerce Manager</a> y elige o crea un catálogo para restaurantes.</li>
-          <li>Ve a <em>Catálogo → Fuentes de datos → Usar feeds de datos</em>.</li>
-          <li>Elige <strong>URL programada</strong>, pega la URL y define frecuencia <strong>diaria</strong>.</li>
-          <li>Conecta el catálogo a tu fan page en <em>Configuración → Páginas conectadas</em>.</li>
+          <li>
+            Entra al <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas de Meta</a>
+            —antes se llamaba Commerce Manager— y elige o crea un catálogo.
+          </li>
+          <li>Abre tu catálogo y ve a <strong>Orígenes de datos</strong> → botón <strong>Agregar artículos</strong>. Si te pregunta cuántos, elige <em>Agregar varios artículos</em>.</li>
+          <li>Elige <strong>Lista de datos</strong> → <strong>Siguiente</strong>, y ahí escoge <strong>Lista programada</strong>.</li>
+          <li>En el campo <strong>Ingresar URL</strong>, pega la URL que copiaste del panel.</li>
+          <li>En <strong>Programar actualizaciones</strong> elige frecuencia <strong>diaria</strong> y deja prendido <strong>Agregar actualizaciones automáticas</strong>. Así tus precios se actualizan solos.</li>
+          <li>Ponle un nombre al origen de datos, elige la divisa <strong>MXN</strong> y dale <strong>Subir</strong>.</li>
+          <li>Ya cargado, conecta el catálogo con tu página de Facebook desde la configuración del propio catálogo.</li>
         </ol>
+        <div class="mc-guide__tip">
+          Meta le mueve a estos menús seguido y no todas las cuentas ven lo mismo. Si algún nombre no te
+          coincide, <a href="https://es-la.facebook.com/business/help/125074381480892" target="_blank" rel="noopener">la ayuda oficial de Meta sobre listas de datos</a>
+          siempre trae la versión del momento.
+        </div>
       </section>
 
       <!-- Messenger -->
@@ -78,7 +89,15 @@
               </ul>
             </div>
           </li>
-          <li>Autoriza el dominio: en la configuración de mensajes de tu página, busca el <strong>Plugin de chat</strong> y agrega <strong>comeleya.com</strong> a los dominios permitidos. <strong>Sin esto el chat no aparece.</strong></li>
+          <li>
+            Autoriza el dominio, o el chat no aparece nunca: en la configuración de mensajes de tu página busca el
+            <strong>plugin de chat</strong> y agrega <strong>comeleya.com</strong> a los dominios permitidos.
+            <div class="mc-guide__tip">
+              Este es el paso que Meta ha movido de lugar varias veces, y cambia según cómo tengas configurada tu
+              página. La ruta exacta y actualizada viene en
+              <a href="https://es-la.facebook.com/business/help/1524587524402327" target="_blank" rel="noopener">la ayuda oficial de Meta sobre el plugin de chat</a>.
+            </div>
+          </li>
         </ol>
         <div class="mc-guide__paste">
           <strong>En tu panel:</strong> Meta → campo <strong>Page ID</strong> → <strong>Guarda</strong>. El chat aparece en tu menú público.
@@ -91,7 +110,7 @@
         <ul>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Plan con la función de Meta activa (si usarás Píxel o Messenger).</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Pixel ID capturado y guardado, con el toggle activado.</li>
-          <li><q-icon name="check_circle" color="positive" size="20px" /> Feed del catálogo conectado en Commerce Manager.</li>
+          <li><q-icon name="check_circle" color="positive" size="20px" /> Feed del catálogo conectado como lista programada en el administrador de ventas.</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Page ID capturado y dominio comeleya.com autorizado en el plugin de chat.</li>
         </ul>
       </section>
