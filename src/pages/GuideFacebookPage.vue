@@ -4,9 +4,9 @@
       <header class="mc-guide__head">
         <q-icon name="fab fa-facebook" size="34px" color="primary" />
         <div>
-          <h1 class="mc-guide__title">Cómo conectar tu restaurante con Facebook</h1>
+          <h1 class="mc-guide__title">Cómo conectar tu restaurante con Facebook, Instagram y WhatsApp</h1>
           <p class="mc-guide__sub">
-            Guía paso a paso para dejar funcionando el Píxel, el catálogo y el chat de Messenger.
+            Guía paso a paso para dejar funcionando el Píxel, el catálogo, el chat de Messenger y el mismo catálogo en Instagram y WhatsApp.
           </p>
         </div>
       </header>
@@ -43,9 +43,9 @@
       <section class="mc-guide__card">
         <div class="mc-guide__cardhead">
           <span class="mc-badge mc-badge--free">Gratis</span>
-          <h2>2. Catálogo (tu menú en Facebook)</h2>
+          <h2>2. Catálogo (tu menú en Meta)</h2>
         </div>
-        <p class="mc-guide__desc">Publica tu menú como catálogo en tu fan page. Facebook lo consulta y lo mantiene actualizado solo.</p>
+        <p class="mc-guide__desc">Publica tu menú como catálogo. Lo cargas una sola vez y de ahí sale para Facebook, Instagram y WhatsApp; Meta lo vuelve a leer solo y mantiene tus precios al día.</p>
         <p class="mc-guide__step-label">Conectar el feed en el administrador de ventas</p>
         <ol class="mc-guide__steps">
           <li>En tu panel, en el tab Meta, copia la <strong>URL del catálogo</strong>.</li>
@@ -104,6 +104,74 @@
         </div>
       </section>
 
+      <!-- Instagram -->
+      <section class="mc-guide__card">
+        <div class="mc-guide__cardhead">
+          <span class="mc-badge mc-badge--free">Gratis</span>
+          <h2>4. Instagram</h2>
+        </div>
+        <p class="mc-guide__desc">
+          Es el <strong>mismo catálogo</strong> del paso 2: no se sube otra vez, solo se conecta.
+        </p>
+
+        <p class="mc-guide__step-label">Son dos cosas distintas, y conviene no confundirlas</p>
+        <ul class="mc-guide__steps">
+          <li>
+            <strong>Anuncios con tus platillos.</strong> Ya te funciona: los anuncios de catálogo se
+            muestran en Facebook <em>y</em> en Instagram con el mismo catálogo y el mismo píxel. No hay
+            nada extra que pedir ni que aprobar.
+          </li>
+          <li>
+            <strong>Tienda en Instagram</strong>, para etiquetar platillos en tus publicaciones. Esta sí
+            pasa por una <strong>revisión de Meta</strong> que tarda de 1 a 5 días hábiles, y no todas las
+            cuentas la pasan.
+          </li>
+        </ul>
+
+        <p class="mc-guide__step-label">Conectar tu cuenta</p>
+        <ol class="mc-guide__steps">
+          <li>Tu Instagram tiene que ser <strong>cuenta profesional</strong>: en Instagram, <em>Configuración → Cuenta → Cambiar a cuenta profesional</em>.</li>
+          <li>Vincúlala con la <strong>página de Facebook</strong> del negocio. Sin esa liga, lo demás no aparece.</li>
+          <li>En el <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas</a>, conecta el catálogo con tu cuenta de Instagram.</li>
+          <li>Si quieres la tienda, manda la cuenta a revisión desde ahí mismo.</li>
+        </ol>
+
+        <div class="mc-guide__tip">
+          Antes de mandarla a revisión, revisa que tu perfil tenga la dirección de tu menú, la categoría del
+          negocio y datos de contacto: los perfiles a medias son los que más rechazan. Los requisitos
+          completos están en
+          <a href="https://es-la.facebook.com/help/instagram/1627591223954487" target="_blank" rel="noopener">los requisitos comerciales de Instagram</a>.
+        </div>
+      </section>
+
+      <!-- WhatsApp -->
+      <section class="mc-guide__card">
+        <div class="mc-guide__cardhead">
+          <span class="mc-badge mc-badge--free">Gratis</span>
+          <h2>5. WhatsApp</h2>
+        </div>
+        <p class="mc-guide__desc">
+          Tus platillos aparecen en el perfil de tu WhatsApp Business, para que el cliente los vea sin
+          salirse del chat. Otra vez es el mismo catálogo del paso 2.
+        </p>
+        <p class="mc-guide__step-label">Conectar el catálogo a tu número</p>
+        <ol class="mc-guide__steps">
+          <li>Necesitas la app <strong>WhatsApp Business</strong> con el número del negocio. La app normal de WhatsApp no sirve para esto.</li>
+          <li>
+            Revisa que tengas los permisos <strong>Administrar página</strong> en tu página de Facebook y
+            <strong>Administrar catálogo</strong> en el catálogo. Sin esos dos, el botón de conectar no te deja.
+          </li>
+          <li>En el <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas</a>, conecta el catálogo con tu cuenta de WhatsApp Business.</li>
+        </ol>
+
+        <div class="mc-guide__tip">
+          <strong>Si ya tenías productos cargados a mano</strong> en tu WhatsApp Business, fíjate cómo queda
+          el catálogo después de conectar, para no acabar con la lista duplicada o cambiada sin querer.
+          Los pasos exactos y al día están en
+          <a href="https://es-la.facebook.com/business/help/158662536425974" target="_blank" rel="noopener">la ayuda oficial de Meta</a>.
+        </div>
+      </section>
+
       <!-- Checklist -->
       <section class="mc-guide__checklist">
         <h2>Checklist</h2>
@@ -112,6 +180,8 @@
           <li><q-icon name="check_circle" color="positive" size="20px" /> Pixel ID capturado y guardado, con el toggle activado.</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Feed del catálogo conectado como lista programada en el administrador de ventas.</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Page ID capturado y dominio comeleya.com autorizado en el plugin de chat.</li>
+          <li><q-icon name="check_circle" color="positive" size="20px" /> Cuenta de Instagram profesional, ligada a tu página y conectada al catálogo.</li>
+          <li><q-icon name="check_circle" color="positive" size="20px" /> Catálogo conectado a tu número de WhatsApp Business.</li>
         </ul>
       </section>
 
