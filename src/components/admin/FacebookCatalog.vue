@@ -41,7 +41,7 @@
 
           <q-toggle
             v-model="config.enabled"
-            label="Activar integración con Facebook"
+            label="Activar integración con Meta"
             color="primary"
             class="q-mb-md"
           />
@@ -72,7 +72,7 @@
             filled dense rounded
             v-model="config.catalog_id"
             label="Catalog ID (opcional)"
-            hint="Referencia de tu catálogo en Commerce Manager"
+            hint="Referencia de tu catálogo en el administrador de ventas"
             class="q-mb-md"
             :disable="!config.enabled"
           >
@@ -91,10 +91,11 @@
 
       <!-- Catálogo (feed) -->
       <div class="mc-fb-section">
-        <h4 class="mc-section-title">Tu menú en Facebook (catálogo)</h4>
+        <h4 class="mc-section-title">Tu menú en Meta (catálogo)</h4>
         <p class="mc-fb-hint">
-          Conecta tu menú a la fan page usando Meta Commerce Manager. Facebook consultará este URL
-          automáticamente y mantendrá tu catálogo actualizado.
+          Esta liga se conecta una sola vez y de ahí sale tu menú para <strong>Facebook, Instagram y
+          WhatsApp</strong>. Meta la vuelve a leer sola, así que tus precios y lo agotado se mantienen al día
+          sin que hagas nada.
         </p>
 
         <q-input
@@ -116,7 +117,7 @@
         <div class="mc-fb-actions">
           <q-btn unelevated no-caps color="primary" icon="download" label="Descargar CSV" size="sm" @click="downloadCsv" />
           <q-btn
-            outline no-caps color="primary" icon="help_outline" label="Guía de Facebook" size="sm"
+            outline no-caps color="primary" icon="help_outline" label="Ayuda de Meta" size="sm"
             type="a" href="https://www.facebook.com/business/help/125074381480892" target="_blank"
           />
         </div>
@@ -138,14 +139,20 @@
             <q-icon name="chat" size="18px" color="primary" />
             <div>
               <strong>Page ID (chat de Messenger)</strong>
-              <p>En tu página de Facebook → <em>Configuración → Información de la página</em> → busca “Identificación de la página”. Además, para que el chat aparezca en tu menú debes autorizar el dominio: en tu página → <em>Configuración → Mensajes → Plugin de chat</em> → agrega el dominio <strong>comeleya.com</strong> en los dominios permitidos.</p>
+              <p>
+                Tu <strong>foto de perfil</strong> en Facebook → <em>Ver todos los perfiles</em> → elige tu página →
+                clic en el <strong>nombre de la página</strong> debajo de la portada → <em>Transparencia y política de privacidad</em>.
+                Si tu página abre como <em>facebook.com/profile.php?id=<strong>123456789</strong></em>, ese número ya es el Page ID.
+                Además, para que el chat aparezca en tu menú, autoriza el dominio <strong>comeleya.com</strong> en el
+                <strong>plugin de chat</strong>, dentro de la configuración de mensajes de tu página.
+              </p>
             </div>
           </div>
           <div class="mc-fb-guide__item">
             <q-icon name="inventory_2" size="18px" color="primary" />
             <div>
               <strong>Catálogo</strong>
-              <p>En <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">Commerce Manager</a> → <em>Catálogo → Fuentes de datos → Usar feeds de datos → URL programada</em> y pega el <strong>URL del catálogo</strong> de arriba. El Catalog ID (opcional) está en la configuración del catálogo.</p>
+              <p>En el <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas</a> —antes Commerce Manager— → <em>Orígenes de datos → Agregar artículos → Lista de datos → Lista programada</em>, y pega ahí el <strong>URL del catálogo</strong> de arriba. El Catalog ID (opcional) está en la configuración del catálogo.</p>
             </div>
           </div>
         </div>
@@ -155,12 +162,21 @@
       <div class="mc-fb-section">
         <h4 class="mc-section-title">Pasos para conectar el catálogo</h4>
         <ol class="mc-fb-steps">
-          <li>Entra a <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">Meta Commerce Manager</a> y selecciona tu catálogo (o crea uno nuevo para restaurantes).</li>
-          <li>Ve a <strong>Catálogo → Fuentes de datos → Agregar elementos → Usar feeds de datos</strong>.</li>
-          <li>Elige <strong>URL programada</strong> y pega el enlace del catálogo.</li>
-          <li>Selecciona la frecuencia de actualización (diaria recomendada).</li>
-          <li>Conecta el catálogo a tu fan page desde <strong>Configuración → Páginas conectadas</strong>.</li>
+          <li>Entra al <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas de Meta</a> y elige o crea un catálogo.</li>
+          <li>Abre el catálogo y ve a <strong>Orígenes de datos → Agregar artículos</strong>. Si te pregunta cuántos, elige <em>Agregar varios artículos</em>.</li>
+          <li>Elige <strong>Lista de datos → Siguiente</strong> y luego <strong>Lista programada</strong>.</li>
+          <li>En <strong>Ingresar URL</strong> pega el enlace del catálogo de arriba.</li>
+          <li>En <strong>Programar actualizaciones</strong> pon frecuencia diaria y deja prendido <em>Agregar actualizaciones automáticas</em>.</li>
+          <li>Ponle nombre al origen de datos, elige la divisa <strong>MXN</strong> y dale <strong>Subir</strong>.</li>
+          <li>Ya cargado, conéctalo con tu página de Facebook desde la configuración del catálogo.</li>
         </ol>
+
+        <p class="mc-fb-hint q-mt-md">
+          <strong>El mismo catálogo sirve para Instagram y WhatsApp.</strong> No se sube otra vez: desde el
+          administrador de ventas lo conectas también a tu cuenta de Instagram —tiene que ser profesional y
+          estar ligada a tu página— y a tu número de WhatsApp Business. Los pasos completos están en la
+          <a href="/guia-facebook" target="_blank" rel="noopener">guía paso a paso</a>.
+        </p>
       </div>
 
       <!-- Qué se incluye -->
