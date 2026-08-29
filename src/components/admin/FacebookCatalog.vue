@@ -3,7 +3,7 @@
     <div class="mc-admin-card__header">
       <div class="mc-admin-card__title">
         <q-icon name="fab fa-facebook" size="24px" color="primary" class="q-mr-sm" />
-        Facebook
+        Meta
       </div>
       <q-btn
         outline no-caps color="primary" icon="menu_book"

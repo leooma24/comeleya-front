@@ -118,7 +118,7 @@ const TITULOS = {
   analiticas: "Analíticas",
   tema: "Tema del menú",
   seo: "SEO",
-  facebook: "Facebook",
+  facebook: "Meta",
   mi_plan: "Mi plan",
   crm: "Prospectos",
   goals: "Metas de venta",

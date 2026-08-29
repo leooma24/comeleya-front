@@ -380,7 +380,7 @@ const navGroups = [
     items: [
       { name: "tema", icon: "palette", label: "Tema" },
       { name: "seo", icon: "travel_explore", label: "SEO" },
-      { name: "facebook", icon: "fab fa-facebook", label: "Facebook" },
+      { name: "facebook", icon: "fab fa-facebook", label: "Meta" },
       { name: "resenas", icon: "star", label: "Reseñas" },
       { name: "analiticas", icon: "analytics", label: "Analíticas" },
     ],

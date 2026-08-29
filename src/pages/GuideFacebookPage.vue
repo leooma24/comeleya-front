@@ -16,7 +16,7 @@
         <div>
           <strong>El Píxel y el Messenger son función premium.</strong>
           Los campos de configuración aparecen en tu panel en
-          <em>Crecimiento → Facebook</em> si tu plan los incluye. El <strong>catálogo es gratis</strong>
+          <em>Crecimiento → Meta</em> si tu plan los incluye. El <strong>catálogo es gratis</strong>
           para todos.
         </div>
       </div>
@@ -35,7 +35,7 @@
           <li>Selecciona el píxel: el <strong>número</strong> bajo el nombre es tu Pixel ID (solo dígitos).</li>
         </ol>
         <div class="mc-guide__paste">
-          <strong>En tu panel:</strong> Facebook → sección <em>Configuración</em> → campo <strong>Pixel ID</strong> → activa el toggle y <strong>Guarda</strong>.
+          <strong>En tu panel:</strong> Meta → sección <em>Configuración</em> → campo <strong>Pixel ID</strong> → activa el toggle y <strong>Guarda</strong>.
         </div>
       </section>
 
@@ -48,7 +48,7 @@
         <p class="mc-guide__desc">Publica tu menú como catálogo en tu fan page. Facebook lo consulta y lo mantiene actualizado solo.</p>
         <p class="mc-guide__step-label">Conectar el feed en Commerce Manager</p>
         <ol class="mc-guide__steps">
-          <li>En tu panel, en el tab Facebook, copia la <strong>URL del catálogo</strong>.</li>
+          <li>En tu panel, en el tab Meta, copia la <strong>URL del catálogo</strong>.</li>
           <li>Entra a <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">Meta Commerce Manager</a> y elige o crea un catálogo para restaurantes.</li>
           <li>Ve a <em>Catálogo → Fuentes de datos → Usar feeds de datos</em>.</li>
           <li>Elige <strong>URL programada</strong>, pega la URL y define frecuencia <strong>diaria</strong>.</li>
@@ -65,11 +65,23 @@
         <p class="mc-guide__desc">Agrega un botón de chat flotante en tu menú, conectado a tu página de Facebook.</p>
         <p class="mc-guide__step-label">Obtener el Page ID y autorizar el dominio</p>
         <ol class="mc-guide__steps">
-          <li>En tu página de Facebook: <em>Configuración → Información de la página</em> → copia la <strong>Identificación de la página</strong> (Page ID).</li>
-          <li>Autoriza el dominio: <em>Configuración → Mensajes → Plugin de chat</em> → agrega <strong>comeleya.com</strong> a los dominios permitidos. <strong>Sin esto el chat no aparece.</strong></li>
+          <li>
+            En Facebook: tu <strong>foto de perfil</strong> (arriba a la derecha) → <em>Ver todos los perfiles</em> → elige tu página →
+            clic en el <strong>nombre de tu página</strong> debajo de la foto de portada → <strong>Transparencia y política de privacidad</strong>.
+            Ahí aparece el identificador de tu página.
+            <div class="mc-guide__tip">
+              <strong>¿No lo encuentras?</strong> Facebook cambia estos menús seguido y no todas las cuentas ven lo mismo.
+              Dos atajos que no dependen de eso:
+              <ul>
+                <li>Si la dirección de tu página es <em>facebook.com/profile.php?id=<strong>123456789</strong></em>, ese número ya es tu Page ID.</li>
+                <li>O búscalo en <a href="https://www.facebook.com/help/1503421039731588" target="_blank" rel="noopener">la ayuda oficial de Facebook</a>, que siempre trae la ruta del momento.</li>
+              </ul>
+            </div>
+          </li>
+          <li>Autoriza el dominio: en la configuración de mensajes de tu página, busca el <strong>Plugin de chat</strong> y agrega <strong>comeleya.com</strong> a los dominios permitidos. <strong>Sin esto el chat no aparece.</strong></li>
         </ol>
         <div class="mc-guide__paste">
-          <strong>En tu panel:</strong> Facebook → campo <strong>Page ID</strong> → <strong>Guarda</strong>. El chat aparece en tu menú público.
+          <strong>En tu panel:</strong> Meta → campo <strong>Page ID</strong> → <strong>Guarda</strong>. El chat aparece en tu menú público.
         </div>
       </section>
 
@@ -77,7 +89,7 @@
       <section class="mc-guide__checklist">
         <h2>Checklist</h2>
         <ul>
-          <li><q-icon name="check_circle" color="positive" size="20px" /> Plan con Facebook activo (si usarás Píxel o Messenger).</li>
+          <li><q-icon name="check_circle" color="positive" size="20px" /> Plan con la función de Meta activa (si usarás Píxel o Messenger).</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Pixel ID capturado y guardado, con el toggle activado.</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Feed del catálogo conectado en Commerce Manager.</li>
           <li><q-icon name="check_circle" color="positive" size="20px" /> Page ID capturado y dominio comeleya.com autorizado en el plugin de chat.</li>
@@ -148,6 +160,19 @@ const goBack = () => {
     border: 1px dashed color-mix(in srgb, var(--q-primary) 40%, var(--color-border));
     font-size: 0.9rem;
     strong { color: var(--q-primary); }
+  }
+
+  // La salida cuando la ruta de Facebook no coincide con lo que el negocio ve en
+  // pantalla. Va mas apagada que __paste: es el plan B, no el paso.
+  &__tip {
+    margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+    background: var(--color-surface-variant, #f4f1ec);
+    border-left: 3px solid var(--color-text-tertiary, #9aa0a6);
+    font-size: 0.85rem;
+    color: var(--color-text-secondary, #5f6368);
+
+    ul { margin: 6px 0 0; padding-left: 18px; }
+    li { margin-bottom: 4px; }
   }
 
   &__checklist {

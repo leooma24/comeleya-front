@@ -129,7 +129,7 @@ const grupos = computed(() => [
       tieneFuncion("analytics") && { tab: "analiticas", texto: "Analíticas", icono: "grafica" },
       tieneFuncion("theme") && { tab: "tema", texto: "Tema del menú", icono: "paleta" },
       tieneFuncion("seo") && { tab: "seo", texto: "SEO", icono: "mundo" },
-      tieneFuncion("facebook") && { tab: "facebook", texto: "Facebook", icono: "mundo" },
+      tieneFuncion("facebook") && { tab: "facebook", texto: "Meta", icono: "mundo" },
     ].filter(Boolean),
   },
   {
