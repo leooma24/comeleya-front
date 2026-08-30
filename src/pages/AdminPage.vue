@@ -119,6 +119,7 @@ const TITULOS = {
   tema: "Tema del menú",
   seo: "SEO",
   facebook: "Meta",
+  difusion: "Comparte tu menú",
   mi_plan: "Mi plan",
   crm: "Prospectos",
   goals: "Metas de venta",

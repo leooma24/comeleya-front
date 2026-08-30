@@ -378,6 +378,11 @@ const navGroups = [
     label: "Crecimiento",
     icon: "trending_up",
     items: [
+      // Primero, igual que en el menu Mas del celular: es lo unico de este grupo que
+      // sirve el primer dia. Vivia SOLO en el movil, asi que desde la computadora no
+      // habia forma de llegar -y ahi adentro esta la liga del negocio, su QR y lo de
+      // Google-. Una seccion a la que no se puede entrar es una seccion que no existe.
+      { name: "difusion", icon: "campaign", label: "Comparte tu menú" },
       { name: "tema", icon: "palette", label: "Tema" },
       { name: "seo", icon: "travel_explore", label: "SEO" },
       { name: "facebook", icon: "fab fa-facebook", label: "Meta" },
