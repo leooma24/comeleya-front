@@ -1,18 +1,130 @@
 <template>
-  <q-card flat class="mc-admin-card">
-    <div class="mc-admin-card__header">
+  <q-card flat class="mc-admin-card" :class="{ 'mc-seccion-app': modoApp }">
+    <mc-encabezado
+      v-if="modoApp"
+      atras
+      titulo="Meta"
+      :subtitulo="adminStore.company?.name || 'Tu negocio'"
+      @atras="volverAMas"
+    />
+
+    <div class="mc-admin-card__header" v-if="!modoApp">
       <div class="mc-admin-card__title">
         <q-icon name="fab fa-facebook" size="24px" color="primary" class="q-mr-sm" />
         Meta
       </div>
-      <q-btn
-        outline no-caps color="primary" icon="menu_book"
-        label="Guía paso a paso" size="sm"
-        type="a" href="/guia-facebook" target="_blank"
-      />
     </div>
 
-    <div class="mc-fb-sections">
+    <!-- Tres tareas distintas que antes vivian en un solo scroll de cinco bloques:
+         conectar el catalogo, capturar el Pixel y leer los pasos. Con tabs cada una
+         empieza arriba en vez de estar a media pantalla de distancia. -->
+    <q-tabs
+      v-model="tab"
+      no-caps
+      dense
+      align="left"
+      class="mc-fb-tabs"
+      active-color="primary"
+      indicator-color="primary"
+    >
+      <q-tab name="catalogo" icon="inventory_2" label="Catálogo" />
+      <q-tab name="pixel" icon="track_changes" label="Píxel y chat" />
+      <q-tab name="guia" icon="menu_book" label="Guía" />
+    </q-tabs>
+
+    <q-tab-panels v-model="tab" animated class="mc-fb-paneles">
+      <q-tab-panel name="catalogo" class="q-pa-none">
+        <div class="mc-fb-sections">      <!-- Catálogo (feed) -->
+      <div class="mc-fb-section">
+        <h4 class="mc-section-title">Tu menú en Meta (catálogo)</h4>
+        <p class="mc-fb-hint">
+          Esta liga se conecta una sola vez y de ahí sale tu menú para <strong>Facebook, Instagram y
+          WhatsApp</strong>. Meta la vuelve a leer sola, así que tus precios y lo agotado se mantienen al día
+          sin que hagas nada.
+        </p>
+
+        <q-input
+          filled dense rounded readonly
+          v-model="feedUrl"
+          label="URL del catálogo"
+          class="q-mb-md"
+        >
+          <template v-slot:append>
+            <q-btn flat dense round icon="content_copy" @click="copyUrl">
+              <q-tooltip>Copiar URL</q-tooltip>
+            </q-btn>
+            <q-btn flat dense round icon="open_in_new" @click="openUrl">
+              <q-tooltip>Abrir en pestaña nueva</q-tooltip>
+            </q-btn>
+          </template>
+        </q-input>
+
+        <q-input
+          filled dense rounded
+          v-model="config.menu_url"
+          label="¿Tu menú vive en tu propio sitio? (opcional)"
+          placeholder="https://tusitio.com/menu"
+          hint="Si lo dejas vacío, los anuncios llevan a tu menú en comeleya.com"
+          class="q-mb-sm"
+        >
+          <template v-slot:prepend><q-icon name="link" /></template>
+        </q-input>
+        <p class="mc-fb-hint q-mb-md">
+          Cuando alguien toque un platillo en un anuncio, va a caer aquí en vez de en
+          comeleya.com, con ese platillo ya abierto. Solo funciona si en esa página tienes
+          el menú insertado con nuestro código.
+        </p>
+
+        <div class="mc-fb-actions">
+          <q-btn
+            unelevated no-caps color="primary" icon="save"
+            label="Guardar" size="sm" :loading="saving" @click="saveConfig"
+          />
+          <q-btn unelevated no-caps color="primary" icon="download" label="Descargar CSV" size="sm" @click="downloadCsv" />
+          <q-btn
+            outline no-caps color="primary" icon="help_outline" label="Ayuda de Meta" size="sm"
+            type="a" href="https://www.facebook.com/business/help/125074381480892" target="_blank"
+          />
+        </div>
+      </div>
+
+      <!-- Cómo conectar el catálogo -->
+      <div class="mc-fb-section">
+        <h4 class="mc-section-title">Pasos para conectar el catálogo</h4>
+        <ol class="mc-fb-steps">
+          <li>Entra al <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas de Meta</a> y elige o crea un catálogo.</li>
+          <li>Abre el catálogo y ve a <strong>Orígenes de datos → Agregar artículos</strong>. Si te pregunta cuántos, elige <em>Agregar varios artículos</em>.</li>
+          <li>Elige <strong>Lista de datos → Siguiente</strong> y luego <strong>Lista programada</strong>.</li>
+          <li>En <strong>Ingresar URL</strong> pega el enlace del catálogo de arriba.</li>
+          <li>En <strong>Programar actualizaciones</strong> pon frecuencia diaria y deja prendido <em>Agregar actualizaciones automáticas</em>.</li>
+          <li>Ponle nombre al origen de datos, elige la divisa <strong>MXN</strong> y dale <strong>Subir</strong>.</li>
+          <li>Ya cargado, conéctalo con tu página de Facebook desde la configuración del catálogo.</li>
+        </ol>
+
+        <p class="mc-fb-hint q-mt-md">
+          <strong>El mismo catálogo sirve para Instagram y WhatsApp.</strong> No se sube otra vez: desde el
+          administrador de ventas lo conectas también a tu cuenta de Instagram —tiene que ser profesional y
+          estar ligada a tu página— y a tu número de WhatsApp Business. Los pasos completos están en la
+          <a href="/guia-facebook" target="_blank" rel="noopener">guía paso a paso</a>.
+        </p>
+      </div>
+
+      <!-- Qué se incluye -->
+      <div class="mc-fb-section">
+        <h4 class="mc-section-title">Qué se incluye en el catálogo</h4>
+        <ul class="mc-fb-includes">
+          <li>Solo platillos <strong>activos</strong> y con foto.</li>
+          <li>Precio regular y precio de oferta vigente por separado (para anuncios con precio tachado).</li>
+          <li>Disponibilidad real: los platillos <strong>agotados</strong> se marcan “out of stock”.</li>
+          <li>Nombre del restaurante como marca y la categoría del platillo.</li>
+          <li>Los extras y modificadores <strong>no</strong> se incluyen (Facebook no los soporta).</li>
+        </ul>
+      </div>
+        </div>
+      </q-tab-panel>
+
+      <q-tab-panel name="pixel" class="q-pa-none">
+        <div class="mc-fb-sections">
       <!-- Configuración (Píxel / Messenger) — PREMIUM -->
       <div class="mc-fb-section">
         <h4 class="mc-section-title">
@@ -89,60 +201,6 @@
         </template>
       </div>
 
-      <!-- Catálogo (feed) -->
-      <div class="mc-fb-section">
-        <h4 class="mc-section-title">Tu menú en Meta (catálogo)</h4>
-        <p class="mc-fb-hint">
-          Esta liga se conecta una sola vez y de ahí sale tu menú para <strong>Facebook, Instagram y
-          WhatsApp</strong>. Meta la vuelve a leer sola, así que tus precios y lo agotado se mantienen al día
-          sin que hagas nada.
-        </p>
-
-        <q-input
-          filled dense rounded readonly
-          v-model="feedUrl"
-          label="URL del catálogo"
-          class="q-mb-md"
-        >
-          <template v-slot:append>
-            <q-btn flat dense round icon="content_copy" @click="copyUrl">
-              <q-tooltip>Copiar URL</q-tooltip>
-            </q-btn>
-            <q-btn flat dense round icon="open_in_new" @click="openUrl">
-              <q-tooltip>Abrir en pestaña nueva</q-tooltip>
-            </q-btn>
-          </template>
-        </q-input>
-
-        <q-input
-          filled dense rounded
-          v-model="config.menu_url"
-          label="¿Tu menú vive en tu propio sitio? (opcional)"
-          placeholder="https://tusitio.com/menu"
-          hint="Si lo dejas vacío, los anuncios llevan a tu menú en comeleya.com"
-          class="q-mb-sm"
-        >
-          <template v-slot:prepend><q-icon name="link" /></template>
-        </q-input>
-        <p class="mc-fb-hint q-mb-md">
-          Cuando alguien toque un platillo en un anuncio, va a caer aquí en vez de en
-          comeleya.com, con ese platillo ya abierto. Solo funciona si en esa página tienes
-          el menú insertado con nuestro código.
-        </p>
-
-        <div class="mc-fb-actions">
-          <q-btn
-            unelevated no-caps color="primary" icon="save"
-            label="Guardar" size="sm" :loading="saving" @click="saveConfig"
-          />
-          <q-btn unelevated no-caps color="primary" icon="download" label="Descargar CSV" size="sm" @click="downloadCsv" />
-          <q-btn
-            outline no-caps color="primary" icon="help_outline" label="Ayuda de Meta" size="sm"
-            type="a" href="https://www.facebook.com/business/help/125074381480892" target="_blank"
-          />
-        </div>
-      </div>
-
       <!-- Guía de configuración -->
       <div class="mc-fb-section">
         <h4 class="mc-section-title">Guía: cómo obtener tus datos</h4>
@@ -177,40 +235,16 @@
           </div>
         </div>
       </div>
+        </div>
+      </q-tab-panel>
 
-      <!-- Cómo conectar el catálogo -->
-      <div class="mc-fb-section">
-        <h4 class="mc-section-title">Pasos para conectar el catálogo</h4>
-        <ol class="mc-fb-steps">
-          <li>Entra al <a href="https://business.facebook.com/commerce" target="_blank" rel="noopener">administrador de ventas de Meta</a> y elige o crea un catálogo.</li>
-          <li>Abre el catálogo y ve a <strong>Orígenes de datos → Agregar artículos</strong>. Si te pregunta cuántos, elige <em>Agregar varios artículos</em>.</li>
-          <li>Elige <strong>Lista de datos → Siguiente</strong> y luego <strong>Lista programada</strong>.</li>
-          <li>En <strong>Ingresar URL</strong> pega el enlace del catálogo de arriba.</li>
-          <li>En <strong>Programar actualizaciones</strong> pon frecuencia diaria y deja prendido <em>Agregar actualizaciones automáticas</em>.</li>
-          <li>Ponle nombre al origen de datos, elige la divisa <strong>MXN</strong> y dale <strong>Subir</strong>.</li>
-          <li>Ya cargado, conéctalo con tu página de Facebook desde la configuración del catálogo.</li>
-        </ol>
-
-        <p class="mc-fb-hint q-mt-md">
-          <strong>El mismo catálogo sirve para Instagram y WhatsApp.</strong> No se sube otra vez: desde el
-          administrador de ventas lo conectas también a tu cuenta de Instagram —tiene que ser profesional y
-          estar ligada a tu página— y a tu número de WhatsApp Business. Los pasos completos están en la
-          <a href="/guia-facebook" target="_blank" rel="noopener">guía paso a paso</a>.
-        </p>
-      </div>
-
-      <!-- Qué se incluye -->
-      <div class="mc-fb-section">
-        <h4 class="mc-section-title">Qué se incluye en el catálogo</h4>
-        <ul class="mc-fb-includes">
-          <li>Solo platillos <strong>activos</strong> y con foto.</li>
-          <li>Precio regular y precio de oferta vigente por separado (para anuncios con precio tachado).</li>
-          <li>Disponibilidad real: los platillos <strong>agotados</strong> se marcan “out of stock”.</li>
-          <li>Nombre del restaurante como marca y la categoría del platillo.</li>
-          <li>Los extras y modificadores <strong>no</strong> se incluyen (Facebook no los soporta).</li>
-        </ul>
-      </div>
-    </div>
+      <!-- La guia completa, sin salirse del panel. Es el MISMO componente que pinta
+           la pagina publica /guia-facebook: tenerla escrita dos veces ya nos costo un
+           cliente atorado siguiendo la copia que nadie corrigio. -->
+      <q-tab-panel name="guia" class="mc-fb-panel-guia">
+        <guia-meta />
+      </q-tab-panel>
+    </q-tab-panels>
   </q-card>
 </template>
 
@@ -220,8 +254,19 @@ defineOptions({ name: "FacebookCatalog" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useModoApp } from "src/composables/useModoApp";
+import McEncabezado from "./movil/Encabezado.vue";
+// La misma guia que pinta /guia-facebook. Una sola copia a proposito.
+import GuiaMeta from "src/components/GuiaMeta.vue";
 
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
+
+const volverAMas = () => { adminStore.tab = "mc_mas"; };
+
+// Arranca en el catalogo: es lo gratis, lo que usan todos, y lo primero que hace
+// un negocio al entrar aqui. El Pixel es premium y lo capturan una sola vez.
+const tab = ref("catalogo");
 
 // Píxel/Messenger es premium (has_facebook). El catálogo/feed sigue gratis.
 const hasFacebook = computed(() => {
@@ -282,6 +327,16 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+.mc-fb-tabs {
+  border-bottom: 1px solid var(--color-border);
+}
+
+// Los paneles traen padding propio de Quasar; el del catalogo y el del pixel ya lo
+// ponen sus secciones, asi que ahi va en cero (q-pa-none en el marcado).
+.mc-fb-panel-guia {
+  padding: 16px;
+}
+
 .mc-fb-sections {
   padding: var(--space-lg);
   display: flex;
