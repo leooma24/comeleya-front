@@ -94,6 +94,26 @@ foreach ($negocios as $n) {
     $xml->writeElement('changefreq', 'weekly');
     $xml->writeElement('priority', '0.9');
     $xml->endElement();
+
+    // Una entrada por platillo. Es de donde sale el salto: de ~300 paginas a mas de
+    // 2500, cada una con su foto, su precio y su descripcion. El API ya filtro los
+    // apagados y los que todavia no tienen slug.
+    //
+    // Prioridad por debajo del menu: si un dia hay que elegir, la pagina que
+    // conviene que Google muestre es la del negocio, no la de un platillo suelto.
+    foreach ($n['dishes'] ?? [] as $p) {
+        if (empty($p['slug'])) {
+            continue;
+        }
+        $xml->startElement('url');
+        $xml->writeElement('loc', $host . '/' . rawurlencode($n['slug']) . '/' . rawurlencode($p['slug']));
+        if (!empty($p['updated_at'])) {
+            $xml->writeElement('lastmod', $p['updated_at']);
+        }
+        $xml->writeElement('changefreq', 'weekly');
+        $xml->writeElement('priority', '0.7');
+        $xml->endElement();
+    }
 }
 
 $xml->endElement();
