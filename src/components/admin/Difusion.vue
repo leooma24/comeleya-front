@@ -40,6 +40,34 @@
           />
         </admin-section>
 
+        <!-- Google no es una red donde publicas: es donde te encuentran sin buscarte.
+             Por eso va aparte de los textos para copiar y pegar. -->
+        <admin-section
+          title="Tu menú en Google"
+          icon="travel_explore"
+          description="Para que quien te busque en Google o en Maps pueda pedir sin salir de ahí."
+        >
+          <p class="mc-dif__google">
+            En tu <strong>Perfil de Negocio de Google</strong> puedes agregar un enlace de
+            pedidos. Pega ahí <strong>la misma liga de arriba</strong> y a quien te encuentre
+            en el buscador o en el mapa le aparecerá un botón para pedir, que lo trae directo
+            a tu menú.
+          </p>
+          <p class="mc-dif__google">
+            Es gratis, se hace una sola vez y no depende de nosotros: el enlace vive en tu
+            perfil, no en ComeleYa.
+          </p>
+          <q-btn
+            outline no-caps color="primary" icon="open_in_new"
+            label="Cómo agregarlo (ayuda de Google)"
+            class="full-width q-mt-sm"
+            type="a"
+            href="https://support.google.com/business/answer/10842217?hl=es-419"
+            target="_blank"
+            rel="noopener"
+          />
+        </admin-section>
+
         <!-- Textos escritos para que nadie tenga que redactar nada. El que no sabe
              qué poner, no publica: ese es el paso donde se cae la difusión. -->
         <admin-section
@@ -181,6 +209,13 @@ const descargarQr = async () => {
   line-height: 1.5;
   color: var(--color-text-secondary);
   margin: 0;
+}
+
+.mc-dif__google {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
 }
 
 .mc-dif__liga {
