@@ -709,6 +709,21 @@ export const useMainStore = defineStore("main", {
       });
     },
     // Abre el detalle de un platillo por id (usado por el link compartido ?dish=<id>).
+    /**
+     * Abre la ficha del platillo con ese slug, que es como llega quien entra por
+     * /kazuki-sushi-delivery/maguro-roll o desde un anuncio del catálogo de Meta.
+     *
+     * Vive al lado de seeProductById y no lo reemplaza: la forma vieja (?dish=<id>)
+     * sigue en anuncios corriendo y en el catálogo que Meta ya leyó.
+     */
+    seeProductBySlug(slug) {
+      if (!slug) return;
+
+      const prod = (this.productStore.items || []).find((p) => p.slug === slug);
+      if (prod) {
+        this.seeProduct(JSON.parse(JSON.stringify(prod)));
+      }
+    },
     seeProductById(id) {
       const prod = (this.productStore.items || []).find(
         (p) => String(p.id) === String(id)

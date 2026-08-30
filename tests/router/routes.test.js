@@ -105,3 +105,37 @@ describe("router routes", () => {
     expect(paths).toHaveLength(new Set(paths).size);
   });
 });
+
+/**
+ * La direccion propia de cada platillo: /kazuki-sushi-delivery/maguro-roll.
+ *
+ * Existe para que el menu deje de ser UNA sola pagina para Google y pase a ser una
+ * por platillo. Lo delicado es que /:slug ya tiene vecinos fijos -admin, pedido- y
+ * un comodin de segundo nivel podria taparlos.
+ */
+describe("la direccion de un platillo", () => {
+  const rutas = routes.map((r) => r.path);
+
+  it("existe", () => {
+    expect(rutas).toContain("/:slug/:platillo");
+  });
+
+  // Vue Router puntua los segmentos fijos por encima de los comodines, pero el
+  // orden importa para leerlo: el comodin va al final, despues de sus vecinos.
+  it("va despues de admin y de pedido, no antes", () => {
+    expect(rutas.indexOf("/:slug/:platillo")).toBeGreaterThan(rutas.indexOf("/:slug/admin"));
+    expect(rutas.indexOf("/:slug/:platillo")).toBeGreaterThan(rutas.indexOf("/:slug/pedido/:code"));
+  });
+
+  // Cada ruta trae su propia funcion de import, asi que se comparan los modulos ya
+  // resueltos: lo que importa es que las dos pinten la misma pagina, no que
+  // compartan la misma closure.
+  it("pinta el mismo menu que /:slug, no otra pagina", async () => {
+    const pagina = async (path) => {
+      const ruta = routes.find((r) => r.path === path);
+      return (await ruta.children[0].component()).default;
+    };
+
+    expect(await pagina("/:slug/:platillo")).toBe(await pagina("/:slug"));
+  });
+});

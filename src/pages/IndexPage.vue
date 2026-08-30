@@ -546,8 +546,15 @@ onMounted(async () => {
   }
   nextTick(updateActiveCategory);
   scrollToDeepLinkCategory();
-  // Link compartido a un platillo (?dish=<id>): abre su detalle al entrar.
-  if (route.query.dish) {
+  // Link compartido a un platillo: abre su detalle al entrar.
+  //
+  // Dos formas conviviendo. /kazuki-sushi-delivery/maguro-roll es la de ahora, la
+  // que Google indexa; ?dish=<id> es la de antes y no se va a ir: vive en anuncios
+  // corriendo y en el catálogo que Meta ya leyó. La direccion manda porque es la
+  // que un cliente puede haber compartido a mano.
+  if (route.params.platillo) {
+    setTimeout(() => mainStore.seeProductBySlug(route.params.platillo), 500);
+  } else if (route.query.dish) {
     setTimeout(() => mainStore.seeProductById(route.query.dish), 500);
   }
 });

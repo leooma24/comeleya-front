@@ -703,3 +703,61 @@ describe("main-store", () => {
   });
 
 });
+
+/**
+ * Abrir la ficha de un platillo por su slug, que es como llega quien entra por
+ * /kazuki-sushi-delivery/maguro-roll o por un anuncio del catalogo de Meta.
+ *
+ * Convive con la forma vieja (?dish=<id>): esa sigue viva en anuncios que ya estan
+ * corriendo y en el catalogo que Meta ya leyo, y romperla seria tumbar los enlaces
+ * de todos los platillos de un negocio.
+ */
+describe("main-store — abrir un platillo por su direccion", () => {
+  const platillos = [
+    { id: 2364, slug: "maguro-roll", name: "Maguro Roll" },
+    { id: 2100, slug: "orange-chicken", name: "Orange Chicken" },
+  ];
+
+  const conMenu = () => {
+    const store = useMainStore();
+    store.productStore.items = JSON.parse(JSON.stringify(platillos));
+    store.seeProduct = vi.fn();
+    return store;
+  };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+  });
+
+  it("abre el platillo que coincide con el slug", () => {
+    const store = conMenu();
+    store.seeProductBySlug("orange-chicken");
+
+    expect(store.seeProduct).toHaveBeenCalledOnce();
+    expect(store.seeProduct.mock.calls[0][0].id).toBe(2100);
+  });
+
+  it("con un slug que no existe no abre nada", () => {
+    const store = conMenu();
+    store.seeProductBySlug("pizza-hawaiana");
+
+    expect(store.seeProduct).not.toHaveBeenCalled();
+  });
+
+  it("no truena si el menu todavia no carga", () => {
+    const store = useMainStore();
+    store.productStore.items = [];
+    store.seeProduct = vi.fn();
+
+    expect(() => store.seeProductBySlug("maguro-roll")).not.toThrow();
+    expect(store.seeProduct).not.toHaveBeenCalled();
+  });
+
+  // La forma vieja no se toca: sigue habiendo anuncios corriendo con ?dish=<id>.
+  it("la busqueda por id sigue funcionando", () => {
+    const store = conMenu();
+    store.seeProductById(2364);
+
+    expect(store.seeProduct.mock.calls[0][0].id).toBe(2364);
+  });
+});

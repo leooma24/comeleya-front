@@ -92,6 +92,21 @@ const routes = [
     ],
   },
 
+  // La direccion propia de cada platillo: /kazuki-sushi-delivery/maguro-roll.
+  //
+  // Es el mismo menu de /:slug, que al montarse abre la ficha del platillo. Existe
+  // para que un negocio deje de ser UNA sola pagina para Google y pase a ser una por
+  // platillo, cada una con su foto, su precio y su descripcion.
+  //
+  // Va al final a proposito, despues de /:slug/admin y /:slug/pedido/:code: Vue
+  // Router puntua los segmentos fijos por encima de los comodines, pero dejarlo aqui
+  // hace evidente al leer que este no se come a los otros.
+  {
+    path: "/:slug/:platillo",
+    component: () => import("layouts/MainLayout.vue"),
+    children: [{ path: "", component: () => import("pages/IndexPage.vue") }],
+  },
+
   // Always leave this as last one,
   // but you can also remove it
   {
