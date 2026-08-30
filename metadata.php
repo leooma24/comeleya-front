@@ -310,6 +310,45 @@ if ($isLanding) {
     if (!empty($data['phone'])) {
         $jsonLd['telephone'] = $data['phone'];
     }
+
+    // El menu, para que Google sepa que este negocio tiene uno y cuales son sus
+    // platillos. Los datos ya estan aqui -son los mismos que se pidieron arriba-,
+    // asi que no cuesta una peticion mas; lo que cuesta es PESO en la respuesta, y
+    // esta pagina la carga un comensal con datos moviles, no solo un crawler.
+    //
+    // Por eso va apretado: nombre, precio y direccion. Sin descripcion ni foto, que
+    // son los campos gordos y que ya viajan completos en la pagina propia de cada
+    // platillo. Y topado a 60: Bajamar tiene 220, y volcarlos todos serian 40 KB
+    // encima de cada visita para alimentar a un robot.
+    $items = [];
+    if (!empty($data['dishes']) && is_array($data['dishes'])) {
+        foreach ($data['dishes'] as $d) {
+            if (count($items) >= 60) break;
+            // Sin slug no hay pagina a la que apuntar.
+            if (empty($d['slug']) || (isset($d['status']) && $d['status'] !== 'Activo')) continue;
+
+            $items[] = [
+                '@type' => 'MenuItem',
+                'name' => $d['name'],
+                'url' => 'https://' . $host . '/' . rawurlencode($company) . '/' . rawurlencode($d['slug']),
+                'offers' => [
+                    '@type' => 'Offer',
+                    'price' => number_format((float) ($d['price'] ?? 0), 2, '.', ''),
+                    'priceCurrency' => 'MXN',
+                ],
+            ];
+        }
+    }
+
+    // Un hasMenu vacio es peor que no declararlo: afirma que el restaurante no
+    // sirve de comer.
+    if ($items) {
+        $jsonLd['hasMenu'] = [
+            '@type' => 'Menu',
+            'name' => 'Menú de ' . $restName,
+            'hasMenuItem' => $items,
+        ];
+    }
 }
 
 echo '<script type="application/ld+json">'
