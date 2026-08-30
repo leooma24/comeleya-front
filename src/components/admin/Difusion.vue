@@ -36,7 +36,7 @@
             label="Descargar el QR para imprimir"
             class="full-width q-mt-sm"
             :loading="bajandoQr"
-            @click="descargarQr"
+            @click="descargarQr('menu')"
           />
         </admin-section>
 
@@ -68,6 +68,62 @@
           />
         </admin-section>
 
+        <!-- Las resenas de Google son lo que mueve el ranking local de un
+             restaurante, y pedirlas no necesita ningun permiso: el enlace se arma
+             con el Place ID y ya. -->
+        <admin-section
+          title="Pide reseñas en Google"
+          icon="star"
+          description="Las reseñas son lo que hace que Google te muestre antes que a los de al lado."
+        >
+          <q-input
+            filled dense rounded
+            v-model="placeId"
+            label="Tu Place ID de Google"
+            placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
+            hint="Es un código, no la dirección de tu negocio en Google"
+            class="q-mb-sm"
+          >
+            <template v-slot:prepend><q-icon name="pin_drop" /></template>
+          </q-input>
+
+          <div class="row q-col-gutter-sm q-mb-md">
+            <div class="col">
+              <q-btn
+                unelevated no-caps color="primary" icon="save" label="Guardar"
+                class="full-width" :loading="guardandoPlace" @click="guardarPlaceId"
+              />
+            </div>
+            <div class="col">
+              <q-btn
+                outline no-caps color="primary" icon="help_outline" label="¿Dónde lo saco?"
+                class="full-width"
+                type="a"
+                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                target="_blank"
+                rel="noopener"
+              />
+            </div>
+          </div>
+
+          <!-- El enlace solo aparece cuando ya hay Place ID: uno a medias lleva a
+               una pagina rota de Google, y eso impreso en la mesa no se arregla con
+               un despliegue. -->
+          <template v-if="urlResena">
+            <div class="mc-dif__liga">
+              <code>{{ urlResena }}</code>
+              <q-btn flat dense no-caps color="primary" icon="content_copy" label="Copiar" @click="copiar(urlResena)" />
+            </div>
+            <q-btn
+              outline no-caps color="primary" icon="qr_code_2"
+              label="Descargar el QR de reseñas para imprimir"
+              class="full-width q-mt-sm"
+              :loading="bajandoQrResena"
+              @click="descargarQr('resena')"
+            />
+          </template>
+        </admin-section>
+
         <!-- Textos escritos para que nadie tenga que redactar nada. El que no sabe
              qué poner, no publica: ese es el paso donde se cae la difusión. -->
         <admin-section
@@ -94,7 +150,7 @@
 <script setup>
 defineOptions({ name: "AdminDifusion" });
 
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
@@ -178,20 +234,62 @@ const copiar = async (texto) => {
 const porWhatsApp = (texto) =>
   window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
 
-const descargarQr = async () => {
-  bajandoQr.value = true;
+// El Place ID del negocio en Google. Es lo unico de "Google Business" que se puede
+// usar hoy: su API arranca en cuota cero y hay que solicitarla, pero el enlace para
+// dejar una resena es solo una direccion.
+const placeId = ref("");
+const urlResena = ref("");
+const guardandoPlace = ref(false);
+const bajandoQrResena = ref(false);
+
+const cargarGoogle = async () => {
   try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/qr-pdf`, { responseType: "blob" });
+    const { data } = await api.get(`/admin/${adminStore.slug}/google/config`);
+    placeId.value = data.config?.place_id || "";
+    urlResena.value = data.config?.review_url || "";
+  } catch (e) {
+    // Sin configurar es el caso normal: no hay nada que avisar.
+  }
+};
+
+const guardarPlaceId = async () => {
+  guardandoPlace.value = true;
+  try {
+    const { data } = await api.put(`/admin/${adminStore.slug}/google/config`, {
+      place_id: placeId.value,
+    });
+    urlResena.value = data.config?.review_url || "";
+    adminStore.messageStore.success("Guardado");
+  } catch (e) {
+    // El servidor explica por que no le gusto -normalmente pegaron la URL entera-.
+    adminStore.messageStore.error(e.response?.data?.message || "No se pudo guardar");
+  } finally {
+    guardandoPlace.value = false;
+  }
+};
+
+onMounted(cargarGoogle);
+
+/** El QR del menu, o el de pedir resena en Google. Es el mismo cartel. */
+const descargarQr = async (tipo = "menu") => {
+  const esResena = tipo === "resena";
+  const bandera = esResena ? bajandoQrResena : bajandoQr;
+  bandera.value = true;
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/qr-pdf`, {
+      params: esResena ? { tipo: "resena" } : {},
+      responseType: "blob",
+    });
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `qr-${adminStore.slug}.pdf`;
+    a.download = `${esResena ? "resenas" : "qr"}-${adminStore.slug}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   } catch (e) {
     adminStore.messageStore.error("No se pudo generar el QR");
   } finally {
-    bajandoQr.value = false;
+    bandera.value = false;
   }
 };
 </script>
