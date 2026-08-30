@@ -53,15 +53,37 @@ $logo = !empty($data['logo']) ? $data['logo'] : 'https://comeleya.com/logo.png';
 
 // ¿Se compartió un platillo específico?
 $dishId = isset($_GET['dish']) ? $_GET['dish'] : null;
+
+// El segundo segmento de la direccion: /kazuki-sushi-delivery/maguro-roll.
+//
+// Es la forma nueva, la que esta en el sitemap y la que Google indexa. Sin esto,
+// las 2078 paginas de platillo servian el MISMO titulo y la misma descripcion que
+// la pagina del menu -metadata.php solo miraba el primer segmento-, y para Google
+// eso son 50 paginas duplicadas por negocio.
+//
+// ?dish=<id> sigue resolviendo igual: vive en anuncios ya corriendo y en enlaces
+// que la gente ya compartio.
+$dishSlug = isset($uri[2]) ? explode('?', $uri[2])[0] : '';
+
 $dish = null;
-if ($dishId && !empty($data['dishes']) && is_array($data['dishes'])) {
+if (($dishId || $dishSlug !== '') && !empty($data['dishes']) && is_array($data['dishes'])) {
     foreach ($data['dishes'] as $d) {
-        if (isset($d['id']) && (string) $d['id'] === (string) $dishId) {
+        $porId = $dishId && isset($d['id']) && (string) $d['id'] === (string) $dishId;
+        $porSlug = $dishSlug !== '' && !empty($d['slug']) && $d['slug'] === $dishSlug;
+        if ($porId || $porSlug) {
             $dish = $d;
             break;
         }
     }
 }
+
+/** La direccion buena de un platillo: la bonita si ya tiene slug. */
+$rutaDelPlatillo = function ($dish) use ($company, $dishId) {
+    if (!empty($dish['slug'])) {
+        return '/' . rawurlencode($company) . '/' . rawurlencode($dish['slug']);
+    }
+    return '/' . rawurlencode($company) . '?dish=' . rawurlencode($dishId);
+};
 
 if ($isLanding) {
     // Default de la marca: lo que se ve al compartir comeleya.com en WhatsApp o
@@ -78,10 +100,13 @@ if ($isLanding) {
     $p = (float) ($dish['price'] ?? 0);
     $priceStr = $p == floor($p) ? number_format($p, 0) : number_format($p, 2);
     // Formato: "Negocio - Platillo · $precio"
-    $title = $restName . ' - ' . $dish['name'] . ($priceStr !== '' ? ' · $' . $priceStr : '');
+    // El platillo primero: las 50 paginas de un negocio empezaban todas con el
+    // mismo nombre, y en un resultado de busqueda lo que se lee son las primeras
+    // palabras.
+    $title = $dish['name'] . ' - ' . $restName . ($priceStr !== '' ? ' · $' . $priceStr : '');
     $desc = !empty($dish['description']) ? $dish['description'] : ('Pídelo en ' . $restName);
     $image = !empty($dish['photo']) ? $dish['photo'] : $logo;
-    $ogUrl = 'https://' . $host . '/' . rawurlencode($company) . '?dish=' . rawurlencode($dishId);
+    $ogUrl = 'https://' . $host . $rutaDelPlatillo($dish);
     $ogType = 'product';
 } elseif ($noExiste) {
     $title = 'Este menú no está disponible - ComeleYa';
@@ -146,7 +171,12 @@ $e = function ($s) {
 $canonical = 'https://comeleya.com' . ($isLanding && $company === ''
     ? '/'
     : '/' . rawurlencode($company))
-    . ($dish ? '?dish=' . rawurlencode($dishId) : '');
+    . '';
+if ($dish) {
+    // Una sola direccion buena por platillo: si llego por ?dish= pero ya tiene slug,
+    // el canonical apunta a la bonita para no repartir la fuerza entre las dos.
+    $canonical = 'https://comeleya.com' . $rutaDelPlatillo($dish);
+}
 
 echo '<!DOCTYPE html><html><head><meta charset="utf-8" />';
 echo '<link rel="canonical" href="' . $e($canonical) . '" />';
