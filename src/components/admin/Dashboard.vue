@@ -86,7 +86,7 @@
 
         <div v-if="!menuHealth.findings.length" class="mc-mh-empty">
           <q-icon name="check_circle" color="positive" size="28px" />
-          <span>¡Tu menú está bien optimizado! Sigue así. 🎉</span>
+          <span>¡Tu menú está bien optimizado! Sigue así.</span>
         </div>
 
         <div v-for="f in menuHealth.findings" :key="f.key" class="mc-mh-finding">
@@ -1147,9 +1147,9 @@ const sendWaToCustomer = (customer) => {
   const seg = segmentOf(customer);
   let msg;
   if (seg === "inactivo") {
-    msg = `¡Hola ${first}! Te extrañamos en ${name} 🥺. Vuelve y disfruta tu platillo favorito. Mira el menú aquí: ${menu}`;
+    msg = `¡Hola ${first}! Te extrañamos en ${name}. Vuelve y disfruta tu platillo favorito. Mira el menú aquí: ${menu}`;
   } else if (seg === "vip") {
-    msg = `¡Hola ${first}! Gracias por ser cliente frecuente de ${name} 🙌. Tenemos algo especial para ti. Menú: ${menu}`;
+    msg = `¡Hola ${first}! Gracias por ser cliente frecuente de ${name}. Tenemos algo especial para ti. Menú: ${menu}`;
   } else {
     msg = `¡Hola ${first}! Gracias por tu preferencia en ${name}. Mira nuestras novedades: ${menu}`;
   }

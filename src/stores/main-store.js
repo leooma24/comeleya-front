@@ -918,10 +918,10 @@ export const useMainStore = defineStore("main", {
       // De que sucursal es. Si el negocio no tiene, no se dice nada: un renglon
       // "Sucursal:" en un negocio de un solo local es ruido.
       if (this.sucursalElegida) {
-        lines.push(`🏪 *Sucursal:* ${b(this.sucursalElegida.name)}`);
+        lines.push(`*Sucursal:* ${b(this.sucursalElegida.name)}`);
       }
       if (this.schedule.enabled && this.schedule.at) {
-        lines.push(`🕒 *Programado para:* ${this.schedule.at.replace("T", " ")}`);
+        lines.push(`*Programado para:* ${this.schedule.at.replace("T", " ")}`);
       }
       lines.push(`- - - - - - - - - - - - - -`);
 
@@ -933,9 +933,9 @@ export const useMainStore = defineStore("main", {
         (product.extras || []).forEach((extra) => {
           (extra.options || []).forEach((option) => {
             if (option.qty > 0) {
-              let line = `   ↳ ${option.name}`;
+              let line = `   - ${option.name}`;
               if (option.qty * product.qty > 1) {
-                line = `   ↳ ${option.qty * product.qty}x ${option.name}`;
+                line = `   - ${option.qty * product.qty}x ${option.name}`;
               }
               if (option.price > 0) {
                 line += ` $${f(option.price * product.qty * option.qty)}`;
@@ -950,9 +950,9 @@ export const useMainStore = defineStore("main", {
         // asterisco suelto rompe el negrita de WhatsApp.
         // Sin emoji a propósito: este mismo texto se imprime en tickets térmicos,
         // que no saben renderizarlos, y no todos los clientes de WhatsApp los
-        // muestran igual. El ↳ es el mismo que ya se usa para los extras.
+        // muestran igual. El guion es el mismo que ya se usa para los extras.
         if (product.notes) {
-          lines.push(`   ↳ Nota: ${b(product.notes)}`);
+          lines.push(`   - Nota: ${b(product.notes)}`);
         }
       });
 

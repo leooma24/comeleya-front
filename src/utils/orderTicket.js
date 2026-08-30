@@ -101,7 +101,7 @@ export function printOrderTicket(order, { company = {}, onError } = {}) {
           const optName = esc(o.name);
           let text = o.quantity > 1 ? `${o.quantity * item.quantity}x ${optName}` : optName;
           if (o.price > 0) text += ` (+$${f(o.price * o.quantity * item.quantity)})`;
-          html += `<div class="extra">↳ ${text}</div>`;
+          html += `<div class="extra">- ${text}</div>`;
         });
       });
       // La nota va bajo su platillo y en negrita: es lo que la cocina tiene que

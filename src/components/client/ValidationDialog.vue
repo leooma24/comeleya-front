@@ -284,7 +284,7 @@ const printOrder = () => {
             const optTotal = option.price * option.qty * p.qty;
             let text = option.qty * p.qty > 1 ? `${option.qty * p.qty}x ${esc(option.name)}` : esc(option.name);
             if (optTotal > 0) text += ` $${f(optTotal)}`;
-            html += `<div class="extra">↳ ${text}</div>`;
+            html += `<div class="extra">- ${text}</div>`;
           }
         });
       });
