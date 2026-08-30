@@ -114,7 +114,27 @@
           </template>
         </q-input>
 
+        <q-input
+          filled dense rounded
+          v-model="config.menu_url"
+          label="¿Tu menú vive en tu propio sitio? (opcional)"
+          placeholder="https://tusitio.com/menu"
+          hint="Si lo dejas vacío, los anuncios llevan a tu menú en comeleya.com"
+          class="q-mb-sm"
+        >
+          <template v-slot:prepend><q-icon name="link" /></template>
+        </q-input>
+        <p class="mc-fb-hint q-mb-md">
+          Cuando alguien toque un platillo en un anuncio, va a caer aquí en vez de en
+          comeleya.com, con ese platillo ya abierto. Solo funciona si en esa página tienes
+          el menú insertado con nuestro código.
+        </p>
+
         <div class="mc-fb-actions">
+          <q-btn
+            unelevated no-caps color="primary" icon="save"
+            label="Guardar" size="sm" :loading="saving" @click="saveConfig"
+          />
           <q-btn unelevated no-caps color="primary" icon="download" label="Descargar CSV" size="sm" @click="downloadCsv" />
           <q-btn
             outline no-caps color="primary" icon="help_outline" label="Ayuda de Meta" size="sm"
@@ -216,6 +236,8 @@ const config = ref({
   pixel_id: "",
   page_id: "",
   catalog_id: "",
+  // A dónde llevan los enlaces del catálogo. Vacío = a comeleya.com, como siempre.
+  menu_url: "",
 });
 const saving = ref(false);
 

@@ -129,6 +129,48 @@
     }
   }
 
+  /* Pasa al iframe el platillo y la categoria que traiga la pagina de arriba.
+
+     El enlace del catalogo de Meta puede apuntar al sitio del negocio en vez de a
+     comeleya.com, pero el ?dish= lo lee el menu, que aqui vive DENTRO del iframe: si
+     nadie se lo pasa, quien toco un platillo en un anuncio cae en el menu completo y
+     tiene que buscar otra vez lo que ya habia visto.
+
+     Solo dish y cat. Este script corre en el sitio del negocio y no tiene por que
+     reenviar cualquier cosa que traiga la direccion; el fbclid y los utm de un anuncio
+     no le sirven de nada al menu. Y no se pisa lo que el negocio ya haya puesto en su
+     iframe: si el fijo una categoria en su codigo de insercion, esa manda. */
+  function pasarParametros() {
+    var dePagina = new URLSearchParams(window.location.search);
+    var iframes = comeleyaIframes();
+
+    for (var i = 0; i < iframes.length; i++) {
+      var src = iframes[i].getAttribute("src");
+      if (!src) continue;
+
+      var partes = src.split("?");
+      var query = new URLSearchParams(partes[1] || "");
+      var cambio = false;
+
+      ["dish", "cat"].forEach(function (llave) {
+        if (dePagina.has(llave) && !query.has(llave)) {
+          query.set(llave, dePagina.get(llave));
+          cambio = true;
+        }
+      });
+
+      // Solo si hubo cambio: reasignar el src recarga el iframe, y hacerlo sin
+      // necesidad haria parpadear el menu del negocio cada vez que alguien entra.
+      if (cambio) iframes[i].setAttribute("src", partes[0] + "?" + query.toString());
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", pasarParametros);
+  } else {
+    pasarParametros();
+  }
+
   // Le avisa al iframe (una vez) que este script está activo, para que oculte su
   // barra interna y deje que esta la reemplace por fuera.
   var notified = [];

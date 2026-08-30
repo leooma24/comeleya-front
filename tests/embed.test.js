@@ -178,3 +178,82 @@ describe("embed.js — la barra del pedido fuera del iframe", () => {
     });
   });
 });
+
+/**
+ * El enlace del catálogo de Meta lleva a la página del NEGOCIO, no a comeleya.com,
+ * cuando el negocio configuró la suya. Pero el `?dish=` que trae ese enlace lo lee
+ * nuestro menú, que ahí vive dentro de un iframe: si nadie se lo pasa, el cliente
+ * que tocó un platillo en un anuncio cae en el menú completo y tiene que buscar
+ * otra vez lo que ya había visto.
+ *
+ * Esto prueba el puente: lo que viene en la dirección de la página de arriba entra
+ * al iframe.
+ */
+describe("embed.js — pasa el platillo y la categoría al iframe", () => {
+  const conIframe = (src) => {
+    document.body.innerHTML = `<iframe data-comeleya src="${src}"></iframe>`;
+    return document.querySelector("iframe");
+  };
+
+  const irA = (busqueda) => {
+    window.history.replaceState({}, "", "/menu" + busqueda);
+  };
+
+  const arrancar = () => {
+    // eslint-disable-next-line no-new-func
+    new Function(CODIGO)();
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+  };
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    window.history.replaceState({}, "", "/menu");
+  });
+
+  it("copia el dish de la página al iframe", () => {
+    const iframe = conIframe("https://comeleya.com/kazuki?isExternal=true");
+    irA("?dish=2100");
+    arrancar();
+
+    expect(iframe.getAttribute("src")).toContain("dish=2100");
+    expect(iframe.getAttribute("src")).toContain("isExternal=true");
+  });
+
+  it("copia también la categoría", () => {
+    const iframe = conIframe("https://comeleya.com/kazuki?isExternal=true");
+    irA("?cat=7");
+    arrancar();
+
+    expect(iframe.getAttribute("src")).toContain("cat=7");
+  });
+
+  // Sin parámetros no hay por qué recargar el iframe: cambiar el src lo hace empezar
+  // de cero y el negocio veria su menu parpadear al entrar.
+  it("no toca el iframe si la página no trae nada", () => {
+    const iframe = conIframe("https://comeleya.com/kazuki?isExternal=true");
+    const antes = iframe.getAttribute("src");
+    arrancar();
+
+    expect(iframe.getAttribute("src")).toBe(antes);
+  });
+
+  // Lo que ya venía en el iframe manda: si el negocio fijó una categoría en su
+  // codigo de insercion, no se la pisamos con la de la direccion.
+  it("no pisa lo que el negocio ya puso en el iframe", () => {
+    const iframe = conIframe("https://comeleya.com/kazuki?isExternal=true&cat=3");
+    irA("?cat=7");
+    arrancar();
+
+    expect(iframe.getAttribute("src")).toContain("cat=3");
+    expect(iframe.getAttribute("src")).not.toContain("cat=7");
+  });
+
+  it("ignora cualquier otro parámetro de la página", () => {
+    const iframe = conIframe("https://comeleya.com/kazuki?isExternal=true");
+    irA("?fbclid=abc123&utm_source=facebook");
+    arrancar();
+
+    expect(iframe.getAttribute("src")).not.toContain("fbclid");
+    expect(iframe.getAttribute("src")).not.toContain("utm_source");
+  });
+});
