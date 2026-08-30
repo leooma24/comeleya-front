@@ -11,6 +11,8 @@
 // No conoce stores a proposito: recibe el negocio y a donde avisar si falla, asi que
 // lo puede llamar cualquier pantalla —o una prueba— sin montar Pinia.
 
+import { etiquetaPago } from "src/utils/metodosPago.js";
+
 import { fitPageToContent } from "src/utils/ticketPageSize";
 import { amountToWords } from "src/utils/numberToWords";
 import { orderTotals } from "src/utils/orderTotals";
@@ -119,8 +121,7 @@ export function printOrderTicket(order, { company = {}, onError } = {}) {
   const fecha = d.toLocaleDateString("es-MX");
   const hora = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  const paymentLabels = { cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", mercadopago: "MercadoPago" };
-  const payment = paymentLabels[order.payment_method] || order.payment_method || "";
+  const payment = etiquetaPago(order.payment_method);
   const driverName = order.delivery_assignment?.driver?.name || "";
 
   // ---- Bloque de entrega ----

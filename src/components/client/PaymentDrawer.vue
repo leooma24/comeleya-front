@@ -214,16 +214,16 @@
         <div
           :class="[
             'mc-payment-option',
-            mainStore.payment.type === 'Efectivo' ? 'mc-payment-option--active' : ''
+            mainStore.payment.type === 'cash' ? 'mc-payment-option--active' : ''
           ]"
-          @click="mainStore.payment.type = 'Efectivo'"
+          @click="mainStore.payment.type = 'cash'"
         >
           <q-icon name="payments" size="24px" />
           <span class="mc-payment-option__label">Efectivo</span>
           <q-space />
           <q-icon
-            :name="mainStore.payment.type === 'Efectivo' ? 'check_circle' : 'radio_button_unchecked'"
-            :color="mainStore.payment.type === 'Efectivo' ? 'primary' : 'grey-5'"
+            :name="mainStore.payment.type === 'cash' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'cash' ? 'primary' : 'grey-5'"
             size="22px"
           />
         </div>
@@ -235,7 +235,7 @@
           type="number"
           label="¿Con cuánto pagarás?"
           class="q-mb-md"
-          v-if="mainStore.payment.type === 'Efectivo'"
+          v-if="mainStore.payment.type === 'cash'"
           min="0"
           :error="mainStore.hasError.payment"
           error-message="El monto debe ser mayor o igual al total"
@@ -251,16 +251,16 @@
           v-if="mainStore.hasService(6)"
           :class="[
             'mc-payment-option',
-            mainStore.payment.type === 'Tarjeta' ? 'mc-payment-option--active' : ''
+            mainStore.payment.type === 'card' ? 'mc-payment-option--active' : ''
           ]"
-          @click="mainStore.payment.type = 'Tarjeta'"
+          @click="mainStore.payment.type = 'card'"
         >
           <q-icon name="credit_card" size="24px" />
           <span class="mc-payment-option__label">Tarjeta (Terminal)</span>
           <q-space />
           <q-icon
-            :name="mainStore.payment.type === 'Tarjeta' ? 'check_circle' : 'radio_button_unchecked'"
-            :color="mainStore.payment.type === 'Tarjeta' ? 'primary' : 'grey-5'"
+            :name="mainStore.payment.type === 'card' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'card' ? 'primary' : 'grey-5'"
             size="22px"
           />
         </div>
@@ -270,16 +270,16 @@
           v-if="mainStore.hasService(9)"
           :class="[
             'mc-payment-option',
-            mainStore.payment.type === 'Transferencia' ? 'mc-payment-option--active' : ''
+            mainStore.payment.type === 'transfer' ? 'mc-payment-option--active' : ''
           ]"
-          @click="mainStore.payment.type = 'Transferencia'"
+          @click="mainStore.payment.type = 'transfer'"
         >
           <q-icon name="account_balance" size="24px" />
           <span class="mc-payment-option__label">Transferencia</span>
           <q-space />
           <q-icon
-            :name="mainStore.payment.type === 'Transferencia' ? 'check_circle' : 'radio_button_unchecked'"
-            :color="mainStore.payment.type === 'Transferencia' ? 'primary' : 'grey-5'"
+            :name="mainStore.payment.type === 'transfer' ? 'check_circle' : 'radio_button_unchecked'"
+            :color="mainStore.payment.type === 'transfer' ? 'primary' : 'grey-5'"
             size="22px"
           />
         </div>
@@ -308,7 +308,7 @@
         </div>
         <div
           class="mc-bank-info"
-          v-if="mainStore.payment.type === 'Transferencia'"
+          v-if="mainStore.payment.type === 'transfer'"
         >
           <div><strong>Nombre:</strong> {{ mainStore.company.bank.account_name }}</div>
           <div><strong>Banco:</strong> {{ mainStore.company.bank.bank_name }}</div>

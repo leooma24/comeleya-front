@@ -13,6 +13,7 @@ import { useMessageStore } from "./message-store";
 import { initPixel, trackFb } from "src/utils/fbpixel";
 import { initMessenger } from "src/utils/fbchat";
 import { describeRequestError } from "src/utils/requestError";
+import { etiquetaPago } from "src/utils/metodosPago.js";
 
 /**
  * Cuánto esperar antes de cada reintento del menú.
@@ -70,7 +71,9 @@ export const useMainStore = defineStore("main", {
       value: 0,
     },
     payment: {
-      type: "Efectivo",
+      // Codigo, no etiqueta: es lo que viaja al servidor y lo que se guarda.
+      // La traduccion para leer vive en src/utils/metodosPago.js.
+      type: "cash",
       value: "",
     },
     // Pedido programado ("para más tarde"). at = "YYYY-MM-DDTHH:mm" (datetime-local).
@@ -495,7 +498,7 @@ export const useMainStore = defineStore("main", {
     },
     async creatingOrder() {
       this.hasError.payment = false;
-      if (this.payment.type === "Efectivo") {
+      if (this.payment.type === "cash") {
         // Comparar contra el total real (con envío/propina/descuento), no el subtotal
         const dueAmount = this.totalToPay;
         const entered = this.payment.value;
@@ -976,13 +979,15 @@ export const useMainStore = defineStore("main", {
 
       // Payment
       lines.push(`- - - - - - - - - - - - - -`);
-      if (this.payment.type === "Efectivo") {
-        lines.push(`*Pago*: Efectivo`);
+      // El mensaje lo lee el dueño del restaurante, asi que va la etiqueta y no el
+      // codigo: "*Pago*: Efectivo", nunca "*Pago*: cash".
+      if (this.payment.type === "cash") {
+        lines.push(`*Pago*: ${etiquetaPago("cash")}`);
         if (this.payment.value > this.totalToPay) {
           lines.push(`Pago con: $${f(this.payment.value)} (cambio: $${f(this.payment.value - this.totalToPay)})`);
         }
       } else {
-        lines.push(`*Pago*: ${this.payment.type}`);
+        lines.push(`*Pago*: ${etiquetaPago(this.payment.type)}`);
       }
 
       // Delivery info

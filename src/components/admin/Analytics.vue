@@ -155,7 +155,7 @@
                 <div class="mc-ticket-total"><span>TOTAL:</span><span>${{ ticketData.total }}</span></div>
               </div>
               <div class="mc-ticket-preview__footer">
-                <span>{{ ticketData.payment_method }}</span>
+                <span>{{ etiquetaPago(ticketData.payment_method) }}</span>
                 <span>¡Gracias por su compra!</span>
               </div>
             </div>
@@ -171,6 +171,7 @@
 defineOptions({ name: "AnalyticsComponent" });
 
 import { ref, computed, onMounted } from "vue";
+import { etiquetaPago } from "src/utils/metodosPago.js";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { fitPageToContent } from "src/utils/ticketPageSize";

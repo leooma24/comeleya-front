@@ -29,7 +29,7 @@ describe("main-store", () => {
     });
 
     it("starts with default payment", () => {
-      expect(store.payment.type).toBe("Efectivo");
+      expect(store.payment.type).toBe("cash");
     });
   });
 
@@ -267,13 +267,13 @@ describe("main-store", () => {
     });
 
     it("shows error when cash amount is less than total", async () => {
-      store.payment = { type: "Efectivo", value: 10 };
+      store.payment = { type: "cash", value: 10 };
 
       await store.creatingOrder();
       expect(store.hasError.payment).toBe(true);
     });
 
-    it("does not show error when payment is not Efectivo", async () => {
+    it("does not show error when payment is not cash", async () => {
       store.payment = { type: "Tarjeta", value: 0 };
 
       api.post.mockResolvedValueOnce({
@@ -285,8 +285,8 @@ describe("main-store", () => {
       expect(result).toBe(true);
     });
 
-    it("allows Efectivo when value >= total", async () => {
-      store.payment = { type: "Efectivo", value: 100 };
+    it("allows cash when value >= total", async () => {
+      store.payment = { type: "cash", value: 100 };
 
       api.post.mockResolvedValueOnce({
         data: { id: 1, order_code: "ORD-1" },
@@ -385,7 +385,7 @@ describe("main-store", () => {
       store.companyStore.company = { name: "Test", whatsapp: "9876543210", features: [] };
       store.userStore.data = { name: "Omar", phone: "1234567890", delivery: "Recoger" };
       store.orderStore.order = { order_code: "ORD-1" };
-      store.payment = { type: "Efectivo", value: 0 };
+      store.payment = { type: "cash", value: 0 };
     };
 
     const mensaje = () => decodeURIComponent(store.whatsappUrl.split("?text=")[1] ?? "");
@@ -459,7 +459,7 @@ describe("main-store", () => {
       };
       store.orderStore.order = { order_code: "ORD-1" };
       store.tip.value = 10;
-      store.payment = { type: "Efectivo", value: 200 };
+      store.payment = { type: "cash", value: 200 };
 
       store.buildWhatsAppUrl();
 

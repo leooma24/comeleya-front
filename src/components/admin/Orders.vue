@@ -564,6 +564,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
+import { etiquetaPago } from "src/utils/metodosPago.js";
 import McEncabezado from "./movil/Encabezado.vue";
 import PruebaDePedido from "./PruebaDePedido.vue";
 import { orderTotals } from "src/utils/orderTotals";
@@ -831,13 +832,7 @@ const totalCobrar = (order) => {
 };
 const dinero = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-const ETIQUETAS_PAGO = {
-  cash: "Efectivo",
-  card: "Tarjeta",
-  transfer: "Transferencia",
-  mercadopago: "MercadoPago",
-};
-const pagoTexto = (order) => ETIQUETAS_PAGO[order?.payment_method] || order?.payment_method || "";
+const pagoTexto = (order) => etiquetaPago(order?.payment_method);
 const currentPage = ref(1);
 const rowsPerPage = ref(12);
 const rowsPerPageOptions = [6, 12, 24, 48];
