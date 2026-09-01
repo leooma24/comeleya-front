@@ -171,6 +171,19 @@
               { label: 'Mes', value: 'month' },
             ]"
           />
+          <!-- Elegir otro mes. Vacio = el actual, que es lo que ve quien nunca lo
+               toca. Pedido por un negocio que queria comparar contra el mes pasado. -->
+          <q-select
+            v-model="mesElegido"
+            :options="mesesDisponibles"
+            emit-value map-options clearable dense outlined rounded
+            label="Ver otro mes"
+            style="min-width: 170px"
+            :loading="cargandoMes"
+            @update:model-value="cargarMes"
+          >
+            <template v-slot:prepend><q-icon name="calendar_month" size="18px" /></template>
+          </q-select>
         </div>
       </div>
 
@@ -179,6 +192,23 @@
       </div>
 
       <template v-else>
+        <!-- El dia 1 el panel amanece en ceros y se ve igual que si estuviera roto:
+             se dice en pantalla en vez de dejar al dueno adivinando si fallo algo. -->
+        <q-banner v-if="mesRecienEmpezado" dense rounded class="mc-dash-aviso q-mb-md">
+          <template v-slot:avatar><q-icon name="info" color="primary" /></template>
+          {{ mesRecienEmpezado }} Arriba puedes elegir otro mes para ver los anteriores.
+        </q-banner>
+
+        <!-- De que mes son los numeros, cuando NO es el mes en curso. Sin esto, los
+             de agosto se leen como los de hoy. -->
+        <q-banner
+          v-else-if="stats.periodo && !stats.periodo.es_mes_actual && period === 'month'"
+          dense rounded class="mc-dash-aviso q-mb-md"
+        >
+          <template v-slot:avatar><q-icon name="calendar_month" color="primary" /></template>
+          Estás viendo <strong>{{ stats.periodo.etiqueta }}</strong>, un mes ya cerrado.
+        </q-banner>
+
         <!-- Stats Cards with comparison -->
         <div class="mc-stats-grid">
           <div class="mc-stat-card">
@@ -770,7 +800,13 @@ const copyText = async (text, okMsg) => {
   }
 };
 
+// El mes que se esta mirando, como "2026-08". Vacio = el mes en curso, que es como
+// funciono siempre y como lo ven los 108 negocios que nunca tocan esto.
+const mesElegido = ref("");
+const cargandoMes = ref(false);
+
 const stats = ref({
+  periodo: null,
   orders: { today: 0, week: 0, month: 0 },
   revenue: { today: 0, week: 0, month: 0 },
   avgTicket: { today: 0, week: 0, month: 0 },
@@ -1188,6 +1224,57 @@ const activateFlash = async () => {
   }
 };
 
+/**
+ * Vuelve a pedir el panel para otro mes. Sin mes, el actual.
+ *
+ * Nace de un negocio que abrio su panel un dia 1 y no encontro nada: "este mes"
+ * llevaba ocho horas de vida y se veia igual que si el sistema estuviera roto.
+ */
+const cargarMes = async (mes) => {
+  mesElegido.value = mes || "";
+  cargandoMes.value = true;
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/stats`, {
+      params: mes ? { mes } : {},
+    });
+    stats.value = data;
+    // Al elegir un mes, el filtro se pone en "Mes": es lo que se acaba de pedir.
+    if (mes) period.value = "month";
+  } catch (e) {
+    adminStore.messageStore.error("No se pudieron cargar los datos de ese mes");
+  } finally {
+    cargandoMes.value = false;
+  }
+};
+
+/**
+ * El aviso de "apenas empieza". Solo con el filtro en Mes, en el mes en curso, con
+ * pocos dias corridos y sin pedidos: la combinacion exacta en la que los ceros
+ * parecen una falla del sistema y no la verdad.
+ */
+const mesRecienEmpezado = computed(() => {
+  const p = stats.value.periodo;
+  if (!p || period.value !== "month" || !p.es_mes_actual) return null;
+  if (p.dias_transcurridos > 3 || stats.value.orders?.month > 0) return null;
+
+  return p.dias_transcurridos === 1
+    ? "El mes apenas empezó hoy, por eso va en ceros."
+    : `El mes apenas lleva ${p.dias_transcurridos} días.`;
+});
+
+/** Los ultimos 12 meses para el selector, del mas reciente al mas viejo. */
+const mesesDisponibles = computed(() => {
+  const meses = [];
+  const hoy = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const valor = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const etiqueta = d.toLocaleDateString("es-MX", { month: "long", year: "numeric" });
+    meses.push({ label: etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1), value: valor });
+  }
+  return meses;
+});
+
 // --- LOAD ---
 onMounted(async () => {
   try {
@@ -1387,7 +1474,13 @@ onMounted(async () => {
 
 /* La banda de arriba la pone ahora Encabezado.vue, igual que en las otras tres. */
 
-.mc-hoy-app .mc-stats-grid {
+.mc-hoy-app .mc-dash-aviso {
+  background: var(--color-primary-soft);
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.mc-stats-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr;
   gap: 9px;
