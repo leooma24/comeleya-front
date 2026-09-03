@@ -745,9 +745,13 @@ const printCashCut = () => {
 // --- Insertar en web (iframe) ---
 const showEmbed = ref(false);
 const embedUrl = computed(() => `${window.location.origin}/${adminStore.slug}?isExternal=true`);
+// allow="web-share": sin eso el navegador le niega la hoja de compartir a todo lo que
+// vive dentro del iframe, y los botones de compartir del menu se quedan mudos. Los
+// codigos ya pegados en sitios de negocios no lo traen y para esos el menu se va por
+// WhatsApp; esto arregla los que se copien de aqui en adelante.
 const embedCode = computed(
   () =>
-    `<iframe src="${embedUrl.value}" data-comeleya style="width:100%;border:0;" height="700"></iframe>\n` +
+    `<iframe src="${embedUrl.value}" data-comeleya allow="web-share" style="width:100%;border:0;" height="700"></iframe>\n` +
     `<script src="${window.location.origin}/embed.js" defer><\/script>`
 );
 

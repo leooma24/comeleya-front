@@ -2,18 +2,19 @@
  * Llevar al comensal al mapa del negocio.
  *
  * Dos cosas que parecen una sola y no lo son: armar la direccion del mapa, y lograr
- * abrirla. La segunda es la que fallaba.
- *
- * Dentro de un iframe con `sandbox` -que es como varios sitios embeben el menu-,
- * `window.open` devuelve `null` y no pasa absolutamente nada: ni ventana, ni error, ni
- * aviso. El comensal toca "Ver en Mapa" y el boton se queda mudo. Comprobado: en un
- * iframe normal abre bien, y con `sandbox` sin `allow-popups` devuelve `null`.
- *
- * Por eso hay un plan B: pedirle a la pagina que nos contiene que lo abra ella, que no
- * esta dentro del sandbox. Ese mensaje lo atiende `public/embed.js` y contesta. Si no
- * contesta -porque el sitio embebe el menu sin ese script-, se avisa, que es mejor que
- * el silencio.
+ * abrirla. La segunda es la que fallaba, y ya no vive aqui: la resuelve
+ * `abrirPestana` en src/utils/abrirVentana.js, que es la misma pelea del boton mudo
+ * dentro de un iframe y la comparte con el boton de compartir.
  */
+import { abrirPestana } from "src/utils/abrirVentana";
+
+/**
+ * Abre `url` en una pestaña nueva. `alFallar` se llama solo si no se pudo de ninguna
+ * manera, para que quien llama decida que decirle al comensal.
+ */
+export function abrirEnMapa(url, opciones) {
+  return abrirPestana(url, opciones);
+}
 
 /** El buscador de Google Maps, con coordenadas si las hay y si no con la direccion. */
 export function urlDelMapa({ coordenadas, direccion } = {}) {
@@ -47,55 +48,4 @@ function limpiar(direccion) {
   d = d.replace(/^[\s,]+|[\s,]+$/g, "");
 
   return d.replace(/\s+/g, " ").trim();
-}
-
-/** Si el menu va embebido en otro sitio. */
-function vaEmbebido() {
-  try {
-    return typeof window !== "undefined" && window.parent && window.parent !== window;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Abre `url` en una pestaña nueva. `alFallar` se llama solo si no se pudo de ninguna
- * manera, para que quien llama decida que decirle al comensal.
- */
-export function abrirEnMapa(url, { alFallar } = {}) {
-  if (!url) return false;
-
-  let ventana = null;
-  try {
-    ventana = window.open(url, "_blank", "noopener");
-  } catch {
-    ventana = null;
-  }
-  if (ventana) return true;
-
-  // Bloqueado. Si hay una pagina contenedora, que lo intente ella.
-  if (!vaEmbebido()) {
-    alFallar?.();
-    return false;
-  }
-
-  let contesto = false;
-  const oir = (e) => {
-    if (e?.data && e.data.type === "comeleya:abierto") contesto = true;
-  };
-  window.addEventListener("message", oir);
-  try {
-    window.parent.postMessage({ type: "comeleya:abrir", url }, "*");
-  } catch {
-    // sin canal con el contenedor
-  }
-
-  // Un momento para que conteste. Sin respuesta, el sitio no trae embed.js y no hay
-  // forma de abrir nada: se avisa.
-  setTimeout(() => {
-    window.removeEventListener("message", oir);
-    if (!contesto) alFallar?.();
-  }, 900);
-
-  return true;
 }

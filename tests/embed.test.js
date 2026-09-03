@@ -257,3 +257,66 @@ describe("embed.js — pasa el platillo y la categoría al iframe", () => {
     expect(iframe.getAttribute("src")).not.toContain("utm_source");
   });
 });
+
+/**
+ * Abrir un enlace por cuenta del menu.
+ *
+ * Dentro de un iframe con `sandbox` el menu no puede abrir nada: window.open le
+ * devuelve null y el boton se queda mudo. Esta pagina no esta en el sandbox, asi que
+ * abre ella. La lista de lo que se le permite abrir es corta a proposito: este script
+ * corre en el sitio del negocio.
+ */
+describe("embed.js — abre enlaces por cuenta del menú", () => {
+  let abrir;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    abrir = vi.spyOn(window, "open").mockReturnValue({});
+    // eslint-disable-next-line no-new-func
+    new Function(CODIGO)();
+  });
+
+  const pedir = (url, source) => mandar({ type: "comeleya:abrir", url }, source);
+
+  it("abre el mapa del negocio", () => {
+    pedir("https://www.google.com/maps/search/?api=1&query=25.79,-108.98");
+
+    expect(abrir).toHaveBeenCalled();
+  });
+
+  // El boton de compartir un platillo: dentro del iframe, WhatsApp es su unica salida.
+  it("abre WhatsApp para compartir", () => {
+    pedir("https://wa.me/?text=Maguro%20Roll");
+
+    expect(abrir).toHaveBeenCalledWith("https://wa.me/?text=Maguro%20Roll", "_blank", "noopener");
+  });
+
+  it("tambien la direccion larga de WhatsApp", () => {
+    pedir("https://api.whatsapp.com/send/?text=Maguro");
+
+    expect(abrir).toHaveBeenCalled();
+  });
+
+  it("no abre cualquier cosa que le pidan", () => {
+    pedir("https://sitio-de-otro.com/lo-que-sea");
+    pedir("javascript:alert(1)");
+    pedir({ nada: true });
+
+    expect(abrir).not.toHaveBeenCalled();
+  });
+
+  it("le contesta al menu que si se pudo", () => {
+    const iframe = menu();
+    pedir("https://wa.me/?text=Maguro", iframe);
+
+    expect(iframe.postMessage).toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
+  });
+
+  it("si el popup tambien se bloquea aqui arriba, no contesta nada", () => {
+    abrir.mockReturnValue(null);
+    const iframe = menu();
+    pedir("https://wa.me/?text=Maguro", iframe);
+
+    expect(iframe.postMessage).not.toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
+  });
+});

@@ -1,6 +1,7 @@
 import { computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import { isSpecialActive } from "src/utils/dishPrice";
+import { compartirLink } from "src/utils/compartir";
 
 // Lógica compartida por CardDish y ListDish (una sola fuente de verdad).
 // `item` debe ser un ref (usa toRef(props, "item") en el componente).
@@ -25,19 +26,44 @@ export function useDish(item) {
     mainStore.seeProduct(clone);
   };
 
-  const shareProduct = () => {
+  /**
+   * La direccion del platillo para compartir.
+   *
+   * /kazuki-sushi-delivery/maguro-roll es la de ahora: la que Google indexa y la que
+   * metadata.php usa para pintar la foto y el precio en la vista previa de WhatsApp.
+   * Antes se mandaba ?dish=<id>, que le enseñaba el numero interno del platillo a
+   * quien recibia el mensaje. Ese formato se queda SOLO de respaldo: los platillos
+   * creados antes de la columna `slug` todavia no tienen uno, y el menu sigue sabiendo
+   * abrir las dos formas.
+   */
+  const urlDelPlatillo = (i) => {
+    const negocio =
+      mainStore.company?.slug ||
+      window.location.pathname.split("/").filter(Boolean)[0] ||
+      "";
+    const base = `${window.location.origin}/${negocio}`;
+
+    return i.slug ? `${base}/${i.slug}` : `${base}?dish=${i.id}`;
+  };
+
+  const shareProduct = async () => {
     const i = item.value;
-    // Link directo al platillo (?dish=<id>): así WhatsApp/Facebook muestran la foto
-    // y los datos del platillo en la vista previa (los genera metadata.php en el server).
-    const slug = window.location.pathname.split("/").filter(Boolean)[0] || "";
-    const url = `${window.location.origin}/${slug}?dish=${i.id}`;
     const text = `${i.name} - $${i.price} en ${mainStore.company.name}`;
 
-    if (navigator.share) {
-      navigator.share({ title: i.name, text, url });
-    } else {
-      const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-      window.open(waUrl, "_blank");
+    // Las tres puertas de compartir se pueden cerrar sin decir nada -la del sistema
+    // dentro de un iframe, WhatsApp con el bloqueador de popups, el portapapeles fuera
+    // de https-, y asi es como este boton se quedaba mudo. Ahora contesta en cual se
+    // quedo y de aqui sale el aviso.
+    const comoTermino = await compartirLink({ title: i.name, text, url: urlDelPlatillo(i) });
+
+    if (comoTermino === "copiado") {
+      mainStore.messageStore.success(
+        "Copiamos el link del platillo. Pegalo donde quieras compartirlo."
+      );
+    } else if (comoTermino === "fallo") {
+      mainStore.messageStore.error(
+        "Este sitio no deja compartir desde aqui. Copia la direccion de la pagina para mandarla."
+      );
     }
   };
 

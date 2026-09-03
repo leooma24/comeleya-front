@@ -367,6 +367,7 @@ import LoyaltyBanner from "./LoyaltyBanner.vue";
 import { cartBarCta } from "src/utils/cartBarCta";
 import { centerTabScroll } from "src/utils/categoryScroll";
 import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
+import { compartirLink } from "src/utils/compartir";
 
 const $q = useQuasar();
 const mainStore = useMainStore();
@@ -636,15 +637,23 @@ onUnmounted(() => {
 });
 
 
-function shareMenu() {
+// Misma pelea que el boton de compartir un platillo: la hoja del sistema no existe en
+// escritorio y se niega dentro de un iframe, y WhatsApp no abre con el bloqueador de
+// popups. `compartirLink` intenta las tres puertas y dice en cual se quedo.
+async function shareMenu() {
   const url = window.location.href;
   const text = `Mira el menú de ${mainStore.company.name}`;
 
-  if (navigator.share) {
-    navigator.share({ title: mainStore.company.name, text, url });
-  } else {
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(text + " " + url)}`;
-    window.open(waUrl, "_blank");
+  const comoTermino = await compartirLink({ title: mainStore.company.name, text, url });
+
+  if (comoTermino === "copiado") {
+    mainStore.messageStore.success(
+      "Copiamos el link del menu. Pegalo donde quieras compartirlo."
+    );
+  } else if (comoTermino === "fallo") {
+    mainStore.messageStore.error(
+      "Este sitio no deja compartir desde aqui. Copia la direccion de la pagina para mandarla."
+    );
   }
 }
 
