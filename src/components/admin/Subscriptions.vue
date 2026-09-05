@@ -48,7 +48,46 @@
     </div>
 
     <!-- Subscription Table -->
-    <q-table flat :grid="$q.screen.lt.md" :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
+    <!-- La lista de celular. Lo que se viene a ver aqui es a quien se le vence
+         pronto, asi que los dias restantes van en el renglon y no escondidos en una
+         sexta columna. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div v-for="sub in subscriptions" :key="sub.id" class="mc-lista__fila">
+        <span class="mc-lista__ini">
+          {{ (sub.establishment?.name || '?').trim().slice(0, 2).toUpperCase() }}
+        </span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ sub.establishment?.name || 'Sin negocio' }}</div>
+          <div class="mc-lista__chips">
+            <q-chip dense size="sm" :color="daysColor(daysLeft(sub))" text-color="white">
+              {{ daysLeft(sub) > 0 ? daysLeft(sub) + ' días' : 'Vencida' }}
+            </q-chip>
+            <q-chip dense size="sm" :color="sub.type === 'yearly' ? 'purple-2' : 'blue-2'">
+              {{ sub.type === 'yearly' ? 'Anual' : 'Mensual' }}
+            </q-chip>
+          </div>
+          <div class="mc-lista__meta">{{ sub.package?.name || 'Sin paquete' }}</div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <row-actions-menu
+            :titulo="sub.establishment?.name"
+            :actions="[
+              {
+                key: 'recordar',
+                icon: 'notifications',
+                color: 'primary',
+                label: 'Enviar recordatorio',
+                handler: () => sendReminder(sub),
+              },
+            ]"
+          />
+        </div>
+      </div>
+
+      <div v-if="!subscriptions.length" class="mc-lista__vacio">Sin suscripciones.</div>
+    </div>
+
+    <q-table v-if="!modoApp" flat :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
       rows-per-page-label="Por página:" class="mc-inner-table q-px-md"
     >
       <template v-slot:body="props">
@@ -85,9 +124,12 @@ import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useQuasar } from "quasar";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
+const { modoApp } = useModoApp();
 const overview = ref({ mrr: 0, active_clients: 0, churn_rate: 0, pipeline_count: 0 });
 const subscriptions = ref([]);
 const counts = ref({});

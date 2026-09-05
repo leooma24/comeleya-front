@@ -34,9 +34,37 @@
       </div>
     </div>
 
+    <!-- La lista de celular. Siete columnas de precios y limites no caben en 390 px.
+         Aqui cada paquete dice lo unico que se compara de un vistazo: que cuesta al
+         mes, que cuesta al ano y hasta cuantos productos deja. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div
+        v-for="pk in paquetesFiltrados"
+        :key="pk.id"
+        class="mc-lista__fila"
+        :class="{ 'mc-lista__fila--off': pk.status !== 'activo' }"
+      >
+        <span class="mc-lista__ini">{{ (pk.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ pk.name }}</div>
+          <div class="mc-lista__meta">
+            ${{ money(pk.monthly_price) }} al mes · ${{ money(pk.yearly_price) }} al año
+            <span v-if="pk.status !== 'activo'" class="mc-lista__apagado"> · inactivo</span>
+          </div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <row-actions-menu :titulo="pk.name" :actions="accionesDe(pk)" />
+        </div>
+      </div>
+
+      <div v-if="!paquetesFiltrados.length" class="mc-lista__vacio">
+        {{ filter ? "Ningún paquete con ese nombre." : "Todavía no hay paquetes." }}
+      </div>
+    </div>
+
     <q-table
+      v-if="!modoApp"
       flat
-      :grid="$q.screen.lt.md"
       :rows="adminStore.packages"
       :columns="columns"
       row-key="name"
@@ -99,13 +127,16 @@ defineOptions({
 });
 defineProps(["status"]);
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 import { useAdminStore } from "src/stores/admin-store";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 import { useQuasar } from "quasar";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./packages/FormDrawer.vue";
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const $q = useQuasar();
 const { confirmDelete } = useConfirmDialog();
 
@@ -185,6 +216,21 @@ const columns = [
   },
   { name: "actions", label: "Acciones", align: "right", field: "actions", sortable: false },
 ];
+
+// La q-table filtra sola con su prop `filter`; la lista de celular no.
+const paquetesFiltrados = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  const todos = adminStore.packages || [];
+  if (!q) return todos;
+
+  return todos.filter((pk) => String(pk.name || "").toLowerCase().includes(q));
+});
+
+const accionesDe = (pk) => [
+  { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => editItem(pk) },
+  { key: "delete", icon: "delete_outline", color: "negative", label: "Eliminar", handler: () => deleteItem(pk) },
+];
+
 </script>
 
 <style lang="scss" scoped>

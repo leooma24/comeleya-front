@@ -1311,63 +1311,10 @@ onMounted(async () => {
 
 
 /* ===== Filtro de clientes en celular ===== */
-.mc-cfil { padding: 2px 0 6px; }
-
-.mc-cfil__tira {
-  display: flex;
-  gap: 7px;
-  padding: 4px var(--mc-lado) 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  // El degradado del borde avisa que la tira sigue, sin gastar una flecha.
-  -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent);
-  mask-image: linear-gradient(90deg, #000 92%, transparent);
-
-  &::-webkit-scrollbar { display: none; }
-}
-
-.mc-cfil__c {
-  appearance: none;
-  border: 0;
-  flex: 0 0 auto;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 545;
-  padding: 6px 9px 6px 11px;
-  border-radius: 10px;
-  background: var(--color-surface-variant);
-  color: var(--color-text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-
-  i {
-    font-style: normal;
-    font-size: 9.5px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    background: rgba(13, 16, 21, 0.08);
-    border-radius: 999px;
-    padding: 0.5px 5px;
-  }
-
-  // Seleccionado toma el color del segmento: el mismo que la inicial de cada fila,
-  // así la tira y la lista se leen como una sola cosa.
-  &--on { background: #0d1015; color: #fff; font-weight: 630; }
-  &--on i { background: rgba(255, 255, 255, 0.22); }
-  &--vip.mc-cfil__c--on { background: #c62828; }
-  &--frecuente.mc-cfil__c--on { background: #2560c8; }
-  &--inactivo.mc-cfil__c--on { background: #b06f00; }
-}
-
-.mc-cfil__pie {
-  padding: 7px var(--mc-lado) 0;
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--color-text-secondary);
-}
-
+// La tira de filtros se mudo a src/css/app.scss: aqui vivia dentro de un <style
+// scoped y ninguna otra seccion podia usarla, aunque todas tienen el mismo
+// problema -siete chips que se envuelven en cuatro renglones y empujan los datos
+// fuera de la pantalla-.
 
 /* ===== Clientes en celular ===== */
 .mc-cli { padding: 4px var(--mc-lado) 8px; }

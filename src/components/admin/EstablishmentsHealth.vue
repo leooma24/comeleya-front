@@ -8,8 +8,26 @@
       <q-btn flat round dense icon="refresh" :loading="loading" @click="load" />
     </div>
 
+    <!-- Filtros por estado, en celular: una sola tira que se desliza de lado.
+         Los siete chips uno tras otro se envolvian en cuatro renglones y empujaban
+         la lista fuera de la pantalla: se veian los filtros y ni un solo negocio. -->
+    <div class="mc-cfil" v-if="modoApp">
+      <div class="mc-cfil__tira">
+        <button
+          v-for="s in filters"
+          :key="s.value"
+          type="button"
+          :class="['mc-cfil__c', { 'mc-cfil__c--on': filter === s.value }]"
+          @click="filter = s.value"
+        >
+          {{ s.label }}
+          <i>{{ counts[s.value] ?? 0 }}</i>
+        </button>
+      </div>
+    </div>
+
     <!-- Filtros por estado -->
-    <div class="mc-eh-filters">
+    <div class="mc-eh-filters" v-if="!modoApp">
       <q-chip
         v-for="s in filters"
         :key="s.value"
@@ -28,6 +46,15 @@
          que. Por eso el boton de WhatsApp va afuera, a la mano, y no escondido en
          el menu de acciones. La tabla de nueve columnas se queda para escritorio. -->
     <div class="mc-lista" v-if="modoApp">
+      <q-input
+        v-model="search"
+        filled dense rounded debounce="300"
+        placeholder="Buscar negocio..."
+        class="q-mb-sm"
+      >
+        <template v-slot:prepend><q-icon name="search" size="18px" /></template>
+      </q-input>
+
       <div v-for="r in filasMovil" :key="r.id" class="mc-lista__fila" @click="openPanel(r)">
         <span class="mc-lista__ini">{{ (r.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
 

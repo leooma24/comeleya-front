@@ -31,7 +31,46 @@
     </div>
 
     <!-- Filtered prospects table -->
-    <q-table flat :rows="filteredProspects" :columns="columns" row-key="id" no-data-label="Sin prospectos en este segmento"
+    <!-- La lista de celular. Tocar el renglon abre las actividades del prospecto,
+         igual que en la tabla; el WhatsApp va afuera porque es por donde se les
+         habla, y el score de enganche viaja pegado al nombre. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div
+        v-for="pr in filteredProspects"
+        :key="pr.id"
+        class="mc-lista__fila"
+        @click="emit('openActivities', pr)"
+      >
+        <span class="mc-lista__ini">
+          {{ (pr.business_name || pr.name || '?').trim().slice(0, 2).toUpperCase() }}
+        </span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ pr.business_name || pr.name || 'Sin nombre' }}</div>
+          <div class="mc-lista__chips">
+            <q-badge :color="scoreColor(pr.engagement_score)" :label="'Score ' + pr.engagement_score" />
+          </div>
+          <div class="mc-lista__meta">{{ pr.phone || pr.email || 'Sin contacto' }}</div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <button
+            v-if="pr.phone"
+            type="button"
+            class="mc-lista__wa"
+            aria-label="Escribir por WhatsApp"
+            @click="emit('whatsapp', pr)"
+          >
+            <q-icon name="fab fa-whatsapp" size="17px" />
+          </button>
+          <row-actions-menu :titulo="pr.business_name || pr.name" :actions="accionesDe(pr)" />
+        </div>
+      </div>
+
+      <div v-if="!filteredProspects.length && !loading" class="mc-lista__vacio">
+        Sin prospectos en este segmento.
+      </div>
+    </div>
+
+    <q-table v-if="!modoApp" flat :rows="filteredProspects" :columns="columns" row-key="id" no-data-label="Sin prospectos en este segmento"
       rows-per-page-label="Por página:" class="mc-inner-table" :loading="loading">
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="$emit('openActivities', props.row)">
@@ -69,6 +108,10 @@ import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 
+import RowActionsMenu from "../RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
+
+const { modoApp } = useModoApp();
 const props = defineProps({ search: { type: String, default: "" } });
 const emit = defineEmits(["openActivities", "openCampaign", "whatsapp", "sendEmail", "scheduleCall"]);
 const adminStore = useAdminStore();
@@ -152,6 +195,16 @@ const columns = [
   { name: "notes", label: "Info", align: "left", field: "notes" },
   { name: "actions", label: "Acciones", align: "right" },
 ];
+
+// WhatsApp ya esta afuera, a la mano. Las otras dos salen en la hoja de abajo, y
+// como esta pantalla vive dentro de CRM las tres siguen siendo eventos al padre.
+const accionesDe = (pr) => [
+  ...(pr.email
+    ? [{ key: "mail", icon: "mail", color: "teal", label: "Email", handler: () => emit("sendEmail", pr) }]
+    : []),
+  { key: "call", icon: "phone_callback", color: "blue", label: "Agendar llamada", handler: () => emit("scheduleCall", pr) },
+];
+
 </script>
 
 <style lang="scss" scoped>

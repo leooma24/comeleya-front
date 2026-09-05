@@ -22,7 +22,7 @@
             <q-icon name="close" size="16px" color="grey-5" class="cursor-pointer" @click="search = ''" />
           </template>
         </q-input>
-        <q-btn-toggle v-model="view" no-caps dense unelevated toggle-color="primary"
+        <q-btn-toggle v-if="!modoApp" v-model="view" no-caps dense unelevated toggle-color="primary"
           :options="[
             { label: 'Hoy', value: 'dashboard' },
             { label: 'Pipeline', value: 'pipeline' },
@@ -34,8 +34,40 @@
       </div>
     </div>
 
+    <!-- En celular las cinco vistas van en una tira que se desliza: apretadas en un
+         q-btn-toggle se parten en dos renglones y ninguna se alcanza a leer. -->
+    <div class="mc-cfil" v-if="modoApp">
+      <div class="mc-cfil__tira">
+        <button
+          v-for="v in VISTAS"
+          :key="v.value"
+          type="button"
+          :class="['mc-cfil__c', { 'mc-cfil__c--on': view === v.value }]"
+          @click="view = v.value"
+        >
+          {{ v.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats chips. En celular tambien se deslizan: son una por etapa y en 390 px
+         se envolvian en cuatro renglones antes de enseñar un solo prospecto. -->
+    <div class="mc-cfil" v-if="modoApp">
+      <div class="mc-cfil__tira">
+        <span
+          v-for="(count, status) in stats"
+          :key="status"
+          class="mc-cfil__c"
+          :style="{ cursor: 'default' }"
+        >
+          {{ statusLabel(status) }}
+          <i>{{ count }}</i>
+        </span>
+      </div>
+    </div>
+
     <!-- Stats chips -->
-    <div class="mc-crm-stats q-px-md q-pb-md">
+    <div class="mc-crm-stats q-px-md q-pb-md" v-if="!modoApp">
       <q-chip v-for="(count, status) in stats" :key="status" :color="statusColor(status)" text-color="white" dense>
         {{ statusLabel(status) }}: {{ count }}
       </q-chip>
@@ -154,7 +186,7 @@
     </div>
 
     <!-- List View -->
-    <q-table v-else-if="view === 'list'" flat :rows="filteredProspects" :columns="columns" row-key="id"
+    <q-table v-else-if="view === 'list' && !modoApp" flat :rows="filteredProspects" :columns="columns" row-key="id"
       no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table"
     >
       <template v-slot:body="props">
@@ -215,6 +247,47 @@
         </q-tr>
       </template>
     </q-table>
+
+    <!-- La lista de celular. Diez columnas -telefono, correo, valor, fuente, tags,
+         etapa, dos fechas- no caben en 390 px. Aqui cada prospecto trae lo que se
+         necesita para el siguiente contacto: en que etapa va y cuanto vale. El
+         WhatsApp va afuera, que es por donde se les habla. -->
+    <div class="mc-lista" v-if="view === 'list' && modoApp">
+      <div v-for="pr in filteredProspects" :key="pr.id" class="mc-lista__fila">
+        <span class="mc-lista__ini">
+          {{ (pr.business_name || pr.name || '?').trim().slice(0, 2).toUpperCase() }}
+        </span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ pr.business_name || pr.name || 'Sin nombre' }}</div>
+          <div class="mc-lista__chips">
+            <q-chip dense size="sm" :color="statusColor(pr.status)" text-color="white">
+              {{ statusLabel(pr.status) }}
+            </q-chip>
+          </div>
+          <div class="mc-lista__meta">
+            <span v-if="pr.deal_value > 0">
+              ${{ Number(pr.deal_value).toLocaleString("es-MX") }}
+            </span>
+            <span v-else>Sin valor</span>
+            <template v-if="pr.phone"> · {{ pr.phone }}</template>
+          </div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <button
+            v-if="pr.phone"
+            type="button"
+            class="mc-lista__wa"
+            aria-label="Escribir por WhatsApp"
+            @click="openWhatsApp(pr)"
+          >
+            <q-icon name="fab fa-whatsapp" size="17px" />
+          </button>
+          <row-actions-menu :titulo="pr.business_name || pr.name" :actions="accionesDe(pr)" />
+        </div>
+      </div>
+
+      <div v-if="!filteredProspects.length" class="mc-lista__vacio">Sin prospectos.</div>
+    </div>
 
     <!-- Segments View -->
     <CrmSegments v-if="view === 'segments'"
@@ -287,6 +360,8 @@ defineOptions({ name: "CrmComponent" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./crm/FormDrawer.vue";
 import ActivityDrawer from "./crm/ActivityDrawer.vue";
@@ -296,6 +371,7 @@ import CrmDashboard from "./crm/CrmDashboard.vue";
 import CrmFunnel from "./crm/CrmFunnel.vue";
 
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const { confirmDelete } = useConfirmDialog();
 
 const view = ref("dashboard");
@@ -599,6 +675,27 @@ const columns = [
   { name: "next_contact_at", label: "Próx. contacto", align: "center", field: "next_contact_at", sortable: true },
   { name: "actions", label: "Acciones", align: "right" },
 ];
+
+// Las mismas cinco vistas del q-btn-toggle de escritorio, escritas una sola vez para
+// que la tira de celular no se desincronice cuando alguien agregue la sexta.
+const VISTAS = [
+  { label: "Hoy", value: "dashboard" },
+  { label: "Pipeline", value: "pipeline" },
+  { label: "Lista", value: "list" },
+  { label: "Funnel", value: "funnel" },
+  { label: "Segmentos", value: "segments" },
+];
+
+// Escribir por WhatsApp ya esta afuera, a la mano: aqui quedan las otras cuatro.
+const accionesDe = (pr) => [
+  ...(pr.email
+    ? [{ key: "mail", icon: "mail", color: "teal", label: "Email", handler: () => sendQuickEmail(pr) }]
+    : []),
+  { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => adminStore.editProspect(pr) },
+  { key: "hist", icon: "history", color: "primary", label: "Actividades", handler: () => openActivities(pr) },
+  { key: "delete", icon: "delete_outline", color: "negative", label: "Eliminar", handler: () => deleteProspect(pr) },
+];
+
 </script>
 
 <style lang="scss" scoped>

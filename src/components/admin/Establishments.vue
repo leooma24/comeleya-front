@@ -22,7 +22,9 @@
           </template>
         </q-input>
 
-        <div class="mc-view-toggle">
+        <!-- Escritorio nada mas: en celular la vista es la lista de app y este par
+             de botones solo ocuparia un renglon para no cambiar nada. -->
+        <div class="mc-view-toggle" v-if="!modoApp">
           <q-btn
             flat round
             :color="showResults === 'table' ? 'primary' : 'grey-5'"
@@ -41,7 +43,11 @@
           </q-btn>
         </div>
 
+        <!-- Generar Demo es para ensenar el producto, no para todos los dias. En
+             celular se queda como icono: el renglon completo que ocupaba su texto
+             empujaba la lista fuera de la primera pantalla. -->
         <q-btn
+          v-if="!modoApp"
           outline
           color="teal"
           icon="science"
@@ -51,6 +57,17 @@
           @click="generateDemo"
           :loading="generatingDemo"
         />
+        <q-btn
+          v-else
+          outline
+          round
+          color="teal"
+          icon="science"
+          @click="generateDemo"
+          :loading="generatingDemo"
+        >
+          <q-tooltip>Generar Demo</q-tooltip>
+        </q-btn>
         <q-btn
           unelevated
           color="primary"
