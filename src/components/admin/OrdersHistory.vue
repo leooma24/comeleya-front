@@ -5,9 +5,13 @@
       title="Buscar"
       description="El historial trae todos los pedidos, cerrados o no. Acota por fecha o busca por el código del ticket, el teléfono o el nombre del cliente."
     >
-      <div class="mc-history__filtros">
-        <q-input filled dense v-model="filtros.desde" type="date" label="Desde" class="col" />
-        <q-input filled dense v-model="filtros.hasta" type="date" label="Hasta" class="col" />
+      <!-- `col` solo funciona dentro de un `row`, y este div no lo era: los cuatro
+           campos se apilaban uno por renglon, tambien en escritorio. Ya como row, en
+           celular las dos fechas comparten renglon -son cortas- y quedan tres
+           renglones en vez de cuatro antes de ver un pedido. -->
+      <div class="mc-history__filtros row q-col-gutter-sm">
+        <q-input filled dense v-model="filtros.desde" type="date" label="Desde" class="col-6 col-md" />
+        <q-input filled dense v-model="filtros.hasta" type="date" label="Hasta" class="col-6 col-md" />
         <q-select
           filled dense
           v-model="filtros.status"
@@ -16,13 +20,13 @@
           emit-value
           map-options
           clearable
-          class="col"
+          class="col-12 col-md"
         />
         <q-input
           filled dense
           v-model="filtros.q"
           label="Código, teléfono o nombre"
-          class="col-grow"
+          class="col-12 col-md-grow"
           clearable
           @keyup.enter="buscar"
         >
@@ -46,7 +50,45 @@
     </admin-section>
 
     <div class="mc-history__resultado">
+      <!-- La lista de celular. Siete columnas no caben en 390 px, y de un pedido
+           cerrado lo que se busca es de quien fue, de cuanto y si se cancelo. El
+           total va a la derecha; ver el detalle y reimprimir el ticket, en la hoja
+           de acciones. -->
+      <div class="mc-lista" v-if="modoApp">
+        <div v-for="pd in pedidos" :key="pd.id" class="mc-lista__fila" @click="verDetalle(pd)">
+          <span class="mc-lista__ini">
+            {{ (pd.customer_name || '?').trim().slice(0, 2).toUpperCase() }}
+          </span>
+          <div class="mc-lista__txt">
+            <div class="mc-lista__nom">{{ pd.customer_name || "Sin nombre" }}</div>
+            <div class="mc-lista__chips">
+              <q-badge :color="pd.current_status_id === 5 ? 'negative' : 'positive'">
+                {{ pd.status?.name || "-" }}
+              </q-badge>
+            </div>
+            <div class="mc-lista__meta">
+              {{ pd.order_code }} · {{ fechaCorta(pd.created_at) }}
+            </div>
+          </div>
+          <span class="mc-lista__monto">${{ Number(pd.total || 0).toFixed(2) }}</span>
+          <div class="mc-lista__der" @click.stop>
+            <row-actions-menu
+              :titulo="pd.order_code"
+              :actions="[
+                { key: 'ver', icon: 'visibility', color: 'primary', label: 'Ver detalle', handler: () => verDetalle(pd) },
+                { key: 'print', icon: 'print', color: 'grey-8', label: 'Reimprimir ticket', handler: () => imprimir(pd) },
+              ]"
+            />
+          </div>
+        </div>
+
+        <div v-if="!pedidos.length && !cargando" class="mc-lista__vacio">
+          No hay pedidos con esos filtros.
+        </div>
+      </div>
+
       <q-table
+        v-if="!modoApp"
         flat
         :rows="pedidos"
         :columns="columnas"
@@ -126,6 +168,10 @@
 </template>
 
 <script setup>
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
+
+const { modoApp } = useModoApp();
 /**
  * El historial de pedidos.
  *

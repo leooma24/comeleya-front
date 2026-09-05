@@ -91,7 +91,27 @@
       <!-- Data Table -->
       <div class="mc-analytics-table" v-if="rows.length">
         <h4 class="mc-section-title q-px-lg">Detalle de pedidos del mes</h4>
+        <!-- La lista de celular. Son nueve columnas: un renglon por platillo
+             vendido, con lo que identifica la venta arriba y el importe del renglon
+             a la derecha. El total de la orden completa vive en las tarjetas de
+             resumen de arriba, no hace falta repetirlo en cada linea. -->
+        <div class="mc-lista" v-if="modoApp">
+          <div v-for="(r, i) in rows" :key="r.orden + '-' + i" class="mc-lista__fila">
+            <div class="mc-lista__txt">
+              <div class="mc-lista__nom">{{ r.producto }}</div>
+              <div class="mc-lista__meta">
+                {{ r.orden }} · {{ r.cliente }} · {{ r.fecha }}
+                <template v-if="r.cantidad > 1"> · x{{ r.cantidad }}</template>
+              </div>
+            </div>
+            <span class="mc-lista__monto">${{ r.total_item }}</span>
+          </div>
+
+          <div v-if="!rows.length" class="mc-lista__vacio">Sin pedidos este mes.</div>
+        </div>
+
         <q-table
+          v-if="!modoApp"
           flat
           :rows="rows"
           :columns="columns"
@@ -168,6 +188,8 @@
 </template>
 
 <script setup>
+import { useModoApp } from "src/composables/useModoApp";
+const { modoApp } = useModoApp();
 defineOptions({ name: "AnalyticsComponent" });
 
 import { ref, computed, onMounted } from "vue";

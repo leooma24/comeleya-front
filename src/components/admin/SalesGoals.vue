@@ -146,12 +146,33 @@
 
       <!-- History -->
       <div class="text-subtitle2 text-weight-bold q-mt-lg q-mb-sm">Historial</div>
-      <q-table flat :rows="history" :columns="historyColumns" row-key="id" no-data-label="Sin historial" class="mc-inner-table" />
+      <!-- La lista de celular. Cuatro columnas de metas se leen mejor como un
+           renglon por mes, con la de ingresos a la derecha y las otras dos debajo
+           del mes. -->
+      <div class="mc-lista" v-if="modoApp">
+        <div v-for="h in history" :key="h.id" class="mc-lista__fila">
+          <div class="mc-lista__txt">
+            <div class="mc-lista__nom">
+              {{ new Date(h.month).toLocaleDateString("es-MX", { month: "long", year: "numeric" }) }}
+            </div>
+            <div class="mc-lista__meta">
+              {{ h.target_new_clients }} clientes · {{ h.target_renewals }} renovaciones
+            </div>
+          </div>
+          <span class="mc-lista__monto">${{ formatNum(h.target_revenue) }}</span>
+        </div>
+
+        <div v-if="!history.length" class="mc-lista__vacio">Sin historial.</div>
+      </div>
+
+      <q-table v-if="!modoApp" flat :rows="history" :columns="historyColumns" row-key="id" no-data-label="Sin historial" class="mc-inner-table" />
     </div>
   </q-card>
 </template>
 
 <script setup>
+import { useModoApp } from "src/composables/useModoApp";
+const { modoApp } = useModoApp();
 defineOptions({ name: "SalesGoalsComponent" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";

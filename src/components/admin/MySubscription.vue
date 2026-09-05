@@ -65,7 +65,24 @@
       <!-- Payment history -->
       <div v-if="payments.length" class="q-mt-xl">
         <h6 class="text-weight-bold q-mb-md">Historial de pagos</h6>
-        <q-table flat :rows="payments" :columns="paymentColumns" row-key="id"
+        <!-- La lista de celular. Aqui no hay a quien marcarle: se viene a ver que se
+             pago y cuando, asi que la cifra manda y va a la derecha, con numeros de
+             ancho fijo para que la columna se lea derecha al bajar. -->
+        <div class="mc-lista" v-if="modoApp">
+          <div v-for="pg in payments" :key="pg.id" class="mc-lista__fila">
+            <div class="mc-lista__txt">
+              <div class="mc-lista__nom">
+                {{ pg.paid_at ? new Date(pg.paid_at).toLocaleDateString("es-MX") : "Sin fecha" }}
+              </div>
+              <div class="mc-lista__meta">{{ pg.mp_status || "-" }} · {{ pg.currency || "MXN" }}</div>
+            </div>
+            <span class="mc-lista__monto">${{ Number(pg.amount || 0).toLocaleString("es-MX") }}</span>
+          </div>
+
+          <div v-if="!payments.length" class="mc-lista__vacio">Sin pagos registrados.</div>
+        </div>
+
+        <q-table v-if="!modoApp" flat :rows="payments" :columns="paymentColumns" row-key="id"
           no-data-label="Sin pagos registrados" rows-per-page-label="Por página:"
           :pagination="{ rowsPerPage: 5 }" class="mc-inner-table">
           <template v-slot:body-cell-mp_status="props">
@@ -92,6 +109,8 @@
 </template>
 
 <script setup>
+import { useModoApp } from "src/composables/useModoApp";
+const { modoApp } = useModoApp();
 defineOptions({ name: "MySubscriptionComponent" });
 
 import { ref, onMounted } from "vue";

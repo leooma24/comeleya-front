@@ -1639,6 +1639,19 @@ body.mc-modo-app {
     cursor: pointer;
   }
 
+  // Las pantallas de reporte -pagos, historial, metas, analytics- no tienen a quien
+  // marcarle: lo que se viene a ver es la cifra. Va donde en las otras listas van
+  // las acciones, alineada y con numeros de ancho fijo para que la columna se lea
+  // derecha al bajar.
+  &__monto {
+    font-size: 13.5px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
   &__vacio {
     text-align: center;
     padding: 26px 12px;
