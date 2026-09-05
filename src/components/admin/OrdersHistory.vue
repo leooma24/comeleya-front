@@ -47,7 +47,6 @@
 
     <div class="mc-history__resultado">
       <q-table
-        :grid="$q.screen.lt.md"
         flat
         :rows="pedidos"
         :columns="columnas"

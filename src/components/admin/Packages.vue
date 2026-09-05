@@ -36,6 +36,7 @@
 
     <q-table
       flat
+      :grid="$q.screen.lt.md"
       :rows="adminStore.packages"
       :columns="columns"
       row-key="name"
@@ -44,30 +45,30 @@
       rows-per-page-label="Registros por página:"
       v-model:pagination="pagination"
       :rows-per-page-options="[5, 10, 15, 20]"
-      class="mc-inner-table mc-tabla-apilada"
+      class="mc-inner-table"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="name" data-label="Paquete" :props="props">
+          <q-td key="name" :props="props">
             <span class="text-weight-medium">{{ props.row.name }}</span>
           </q-td>
-          <q-td key="monthly_price" data-label="Mensual" :props="props">
+          <q-td key="monthly_price" :props="props">
             <span class="mc-text-price">${{ money(props.row.monthly_price) }}</span>
           </q-td>
-          <q-td key="yearly_price" data-label="Anual" :props="props">
+          <q-td key="yearly_price" :props="props">
             <span class="mc-text-price">${{ money(props.row.yearly_price) }}</span>
           </q-td>
-          <q-td key="max_products" data-label="Productos" :props="props">
+          <q-td key="max_products" :props="props">
             <q-chip dense size="sm" :color="props.row.max_products === 0 ? 'blue-2' : 'orange-2'" :text-color="props.row.max_products === 0 ? 'blue-8' : 'orange-8'">
               {{ props.row.max_products === 0 ? 'Ilimitado' : props.row.max_products }}
             </q-chip>
           </q-td>
-          <q-td key="features_count" data-label="Features" :props="props">
+          <q-td key="features_count" :props="props">
             <q-chip dense size="sm" color="green-2" text-color="green-8">
               {{ countFeatures(props.row) }}/{{ featureFields.length }}
             </q-chip>
           </q-td>
-          <q-td key="status" data-label="Estado" :props="props">
+          <q-td key="status" :props="props">
             <q-chip
               dense
               :color="props.row.status === 'activo' ? 'positive' : 'grey-4'"
@@ -77,7 +78,7 @@
               {{ props.row.status === 'activo' ? 'Activo' : 'Inactivo' }}
             </q-chip>
           </q-td>
-          <q-td key="actions" data-label="Acciones" :props="props">
+          <q-td key="actions" :props="props">
             <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editItem(props.row)">
               <q-tooltip>Editar</q-tooltip>
             </q-btn>

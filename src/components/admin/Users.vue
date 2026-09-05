@@ -36,6 +36,7 @@
 
     <q-table
       flat
+      :grid="$q.screen.lt.md"
       :rows="adminStore.users"
       :columns="columns"
       row-key="name"
@@ -44,11 +45,11 @@
       rows-per-page-label="Registros por página:"
       v-model:pagination="pagination"
       :rows-per-page-options="[5, 10, 15, 20]"
-      class="mc-inner-table mc-tabla-apilada"
+      class="mc-inner-table"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="name" data-label="Nombre" :props="props">
+          <q-td key="name" :props="props">
             <div class="row items-center q-gutter-sm no-wrap">
               <q-avatar size="32px" color="grey-3" text-color="grey-7">
                 {{ props.row.name?.charAt(0)?.toUpperCase() }}
@@ -56,10 +57,10 @@
               <span class="text-weight-medium">{{ props.row.name }}</span>
             </div>
           </q-td>
-          <q-td key="email" data-label="Correo" :props="props">
+          <q-td key="email" :props="props">
             {{ props.row.email }}
           </q-td>
-          <q-td key="role" data-label="Rol" :props="props">
+          <q-td key="role" :props="props">
             <q-chip
               dense
               size="sm"
@@ -69,7 +70,7 @@
               {{ props.row.role === "super_admin" ? "Super Admin" : props.row.role }}
             </q-chip>
           </q-td>
-          <q-td key="establishments_count" data-label="Establecimientos" :props="props">
+          <q-td key="establishments_count" :props="props">
             <q-chip
               v-if="props.row.establishments_count > 0"
               dense
@@ -81,16 +82,16 @@
             </q-chip>
             <span v-else class="text-grey-5">—</span>
           </q-td>
-          <q-td key="phone" data-label="Teléfono" :props="props">
+          <q-td key="phone" :props="props">
             {{ formatPhone(props.row.phone) }}
           </q-td>
-          <q-td key="last_login" data-label="Último acceso" :props="props">
+          <q-td key="last_login" :props="props">
             <span v-if="props.row.last_login_at" class="text-caption">
               {{ formatDate(props.row.last_login_at) }}
             </span>
             <span v-else class="text-grey-5">—</span>
           </q-td>
-          <q-td key="status" data-label="Estado" :props="props">
+          <q-td key="status" :props="props">
             <q-chip
               dense
               :color="props.row.status === 'Activo' ? 'positive' : 'grey-4'"
@@ -100,7 +101,7 @@
               {{ props.row.status === 'Activo' ? 'Activo' : 'Inactivo' }}
             </q-chip>
           </q-td>
-          <q-td key="actions" data-label="Acciones" :props="props">
+          <q-td key="actions" :props="props">
             <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="adminStore.editUser(props.row)">
               <q-tooltip>Editar</q-tooltip>
             </q-btn>

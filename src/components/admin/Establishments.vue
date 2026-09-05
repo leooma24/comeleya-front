@@ -75,7 +75,7 @@
       v-model:pagination="pagination"
       :rows-per-page-options="rowsPerPageOptions"
       hide-header-in-grid
-      class="mc-inner-table mc-tabla-apilada"
+      class="mc-inner-table"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
@@ -85,19 +85,19 @@
             </q-avatar>
             <q-avatar v-else size="40px" rounded color="grey-3" text-color="grey-6" icon="store" />
           </q-td>
-          <q-td key="name" data-label="Establecimiento" :props="props">
+          <q-td key="name" :props="props">
             <span class="text-weight-medium">{{ props.row.name }}</span>
           </q-td>
-          <q-td key="category" data-label="Categoría" :props="props">
+          <q-td key="category" :props="props">
             <q-chip v-if="props.row.category?.name" dense size="sm" color="grey-3" text-color="grey-8">
               {{ props.row.category?.name }}
             </q-chip>
             <span v-else class="text-grey-5">—</span>
           </q-td>
-          <q-td key="slug" data-label="Slug" :props="props">
+          <q-td key="slug" :props="props">
             <code class="mc-slug-code">{{ props.row.slug }}</code>
           </q-td>
-          <q-td data-label="Usuarios"
+          <q-td
             key="users"
             :props="props"
             class="relative show-hover"
@@ -127,7 +127,7 @@
               <q-tooltip>Agregar usuario</q-tooltip>
             </q-btn>
           </q-td>
-          <q-td key="plan" data-label="Plan" :props="props">
+          <q-td key="plan" :props="props">
             <template v-if="props.row.active_subscription">
               <q-chip dense size="sm" color="teal-1" text-color="teal-9">
                 {{ props.row.active_subscription.package?.name || 'Plan' }}
@@ -140,10 +140,10 @@
             </template>
             <span v-else class="text-grey-5 text-caption">Sin plan</span>
           </q-td>
-          <q-td key="phone" data-label="Teléfono" :props="props">
+          <q-td key="phone" :props="props">
             {{ formatPhone(props.row.phone) }}
           </q-td>
-          <q-td key="status" data-label="Estado" :props="props">
+          <q-td key="status" :props="props">
             <q-chip
               dense
               :color="props.row.status === 'Activo' ? 'positive' : 'grey-4'"
@@ -153,7 +153,7 @@
               {{ props.row.status === 'Activo' ? 'Activo' : 'Inactivo' }}
             </q-chip>
           </q-td>
-          <q-td key="actions" data-label="Acciones" :props="props">
+          <q-td key="actions" :props="props">
             <q-btn flat size="sm" dense round icon="open_in_new" color="grey-7" @click="adminEstablishment(props.row)">
               <q-tooltip>Abrir panel</q-tooltip>
             </q-btn>

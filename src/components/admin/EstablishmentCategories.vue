@@ -44,14 +44,14 @@
       rows-per-page-label="Registros por página:"
       v-model:pagination="pagination"
       :rows-per-page-options="[5, 10, 15, 20]"
-      class="mc-inner-table mc-tabla-apilada"
+      class="mc-inner-table"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="name" data-label="Categoría" :props="props">
+          <q-td key="name" :props="props">
             <span class="text-weight-medium">{{ props.row.name }}</span>
           </q-td>
-          <q-td key="status" data-label="Estado" :props="props">
+          <q-td key="status" :props="props">
             <q-chip
               dense
               :color="props.row.status === 'Activo' ? 'positive' : 'grey-4'"
@@ -61,7 +61,7 @@
               {{ props.row.status === 'Activo' ? 'Activo' : 'Inactivo' }}
             </q-chip>
           </q-td>
-          <q-td key="actions" data-label="Acciones" :props="props">
+          <q-td key="actions" :props="props">
             <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editCategory(props.row)">
               <q-tooltip>Editar</q-tooltip>
             </q-btn>
