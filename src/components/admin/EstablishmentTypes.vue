@@ -34,7 +34,35 @@
       </div>
     </div>
 
+    <!-- La lista de celular. Mismo renglon que las categorias: nombre, si esta activo, y las dos acciones.
+         La tabla se queda intacta para escritorio. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div
+        v-for="t in tiposFiltrados"
+        :key="t.id"
+        class="mc-lista__fila"
+        :class="{ 'mc-lista__fila--off': t.status !== 'Activo' }"
+      >
+        <span class="mc-lista__ini">{{ (t.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ t.name }}</div>
+          <div class="mc-lista__meta">
+            <span v-if="t.status !== 'Activo'" class="mc-lista__apagado">Inactivo</span>
+            <span v-else>Activo</span>
+          </div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <row-actions-menu :titulo="t.name" :actions="accionesDe(t)" />
+        </div>
+      </div>
+
+      <div v-if="!tiposFiltrados.length" class="mc-lista__vacio">
+        {{ filter ? "Ningún tipo con ese nombre." : "Todavía no hay tipos." }}
+      </div>
+    </div>
+
     <q-table
+      v-if="!modoApp"
       flat
       :rows="adminStore.establishmentTypes"
       :columns="columns"
@@ -82,12 +110,15 @@ defineOptions({
 });
 defineProps(["status"]);
 
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 import { useAdminStore } from "src/stores/admin-store";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./establishment_types/FormDrawer.vue";
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const { confirmDelete } = useConfirmDialog();
 
 const filter = ref("");
@@ -125,6 +156,26 @@ const columns = [
   },
   { name: "actions", label: "Acciones", align: "right", field: "actions", sortable: false },
 ];
+
+// La q-table filtra sola con su prop `filter`; la lista de celular no, asi que el
+// mismo texto se aplica aqui.
+const tiposFiltrados = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  const todos = adminStore.establishmentTypes || [];
+  if (!q) return todos;
+
+  return todos.filter((t) =>
+    [t.name].some((x) => String(x || "").toLowerCase().includes(q))
+  );
+});
+
+// Las mismas acciones de la tabla. En celular se abren en la hoja de abajo, donde
+// "Eliminar" queda separado del resto en vez de a un dedo de "Editar".
+const accionesDe = (t) => [
+  { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => editType(t) },
+  { key: "delete", icon: "delete_outline", color: "negative", label: "Eliminar", handler: () => deleteType(t) },
+];
+
 </script>
 
 <style lang="scss" scoped>

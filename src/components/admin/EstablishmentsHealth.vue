@@ -23,7 +23,59 @@
       </q-chip>
     </div>
 
+    <!-- La lista de celular. Esta seccion no es un tablero, es una lista de
+         llamadas: lo que tiene que caber en el renglon es a quien marcarle y por
+         que. Por eso el boton de WhatsApp va afuera, a la mano, y no escondido en
+         el menu de acciones. La tabla de nueve columnas se queda para escritorio. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div v-for="r in filasMovil" :key="r.id" class="mc-lista__fila" @click="openPanel(r)">
+        <span class="mc-lista__ini">{{ (r.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
+
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ r.name }}</div>
+
+          <div class="mc-lista__chips">
+            <q-chip dense size="sm" :color="stateMeta[r.state].color" text-color="white">
+              {{ stateMeta[r.state].label }}
+            </q-chip>
+            <q-chip v-if="r.puede_vender" dense size="sm" color="positive" text-color="white" label="Ya puede vender" />
+            <q-chip
+              v-for="f in r.falta"
+              :key="f"
+              dense size="sm" color="grey-3" text-color="grey-9"
+              :label="ETIQUETA_FALTA[f] || f"
+            />
+            <q-chip v-if="r.numero_por_confirmar" dense size="sm" color="orange-8" text-color="white" label="número sin confirmar" />
+          </div>
+
+          <div class="mc-lista__meta">
+            {{ r.orders_month }} {{ r.orders_month === 1 ? 'pedido' : 'pedidos' }} este mes
+            · {{ r.last_order_at ? timeAgo(r.last_order_at) : 'nunca' }}
+            · {{ r.photo_pct }}% con foto
+          </div>
+        </div>
+
+        <div class="mc-lista__der" @click.stop>
+          <button
+            v-if="r.phone"
+            type="button"
+            class="mc-lista__wa"
+            aria-label="Escribirle al dueño"
+            @click="escribirle(r)"
+          >
+            <q-icon name="fab fa-whatsapp" size="17px" />
+          </button>
+          <row-actions-menu :titulo="r.name" :actions="accionesDe(r)" />
+        </div>
+      </div>
+
+      <div v-if="!filasMovil.length && !loading" class="mc-lista__vacio">
+        {{ search ? "Ningún negocio con ese nombre." : "No hay negocios en este grupo." }}
+      </div>
+    </div>
+
     <q-table
+      v-if="!modoApp"
       flat
       :rows="filteredRows"
       :columns="columns"
@@ -150,8 +202,11 @@ defineOptions({ name: "EstablishmentsHealth" });
 import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const loading = ref(true);
 const rows = ref([]);
 const counts = ref({});
@@ -232,6 +287,27 @@ const filteredRows = computed(() => {
   if (f === "por_confirmar") return rows.value.filter((r) => r.numero_por_confirmar);
   return rows.value.filter((r) => r.state === f);
 });
+
+// La tabla filtra por texto sola con su prop `filter`; la lista de celular no, asi
+// que aqui se aplica la misma busqueda encima del grupo ya elegido con los chips.
+const filasMovil = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return filteredRows.value;
+
+  return filteredRows.value.filter((r) =>
+    [r.name, r.slug, r.phone].some((v) => String(v || "").toLowerCase().includes(q))
+  );
+});
+
+// Abrir el panel ya se hace tocando el renglon, asi que en el menu quedan las dos
+// que no tienen otro camino. Contactar y escribirle NO son la misma: escribirle
+// arma el mensaje con lo que le falta a ESE negocio.
+const accionesDe = (r) => [
+  { key: "panel", icon: "open_in_new", color: "primary", label: "Abrir panel", handler: () => openPanel(r) },
+  ...(r.phone
+    ? [{ key: "saludo", icon: "fab fa-whatsapp", color: "green-7", label: "Mandar un saludo", handler: () => contact(r) }]
+    : []),
+];
 
 const timeAgo = (d) => {
   const days = Math.floor((Date.now() - new Date(d)) / 86400000);

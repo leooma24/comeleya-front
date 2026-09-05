@@ -63,7 +63,43 @@
       </div>
     </div>
 
+    <!-- La lista de celular. La tabla se queda intacta para escritorio: son ocho
+         columnas y en 390 px no caben, asi que se arrastraba de lado y lo primero
+         que quedaba fuera era el nombre -reportado con una foto donde se leia
+         "oneless Pizza"-. Aqui cada negocio es un renglon con lo que se necesita
+         para decidir: quien es, de que es y en que plan esta. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div
+        v-for="est in establecimientosFiltrados"
+        :key="est.id"
+        class="mc-lista__fila"
+        :class="{ 'mc-lista__fila--off': est.status !== 'Activo' }"
+        @click="adminEstablishment(est)"
+      >
+        <span class="mc-lista__ini">
+          <img v-if="est.logo" :src="est.logo" alt="" />
+          <template v-else>{{ (est.name || '?').trim().slice(0, 2).toUpperCase() }}</template>
+        </span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ est.name }}</div>
+          <div class="mc-lista__meta">
+            {{ est.category?.name || 'Sin categoría' }}
+            · {{ est.active_subscription?.package?.name || 'Sin plan' }}
+            <span v-if="est.status !== 'Activo'" class="mc-lista__apagado"> · inactivo</span>
+          </div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <row-actions-menu :titulo="est.name" :actions="accionesDe(est)" />
+        </div>
+      </div>
+
+      <div v-if="!establecimientosFiltrados.length" class="mc-lista__vacio">
+        {{ filter ? "Ningún establecimiento con ese nombre." : "Todavía no hay establecimientos." }}
+      </div>
+    </div>
+
     <q-table
+      v-if="!modoApp"
       flat
       :grid="showResults === 'card'"
       :rows="adminStore.establishments"
@@ -332,8 +368,11 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./establishments/FormDrawer.vue";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
+const { modoApp } = useModoApp();
 
 const filter = ref("");
 const showResults = ref("table");
@@ -353,6 +392,30 @@ const formatPhone = (phone) => {
 };
 
 // Assign plan
+// La q-table filtra sola con su prop `filter`; la lista de celular no, asi que el
+// mismo texto se aplica aqui. Se busca por lo que alguien teclearia para dar con un
+// negocio: su nombre, su slug, su categoria o su telefono.
+const establecimientosFiltrados = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  const todos = adminStore.establishments || [];
+  if (!q) return todos;
+
+  return todos.filter((e) =>
+    [e.name, e.slug, e.category?.name, e.phone].some((v) =>
+      String(v || "").toLowerCase().includes(q)
+    )
+  );
+});
+
+// Las mismas cuatro acciones de la tabla. En celular se abren en la hoja de abajo,
+// donde "Eliminar" queda separado del resto en vez de a un dedo de "Editar".
+const accionesDe = (est) => [
+  { key: "abrir", icon: "open_in_new", color: "grey-7", label: "Abrir panel", handler: () => adminEstablishment(est) },
+  { key: "plan", icon: "card_membership", color: "teal", label: "Asignar plan", handler: () => openAssignPlan(est) },
+  { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => adminStore.editEstablishment(est) },
+  { key: "delete", icon: "delete_outline", color: "negative", label: "Eliminar", handler: () => deleteEstablishment(est) },
+];
+
 const showPlanDialog = ref(false);
 const planTarget = ref(null);
 const assigningPlan = ref(false);

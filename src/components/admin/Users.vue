@@ -34,9 +34,37 @@
       </div>
     </div>
 
+    <!-- La lista de celular. Seis columnas no caben en 390 px. Aqui cada usuario dice quien es, con que correo entra y con que permisos.
+         La tabla se queda intacta para escritorio. -->
+    <div class="mc-lista" v-if="modoApp">
+      <div
+        v-for="u in usuariosFiltrados"
+        :key="u.id"
+        class="mc-lista__fila"
+        :class="{ 'mc-lista__fila--off': u.status !== 'Activo' }"
+      >
+        <span class="mc-lista__ini">{{ (u.name || '?').trim().slice(0, 2).toUpperCase() }}</span>
+        <div class="mc-lista__txt">
+          <div class="mc-lista__nom">{{ u.name }}</div>
+          <div class="mc-lista__meta">
+            {{ u.email }}
+            · {{ u.role === 'super_admin' ? 'Super Admin' : u.role }}
+            <span v-if="u.status !== 'Activo'" class="mc-lista__apagado"> · inactivo</span>
+          </div>
+        </div>
+        <div class="mc-lista__der" @click.stop>
+          <row-actions-menu :titulo="u.name" :actions="accionesDe(u)" />
+        </div>
+      </div>
+
+      <div v-if="!usuariosFiltrados.length" class="mc-lista__vacio">
+        {{ filter ? "Ningún usuario con ese nombre." : "Todavía no hay usuarios." }}
+      </div>
+    </div>
+
     <q-table
+      v-if="!modoApp"
       flat
-      :grid="$q.screen.lt.md"
       :rows="adminStore.users"
       :columns="columns"
       row-key="name"
@@ -199,13 +227,16 @@
 defineOptions({
   name: "UsersComponent",
 });
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 import { useAdminStore } from "src/stores/admin-store";
 import { useQuasar } from "quasar";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./users/FormDrawer.vue";
+import RowActionsMenu from "./RowActionsMenu.vue";
+import { useModoApp } from "src/composables/useModoApp";
 const adminStore = useAdminStore();
+const { modoApp } = useModoApp();
 const $q = useQuasar();
 const { confirmDelete } = useConfirmDialog();
 
@@ -348,6 +379,27 @@ const columns = [
   },
   { name: "actions", label: "Acciones", align: "right", field: "actions", sortable: false },
 ];
+
+// La q-table filtra sola con su prop `filter`; la lista de celular no, asi que el
+// mismo texto se aplica aqui.
+const usuariosFiltrados = computed(() => {
+  const q = filter.value.trim().toLowerCase();
+  const todos = adminStore.users || [];
+  if (!q) return todos;
+
+  return todos.filter((u) =>
+    [u.name, u.email, u.phone].some((x) => String(x || "").toLowerCase().includes(q))
+  );
+});
+
+// Las mismas acciones de la tabla. En celular se abren en la hoja de abajo, donde
+// "Eliminar" queda separado del resto en vez de a un dedo de "Editar".
+const accionesDe = (u) => [
+  { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => adminStore.editUser(u) },
+  { key: "negocios", icon: "business", color: "grey-7", label: "Establecimientos", handler: () => assignEstablishments(u) },
+  { key: "delete", icon: "delete_outline", color: "negative", label: "Eliminar", handler: () => deleteUser(u) },
+];
+
 </script>
 
 <style lang="scss" scoped>

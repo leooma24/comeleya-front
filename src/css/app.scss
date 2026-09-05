@@ -1565,6 +1565,15 @@ body.mc-modo-app {
     font-weight: 700;
     background: var(--color-surface-variant);
     color: var(--color-text-secondary);
+    // Con logo el cuadro lo ensena completo en vez de las iniciales; sin logo, la
+    // regla de abajo no aplica y se queda con las dos letras de siempre.
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
   &__txt {
@@ -1597,6 +1606,37 @@ body.mc-modo-app {
     align-items: center;
     gap: 2px;
     flex-shrink: 0;
+  }
+
+  // Los chips de estado. Salud de clientes los necesita en el renglon: sin ellos
+  // la lista dice a quien marcarle pero no por que, que es la mitad que importa.
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin: 3px 0 1px;
+
+    .q-chip {
+      margin: 0;
+      font-size: 10px;
+      height: 18px;
+    }
+  }
+
+  // El mismo boton verde de la lista de clientes del inicio: la accion que mas se
+  // usa en esa pantalla no puede vivir escondida en el menu de los tres puntos.
+  &__wa {
+    appearance: none;
+    border: 0;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 11px;
+    background: #e9f6ee;
+    color: #12915a;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
   }
 
   &__vacio {
