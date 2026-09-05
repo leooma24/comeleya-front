@@ -92,6 +92,7 @@
       <div class="mc-analytics-table" v-if="rows.length">
         <h4 class="mc-section-title q-px-lg">Detalle de pedidos del mes</h4>
         <q-table
+          :grid="$q.screen.lt.md"
           flat
           :rows="rows"
           :columns="columns"

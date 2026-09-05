@@ -32,24 +32,24 @@
 
     <!-- Filtered prospects table -->
     <q-table flat :rows="filteredProspects" :columns="columns" row-key="id" no-data-label="Sin prospectos en este segmento"
-      rows-per-page-label="Por página:" class="mc-inner-table" :loading="loading">
+      rows-per-page-label="Por página:" class="mc-inner-table mc-tabla-apilada" :loading="loading">
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="$emit('openActivities', props.row)">
-          <q-td key="business_name" :props="props">
+          <q-td key="business_name" data-label="Negocio" :props="props">
             <span class="text-weight-medium">{{ props.row.business_name || '-' }}</span>
             <div class="text-caption text-grey-6">{{ props.row.name }}</div>
           </q-td>
-          <q-td key="score" :props="props">
+          <q-td key="score" data-label="Score" :props="props">
             <q-badge :color="scoreColor(props.row.engagement_score)" :label="props.row.engagement_score" />
           </q-td>
-          <q-td key="phone" :props="props">{{ props.row.phone || '-' }}</q-td>
-          <q-td key="email" :props="props">
+          <q-td key="phone" data-label="Teléfono" :props="props">{{ props.row.phone || '-' }}</q-td>
+          <q-td key="email" data-label="Email" :props="props">
             <span class="text-caption">{{ props.row.email || '-' }}</span>
           </q-td>
-          <q-td key="notes" :props="props">
+          <q-td key="notes" data-label="Info" :props="props">
             <span class="text-caption text-grey-6" style="max-width:200px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ props.row.notes }}</span>
           </q-td>
-          <q-td key="actions" :props="props">
+          <q-td key="actions" data-label="Acciones" :props="props">
             <q-btn v-if="props.row.phone" flat dense size="xs" icon="fab fa-whatsapp" color="green"
               @click.stop.prevent="$emit('whatsapp', props.row)"><q-tooltip>WhatsApp</q-tooltip></q-btn>
             <q-btn v-if="props.row.email" flat dense size="xs" icon="mail" color="teal"

@@ -65,7 +65,7 @@
       <!-- Payment history -->
       <div v-if="payments.length" class="q-mt-xl">
         <h6 class="text-weight-bold q-mb-md">Historial de pagos</h6>
-        <q-table flat :rows="payments" :columns="paymentColumns" row-key="id"
+        <q-table :grid="$q.screen.lt.md" flat :rows="payments" :columns="paymentColumns" row-key="id"
           no-data-label="Sin pagos registrados" rows-per-page-label="Por página:"
           :pagination="{ rowsPerPage: 5 }" class="mc-inner-table">
           <template v-slot:body-cell-mp_status="props">

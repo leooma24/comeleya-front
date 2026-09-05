@@ -113,14 +113,14 @@
       no-data-label="No se encontraron extras"
       rows-per-page-label="Registros por página:"
       :rows-per-page-options="rowsPerPageOptions"
-      class="mc-inner-table"
+      class="mc-inner-table mc-tabla-apilada"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="name" :props="props">
+          <q-td key="name" data-label="Extra" :props="props">
             <span class="text-weight-medium">{{ props.row.name }}</span>
           </q-td>
-          <q-td key="status" :props="props">
+          <q-td key="status" data-label="Estado" :props="props">
             <q-chip
               dense
               :color="props.row.status === 'Activo' ? 'positive' : 'grey-4'"
@@ -131,7 +131,7 @@
             </q-chip>
           </q-td>
 
-          <q-td key="actions" :props="props">
+          <q-td key="actions" data-label="Acciones" :props="props">
             <q-btn flat size="sm" dense round icon="edit" color="grey-7" @click="editGroup(props.row)">
               <q-tooltip>Editar</q-tooltip>
             </q-btn>

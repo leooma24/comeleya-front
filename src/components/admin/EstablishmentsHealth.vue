@@ -31,7 +31,7 @@
       :loading="loading"
       :pagination="{ rowsPerPage: 15, sortBy: 'orders_month', descending: false }"
       rows-per-page-label="Por página:"
-      class="mc-inner-table"
+      class="mc-inner-table mc-tabla-apilada"
       :filter="search"
     >
       <template v-slot:top-left>
@@ -42,11 +42,11 @@
 
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="name" :props="props">
+          <q-td key="name" data-label="Negocio" :props="props">
             <div class="text-weight-medium">{{ props.row.name }}</div>
             <div class="text-caption text-grey-6">{{ props.row.plan || 'Sin plan' }}</div>
           </q-td>
-          <q-td key="state" :props="props">
+          <q-td key="state" data-label="Estado" :props="props">
             <q-chip dense size="sm" :color="stateMeta[props.row.state].color" text-color="white">
               {{ stateMeta[props.row.state].label }}
             </q-chip>
@@ -54,7 +54,7 @@
           <!-- Lo unico que hay que resolver para que ese negocio pueda estrenarse.
                Con esto la lista deja de ser un tablero y pasa a ser una lista de
                llamadas: a cada uno se le sabe que pedirle antes de marcar. -->
-          <q-td key="falta" :props="props">
+          <q-td key="falta" data-label="Para poder vender" :props="props">
             <div class="mc-eh-falta">
               <q-chip
                 v-if="props.row.puede_vender"
@@ -85,13 +85,13 @@
             </div>
           </q-td>
 
-          <q-td key="orders_month" :props="props">
+          <q-td key="orders_month" data-label="Pedidos (mes)" :props="props">
             <span class="text-weight-bold">{{ props.row.orders_month }}</span>
           </q-td>
-          <q-td key="last_order" :props="props">
+          <q-td key="last_order" data-label="Última actividad" :props="props">
             <span class="text-caption">{{ props.row.last_order_at ? timeAgo(props.row.last_order_at) : 'Nunca' }}</span>
           </q-td>
-          <q-td key="photo_pct" :props="props">
+          <q-td key="photo_pct" data-label="Menú con foto" :props="props">
             <div class="mc-eh-photo">
               <q-linear-progress :value="props.row.photo_pct / 100" size="8px" rounded :color="props.row.photo_pct >= 80 ? 'positive' : props.row.photo_pct >= 40 ? 'orange' : 'negative'" />
               <span class="text-caption">{{ props.row.photo_pct }}%</span>
@@ -99,7 +99,7 @@
           </q-td>
           <!-- Cero ofertas no es un número neutro: significa que a los clientes de
                ese negocio NUNCA les aparece el bloque de arriba del menú. -->
-          <q-td key="offers" :props="props">
+          <q-td key="offers" data-label="Ofertas" :props="props">
             <q-chip
               v-if="props.row.offers"
               dense size="sm" color="red-6" text-color="white"
@@ -113,7 +113,7 @@
 
           <!-- El 100% es la señal: marcar todo es igual que no marcar nada, y ahí el
                carrusel repite la carta completa. -->
-          <q-td key="featured_pct" :props="props">
+          <q-td key="featured_pct" data-label="Destacados" :props="props">
             <span v-if="!props.row.featured" class="text-caption text-grey-5">ninguno</span>
             <q-chip
               v-else-if="props.row.featured_pct >= 100"

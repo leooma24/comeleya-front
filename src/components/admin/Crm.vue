@@ -155,47 +155,47 @@
 
     <!-- List View -->
     <q-table v-else-if="view === 'list'" flat :rows="filteredProspects" :columns="columns" row-key="id"
-      no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table"
+      no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table mc-tabla-apilada"
     >
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="openActivities(props.row)">
-          <q-td key="business_name" :props="props">
+          <q-td key="business_name" data-label="Negocio" :props="props">
             <span class="text-weight-medium">{{ props.row.business_name || '-' }}</span>
             <div class="text-caption text-grey-6">{{ props.row.name }}</div>
           </q-td>
-          <q-td key="phone" :props="props">
+          <q-td key="phone" data-label="Teléfono" :props="props">
             <span class="text-caption">{{ props.row.phone || '-' }}</span>
           </q-td>
-          <q-td key="email" :props="props">
+          <q-td key="email" data-label="Email" :props="props">
             <span class="text-caption">{{ props.row.email || '-' }}</span>
           </q-td>
-          <q-td key="deal_value" :props="props">
+          <q-td key="deal_value" data-label="Valor" :props="props">
             <span v-if="props.row.deal_value > 0" class="text-teal text-weight-bold">${{ Number(props.row.deal_value).toLocaleString("es-MX") }}</span>
             <span v-else class="text-grey-5">-</span>
           </q-td>
-          <q-td key="source" :props="props">
+          <q-td key="source" data-label="Fuente" :props="props">
             <q-chip dense size="sm" :color="sourceColor(props.row.source)">{{ props.row.source }}</q-chip>
           </q-td>
-          <q-td key="tags" :props="props">
+          <q-td key="tags" data-label="Tags" :props="props">
             <q-chip v-for="tag in (props.row.tags || []).slice(0, 3)" :key="tag" dense size="xs" color="grey-3" text-color="grey-8">{{ tag }}</q-chip>
             <span v-if="!(props.row.tags || []).length" class="text-grey-5">-</span>
           </q-td>
-          <q-td key="status" :props="props">
+          <q-td key="status" data-label="Etapa" :props="props">
             <q-chip dense size="sm" :color="statusColor(props.row.status)" text-color="white">{{ statusLabel(props.row.status) }}</q-chip>
           </q-td>
-          <q-td key="last_activity" :props="props">
+          <q-td key="last_activity" data-label="Última actividad" :props="props">
             <template v-if="lastActivity(props.row)">
               <q-icon :name="activityIcon(lastActivity(props.row).type)" size="14px" :color="activityColor(lastActivity(props.row).type)" class="q-mr-xs" />
               <span class="text-caption">{{ timeAgo(lastActivity(props.row).created_at) }}</span>
             </template>
             <span v-else class="text-grey-5">-</span>
           </q-td>
-          <q-td key="next_contact_at" :props="props">
+          <q-td key="next_contact_at" data-label="Próx. contacto" :props="props">
             <span :class="isOverdue(props.row.next_contact_at) ? 'text-negative text-weight-bold' : ''">
               {{ props.row.next_contact_at ? formatDate(props.row.next_contact_at) : '-' }}
             </span>
           </q-td>
-          <q-td key="actions" :props="props">
+          <q-td key="actions" data-label="Acciones" :props="props">
             <q-btn v-if="props.row.phone" flat size="sm" dense round icon="fab fa-whatsapp" color="green" @click.stop="openWhatsApp(props.row)">
               <q-tooltip>WhatsApp</q-tooltip>
             </q-btn>

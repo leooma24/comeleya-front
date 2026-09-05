@@ -1915,3 +1915,89 @@ body.mc-modo-app {
   border-radius: 8px;
   padding: 4px 9px;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tablas del panel en movil: apiladas, no de lado
+//
+// Una tabla de diez columnas dentro de una pantalla de 390px solo se puede leer
+// arrastrandola, y arrastrando se pierde la primera columna -la que dice de que
+// renglon estamos hablando-. Reportado con una foto del listado de
+// establecimientos: se veia "oneless Pizza" porque el nombre quedaba cortado.
+//
+// Se apila con CSS y NO con el modo `grid` de Quasar a proposito: en grid,
+// Quasar descarta el slot `body` y pinta una tarjeta generica, asi que se
+// perderian los avatares, los chips de categoria y los botones de accion que
+// cada tabla ya tiene dibujados. Aqui no se reemplaza el contenido de ninguna
+// celda, solo se cambia el acomodo: cada celda pasa a ser un renglon con su
+// etiqueta a la izquierda y lo que ya traia a la derecha.
+//
+// La etiqueta sale de `data-label`, que se le pone a cada <q-td> a partir del
+// `label` de su columna. Una celda sin `data-label` -la de acciones, o la del
+// aviso de "no hay datos"- se pinta completa, sin etiqueta.
+//
+// Las tablas que NO traen slot `body` -Analytics, MySubscription, OrdersHistory,
+// SalesGoals- se quedan con el modo `grid` de Quasar y no pasan por aqui: sin body
+// propio no hay nada que perder, y la tarjeta por defecto ya es etiqueta/valor.
+//
+// El corte es 1023px para empatar con ANCHO_APP de src/composables/useModoApp.js,
+// que es donde este producto tiene escrito que significa "movil". Categories,
+// Products, Sucursales y la tabla de clientes del Dashboard no usan esto: ahi ya
+// hay una lista de celular hecha a mano con `modoApp`.
+@media (max-width: 1023px) {
+  .mc-tabla-apilada {
+    // Sin esto queda el contenedor con scroll horizontal aunque ya nada se salga.
+    .q-table__middle { overflow-x: hidden; }
+
+    .q-table {
+      // Los encabezados ahora viven en cada celda.
+      thead { display: none; }
+
+      &,
+      tbody,
+      tbody tr,
+      tbody td {
+        display: block;
+        width: 100%;
+      }
+
+      tbody tr {
+        padding: var(--space-xs, 4px) 0;
+        border-bottom: 1px solid var(--color-border, #e8eaed);
+
+        &:last-child { border-bottom: none; }
+      }
+
+      tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-md, 16px);
+        // Quasar les fija alto y les prohibe partir el texto: en una columna de
+        // 390px las dos cosas estorban.
+        height: auto;
+        min-height: 0;
+        white-space: normal;
+        text-align: right;
+        border-bottom: none;
+        padding: 6px var(--space-md, 16px);
+
+        &::after { display: none; }
+      }
+
+      tbody td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        text-align: left;
+        font-size: var(--text-xs, 11px);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-text-tertiary, #80868b);
+      }
+
+      // La celda de acciones no lleva etiqueta y sus botones se ven mejor
+      // alineados a la derecha, no estirados de lado a lado.
+      tbody td:not([data-label]) { justify-content: flex-end; }
+    }
+  }
+}

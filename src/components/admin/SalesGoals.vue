@@ -146,7 +146,7 @@
 
       <!-- History -->
       <div class="text-subtitle2 text-weight-bold q-mt-lg q-mb-sm">Historial</div>
-      <q-table flat :rows="history" :columns="historyColumns" row-key="id" no-data-label="Sin historial" class="mc-inner-table" />
+      <q-table :grid="$q.screen.lt.md" flat :rows="history" :columns="historyColumns" row-key="id" no-data-label="Sin historial" class="mc-inner-table" />
     </div>
   </q-card>
 </template>

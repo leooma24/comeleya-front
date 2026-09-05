@@ -48,22 +48,22 @@
     </div>
 
     <!-- Subscription Table -->
-    <q-table flat :grid="$q.screen.lt.md" :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
-      rows-per-page-label="Por página:" class="mc-inner-table q-px-md"
+    <q-table flat :rows="subscriptions" :columns="columns" row-key="id" no-data-label="Sin suscripciones"
+      rows-per-page-label="Por página:" class="mc-inner-table q-px-md mc-tabla-apilada"
     >
       <template v-slot:body="props">
         <q-tr :props="props">
-          <q-td key="establishment" :props="props">
+          <q-td key="establishment" data-label="Establecimiento" :props="props">
             <span class="text-weight-medium">{{ props.row.establishment?.name }}</span>
           </q-td>
-          <q-td key="package" :props="props">{{ props.row.package?.name }}</q-td>
-          <q-td key="type" :props="props">
+          <q-td key="package" data-label="Paquete" :props="props">{{ props.row.package?.name }}</q-td>
+          <q-td key="type" data-label="Tipo" :props="props">
             <q-chip dense size="sm" :color="props.row.type === 'yearly' ? 'purple-2' : 'blue-2'">{{ props.row.type === 'yearly' ? 'Anual' : 'Mensual' }}</q-chip>
           </q-td>
-          <q-td key="end_date" :props="props">
+          <q-td key="end_date" data-label="Vence" :props="props">
             {{ formatDate(props.row.end_date) }}
           </q-td>
-          <q-td key="days_left" :props="props">
+          <q-td key="days_left" data-label="Días restantes" :props="props">
             <q-chip dense size="sm" :color="daysColor(daysLeft(props.row))" text-color="white">
               {{ daysLeft(props.row) > 0 ? daysLeft(props.row) + ' días' : 'Vencida' }}
             </q-chip>
