@@ -10,7 +10,7 @@
 
     <!-- El plan vive aquí y no encabezando Pedidos, que es donde menos importa:
          nadie revisa cuántos días le quedan al plan en plena hora pico. -->
-    <div class="mc-mas__plan" v-if="plan">
+    <div class="mc-mas__plan" v-if="plan && !adminStore.esCajero">
       <b>{{ plan.nombre }}</b>
       <small>{{ plan.detalle }}</small>
     </div>
@@ -68,6 +68,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
 import { useAyuda } from "src/composables/useAyuda";
+import { puedeVerSeccion, puedeAbrirCajon } from "src/utils/permisos";
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
@@ -93,6 +94,7 @@ const tieneFuncion = (nombre) => {
     theme: "has_theme_customization",
     facebook: "has_facebook",
     branches: "has_branches",
+    team: "has_team",
   };
   return !!pkg[mapa[nombre]];
 };
@@ -139,6 +141,7 @@ const grupos = computed(() => [
     items: [
       { cajon: "establecimiento", texto: "Datos del establecimiento", icono: "caja" },
       tieneFuncion("branches") && { tab: "sucursales", texto: "Sucursales", icono: "pin" },
+      tieneFuncion("team") && { tab: "equipo", texto: "Equipo", icono: "gente" },
       { cajon: "horario", texto: "Horario", icono: "reloj" },
       { cajon: "direccion", texto: "Dirección", icono: "pin" },
       { cajon: "configuracion", texto: "Configuración", icono: "engrane" },
@@ -152,7 +155,14 @@ const grupos = computed(() => [
       { cajon: "ayuda", texto: "Ayuda y guías", icono: "chat" },
     ],
   },
-]);
+].map((grupo) => ({ ...grupo, items: grupo.items.filter(permitido) })));
+
+// Lo que se enseña depende del rol en este negocio: la cajera se queda con el Historial
+// y su perfil. Los grupos que quedan vacios la plantilla ya los esconde sola.
+const permitido = (item) =>
+  item.tab
+    ? puedeVerSeccion(adminStore.rolActual, item.tab)
+    : puedeAbrirCajon(adminStore.rolActual, item.cajon);
 
 /** Los otros negocios del mismo dueño: en la barra vieja estaban al final del menú. */
 const otrosNegocios = computed(() => {

@@ -18,6 +18,15 @@
         <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
           <mc-icon name="buscar" :size="17" />
         </button>
+        <button
+          type="button"
+          class="mc-head__ic"
+          title="Corte de caja"
+          aria-label="Corte de caja"
+          @click="corteAbierto = true"
+        >
+          <mc-icon name="caja" :size="17" />
+        </button>
         <q-btn-dropdown flat round dense class="mc-head__ic" dropdown-icon="none" no-icon-animation>
           <template v-slot:label><mc-icon name="sonido" :size="17" /></template>
           <q-list dense>
@@ -109,7 +118,22 @@
           </q-item>
         </q-list>
       </q-btn-dropdown>
+
+      <!-- Aqui y no solo en el Dashboard: la cajera cierra su turno desde Pedidos, que es
+           la unica seccion que ve. -->
+      <q-btn
+        outline
+        no-caps
+        dense
+        color="primary"
+        icon="point_of_sale"
+        label="Corte de caja"
+        class="q-px-sm"
+        @click="corteAbierto = true"
+      />
     </div>
+
+    <corte-de-caja v-model="corteAbierto" />
 
     <!-- En celular, chips: las pestañas de Quasar se desbordaban y los globos se
          encimaban con el texto. Mismo v-model, misma navegacion. -->
@@ -450,7 +474,7 @@
            exacto para ofrecerle la prueba: no hay nada que revisar en la pantalla y
            la duda que tiene es si esto de verdad funciona. Solo cuando no ha vendido
            NUNCA -si ya tuvo pedidos, esta pantalla solo significa que hoy no hay-. -->
-      <prueba-de-pedido v-if="!hayPedidosAlguna" />
+      <prueba-de-pedido v-if="!hayPedidosAlguna && !adminStore.esCajero" />
     </div>
 
     <!-- Pagination -->
@@ -506,11 +530,11 @@
         @update:model-value="currentPage = 1"
       />
     </div>
-
-
-    <orders-history v-else />
-
+    <!-- El </template> cierra aqui, pegado al <orders-history v-else> de abajo. Si entre
+         los dos queda otro elemento con v-if, el v-else se empareja con ese: asi estuvo,
+         con el de la paginacion, y la pestaña Historial salia en blanco. -->
     </template>
+    <orders-history v-else />
     <!-- Driver selection dialog -->
     <q-dialog v-model="driverDialog" :position="modoApp ? 'bottom' : 'standard'" :maximized="false">
       <q-card style="min-width: 350px">
@@ -581,12 +605,15 @@ import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { printOrderTicket } from "src/utils/orderTicket";
 import { origenDelPedido } from "src/utils/sucursales";
 import OrdersHistory from "./OrdersHistory.vue";
+import CorteDeCaja from "./CorteDeCaja.vue";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 
 const helperStore = useHelperStore();
 const adminStore = useAdminStore();
 const companyStore = useCompanyStore();
 const { confirm } = useConfirmDialog();
+
+const corteAbierto = ref(false);
 
 // Selector de tono de alerta (se guarda por dispositivo en localStorage).
 const alertTone = ref(getAlertTone());
@@ -897,6 +924,13 @@ watch(() => adminStore.orderTab, () => {
 // status 0 = pestaña Historial (ver getStatus en AdminPage): no es un estado de
 // pedido, asi que ni se consulta ni se sondea.
 const esHistorial = computed(() => Number(props.status) === 0);
+
+// Si el negocio ya vendio alguna vez. La plantilla la usaba sin que existiera, asi que
+// la tarjeta de "haz un pedido de prueba" salia en cada pestaña vacia, tambien en
+// negocios con cientos de pedidos. Los contadores cuentan todos los pedidos por estado.
+const hayPedidosAlguna = computed(() =>
+  Object.values(adminStore.orderStore.counts ?? {}).some((n) => Number(n) > 0)
+);
 
 const longPolling = async () => {
   if (!pollingActive.value) return;

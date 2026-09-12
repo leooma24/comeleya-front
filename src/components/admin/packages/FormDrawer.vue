@@ -149,5 +149,6 @@ const features = [
   { field: "has_google_business", label: "Google Business" },
   { field: "has_facebook", label: "Facebook (Píxel/Messenger)" },
   { field: "has_branches", label: "Sucursales" },
+  { field: "has_team", label: "Equipo (cuentas de cajero)" },
 ];
 </script>

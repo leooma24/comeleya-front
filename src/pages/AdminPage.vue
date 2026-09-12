@@ -32,7 +32,16 @@
         Más
       </button>
 
+      <!-- Una cajera de un negocio cuyo plan ya no incluye cajeros: el servidor le niega
+           todo el panel, asi que en vez de una pantalla llena de errores se le dice por
+           que y se le deja salir. -->
+      <div v-if="adminStore.bloqueoCajero" class="mc-bloqueo">
+        <q-icon name="lock" size="40px" color="grey-5" />
+        <p>{{ adminStore.bloqueoCajero }}</p>
+        <q-btn unelevated no-caps color="primary" label="Cerrar sesión" @click="salir" />
+      </div>
       <component
+        v-else
         :is="getComponentName(adminStore.tab)"
         :status="getStatus(adminStore.tab, adminStore.orderTab)"
         :key="adminStore.tab + '-' + adminStore.orderTab"
@@ -45,7 +54,7 @@
 defineOptions({
   name: "AdminPage",
 });
-import { ref, computed, defineAsyncComponent } from "vue";
+import { ref, computed, watch, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
@@ -53,6 +62,7 @@ import McIcon from "src/components/admin/movil/McIcon.vue";
 import McEncabezado from "src/components/admin/movil/Encabezado.vue";
 import AdminAvisos from "src/components/admin/Avisos.vue";
 import { useOrderAlerts } from "src/composables/useOrderAlerts";
+import { puedeVerSeccion } from "src/utils/permisos";
 
 // Carga diferida de cada sección: parte el bundle admin (no se descarga lo que no se usa)
 const lazy = (name) =>
@@ -86,6 +96,7 @@ const SalesGoals = lazy("SalesGoals");
 const Subscriptions = lazy("Subscriptions");
 const MySubscription = lazy("MySubscription");
 const Reviews = lazy("Reviews");
+const Equipo = lazy("Equipo");
 
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
@@ -106,6 +117,7 @@ const SECCIONES_CON_BANDA_PROPIA = [
   "extras",
   "sucursales",
   "difusion",
+  "equipo",
 ];
 
 /** El nombre de cada seccion, el mismo que aparece en su renglon de "Más". */
@@ -151,7 +163,8 @@ const isAdmin = ref(false);
 const slug = route.params.slug ?? "";
 adminStore.setSlug(slug);
 adminStore.getEstablishment();
-adminStore.getQr();
+// El QR del menu es cosa del dueño: a la cajera el servidor se lo niega.
+if (!adminStore.esCajero) adminStore.getQr();
 if (route.path === "/admin") {
   isAdmin.value = true;
 }
@@ -160,7 +173,29 @@ if (route.path === "/admin") {
 // panel de un establecimiento (no en el super-admin, donde no hay slug).
 useOrderAlerts(() => slug);
 
+// Unos treinta lugares del panel cambian de seccion: avisos, atajos del Dashboard, el
+// asistente, botones de regreso. En vez de cuidar cada uno, aqui se regresa a Pedidos
+// cualquier seccion que el rol no permite. Corre tambien cuando llega el rol del servidor.
+watch(
+  () => [adminStore.tab, adminStore.rolActual],
+  ([tab, rol]) => {
+    if (puedeVerSeccion(rol, tab)) return;
+    adminStore.tab = "pedidos_pendientes";
+    adminStore.orderTab = "pedidos_pendientes";
+  },
+  { immediate: true }
+);
+
+const salir = () => {
+  adminStore.logout();
+  adminStore.router.push(slug ? `/${slug}/admin/iniciar-sesion` : "/admin/iniciar-sesion");
+};
+
 const getComponentName = (tab) => {
+  // Lo que el rol no permite ni se monta: el componente del dueño pediria datos que el
+  // servidor le niega a la cajera. El watch de arriba la regresa a Pedidos.
+  if (!puedeVerSeccion(adminStore.rolActual, tab)) return null;
+  if (tab === "equipo") return Equipo;
   if (tab === "dashboard") {
     return Dashboard;
   } else if (tab === "productos") {
@@ -272,6 +307,24 @@ const getStatus = (tab, orderTab) => {
 .mc-admin-page {
   background: var(--color-surface-variant);
   min-height: calc(100vh - 100px);
+}
+
+/* Lo que ve una cajera cuando el plan del negocio ya no incluye cajeros. */
+.mc-bloqueo {
+  max-width: 360px;
+  margin: 64px auto;
+  padding: 0 var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+  color: var(--color-text-secondary);
+
+  p {
+    margin: 0;
+    line-height: 1.5;
+  }
 }
 
 .mc-admin-content {

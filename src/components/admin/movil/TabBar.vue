@@ -1,5 +1,6 @@
 <template>
-  <nav class="mc-tabbar">
+  <!-- Las columnas salen de cuantas pestañas hay: la cajera tiene dos, no cuatro. -->
+  <nav class="mc-tabbar" :style="{ gridTemplateColumns: `repeat(${pestanas.length}, 1fr)` }">
     <button
       v-for="t in pestanas"
       :key="t.id"
@@ -20,6 +21,7 @@
 defineOptions({ name: "AdminTabBar" });
 import { computed } from "vue";
 import { useAdminStore } from "src/stores/admin-store";
+import { puedeVerSeccion } from "src/utils/permisos";
 import McIcon from "./McIcon.vue";
 
 const adminStore = useAdminStore();
@@ -30,20 +32,24 @@ const adminStore = useAdminStore();
  *
  * Cada pestaña apunta a una sección que YA existe en el panel; esto solo cambia por
  * dónde se llega. "Más" es la única que no tiene sección propia todavía.
+ *
+ * La cajera se queda con Pedidos y Más: "Hoy" y "Menú" son secciones del dueño.
  */
-const pestanas = computed(() => [
-  {
-    id: "pedidos",
-    tab: "pedidos_pendientes",
-    texto: "Pedidos",
-    icono: "ticket",
-    // Los pendientes son los que esperan una decisión; los demás estados ya van solos.
-    globo: adminStore.getOrderCounts(1) || 0,
-  },
-  { id: "hoy", tab: "dashboard", texto: "Hoy", icono: "panel" },
-  { id: "menu", tab: "productos", texto: "Menú", icono: "menu" },
-  { id: "mas", tab: "mc_mas", texto: "Más", icono: "mas" },
-]);
+const pestanas = computed(() =>
+  [
+    {
+      id: "pedidos",
+      tab: "pedidos_pendientes",
+      texto: "Pedidos",
+      icono: "ticket",
+      // Los pendientes son los que esperan una decisión; los demás estados ya van solos.
+      globo: adminStore.getOrderCounts(1) || 0,
+    },
+    { id: "hoy", tab: "dashboard", texto: "Hoy", icono: "panel" },
+    { id: "menu", tab: "productos", texto: "Menú", icono: "menu" },
+    { id: "mas", tab: "mc_mas", texto: "Más", icono: "mas" },
+  ].filter((t) => puedeVerSeccion(adminStore.rolActual, t.tab))
+);
 
 const activa = computed(() => {
   const t = adminStore.tab || "";
@@ -70,7 +76,7 @@ const ir = (t) => {
   bottom: 0;
   z-index: 2500;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  // Las columnas las pone la plantilla segun las pestañas que le tocan a quien entra.
   align-items: start;
   padding-top: 8px;
   // El respiro de abajo es el del gesto de inicio del teléfono: sin él, la última

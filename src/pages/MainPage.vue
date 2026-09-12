@@ -704,6 +704,7 @@ const getPkgFeatures = (pkg) => {
   if (pkg.has_notifications) features.push("Avisos por email + WhatsApp a un clic");
   if (pkg.has_loyalty) features.push("Programa de lealtad");
   if (pkg.has_branches) features.push("Varias sucursales con su propio envío");
+  if (pkg.has_team) features.push("Cuentas para tus cajeros");
   if (pkg.has_reservations) features.push("Reservaciones");
   if (pkg.has_drivers) features.push("Gestión de repartidores");
   if (pkg.has_theme_customization) features.push("Personalización de tema");

@@ -131,8 +131,9 @@
           </p>
         </div>
 
-        <!-- QR section -->
-        <div class="mc-profile-section q-mt-md">
+        <!-- QR section. No para la cajera: el QR del menu es cosa del dueño, y el
+             servidor le niega la descarga. -->
+        <div class="mc-profile-section q-mt-md" v-if="!adminStore.esCajero">
           <div class="mc-profile-section__header">
             <q-icon name="qr_code" size="xs" color="primary" />
             <span class="mc-profile-section__title">Código QR</span>

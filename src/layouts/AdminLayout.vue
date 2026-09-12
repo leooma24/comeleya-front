@@ -57,7 +57,9 @@
                 <q-item class="mc-menu-header">
                   <q-item-section>
                     <q-item-label class="text-weight-bold">{{ adminStore.user.name }}</q-item-label>
-                    <q-item-label caption class="text-grey-6">Administrador</q-item-label>
+                    <q-item-label caption class="text-grey-6">
+                      {{ adminStore.esCajero ? "Cajero" : "Administrador" }}
+                    </q-item-label>
                   </q-item-section>
                 </q-item>
                 <q-separator />
@@ -71,12 +73,13 @@
                   <q-item-section avatar><q-icon name="person_outline" size="20px" /></q-item-section>
                   <q-item-section>Perfil</q-item-section>
                 </q-item>
+                <!-- Los datos del negocio son del dueño: a la cajera ni se le enseñan. -->
                 <q-item
                   clickable
                   v-ripple
                   class="mc-menu-item"
                   @click="adminStore.setScheduleDrawer(true)"
-                  v-if="adminStore.isEstablishment"
+                  v-if="adminStore.isEstablishment && !adminStore.esCajero"
                 >
                   <q-item-section avatar><q-icon name="schedule" size="20px" /></q-item-section>
                   <q-item-section>Horario</q-item-section>
@@ -86,7 +89,7 @@
                   v-ripple
                   class="mc-menu-item"
                   @click="adminStore.setEstablishmentDrawer(true)"
-                  v-if="adminStore.isEstablishment"
+                  v-if="adminStore.isEstablishment && !adminStore.esCajero"
                 >
                   <q-item-section avatar><q-icon name="storefront" size="20px" /></q-item-section>
                   <q-item-section>Establecimiento</q-item-section>
@@ -96,7 +99,7 @@
                   v-ripple
                   class="mc-menu-item"
                   @click="adminStore.setAddressDrawer(true)"
-                  v-if="adminStore.isEstablishment"
+                  v-if="adminStore.isEstablishment && !adminStore.esCajero"
                 >
                   <q-item-section avatar><q-icon name="location_on" size="20px" /></q-item-section>
                   <q-item-section>Dirección</q-item-section>
@@ -106,7 +109,7 @@
                   v-ripple
                   class="mc-menu-item"
                   @click="adminStore.setConfigurationDrawer(true)"
-                  v-if="adminStore.isEstablishment"
+                  v-if="adminStore.isEstablishment && !adminStore.esCajero"
                 >
                   <q-item-section avatar><q-icon name="settings" size="20px" /></q-item-section>
                   <q-item-section>Configuración</q-item-section>
@@ -249,10 +252,13 @@
     <address-drawer />
 
     <q-page-container>
-      <router-view />
+      <!-- La llave es el negocio: sin ella, pasar de /a/admin a /b/admin reusaba la misma
+           pagina y el panel seguia con los datos -y el rol- del negocio anterior. -->
+      <router-view :key="$route.params.slug" />
     </q-page-container>
 
-    <help-assistant v-if="adminStore.isEstablishment" />
+    <!-- El asistente lleva a secciones del dueño: a la cajera no le sirve de nada. -->
+    <help-assistant v-if="adminStore.isEstablishment && !adminStore.esCajero" />
 
     <!-- En celular la navegacion se muda abajo: es donde llega el pulgar sin
          reacomodar la mano, y es la señal que mas dice "aplicacion". -->
@@ -279,6 +285,7 @@ import AdminTabBar from "src/components/admin/movil/TabBar.vue";
 
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
+import { puedeVerSeccion } from "src/utils/permisos";
 
 const adminStore = useAdminStore();
 const $q = useQuasar();
@@ -342,19 +349,24 @@ const hasFeature = (featureName) => {
     ticket_printing: 'has_ticket_printing',
     facebook: 'has_facebook',
     branches: 'has_branches',
+    team: 'has_team',
   };
   return !!pkg[map[featureName]];
 };
 
 // --- Navegación agrupada del panel del establecimiento ---
-// Solo presentación: cada item sigue cambiando adminStore.tab como antes.
-const leadingTabs = [
-  { name: "dashboard", icon: "dashboard", label: "Dashboard" },
-  { name: "pedidos_pendientes", icon: "receipt_long", label: "Pedidos", badge: () => adminStore.getOrderCounts(1) },
-];
-const trailingTabs = [
-  { name: "mi_plan", icon: "card_membership", label: "Mi plan" },
-];
+// Solo presentación: cada item sigue cambiando adminStore.tab como antes. Lo que no le
+// toca a quien entra -a la cajera, todo menos Pedidos- ni se pinta (src/utils/permisos.js).
+const puedeVer = (item) => puedeVerSeccion(adminStore.rolActual, item.name);
+const leadingTabs = computed(() =>
+  [
+    { name: "dashboard", icon: "dashboard", label: "Dashboard" },
+    { name: "pedidos_pendientes", icon: "receipt_long", label: "Pedidos", badge: () => adminStore.getOrderCounts(1) },
+  ].filter(puedeVer)
+);
+const trailingTabs = computed(() =>
+  [{ name: "mi_plan", icon: "card_membership", label: "Mi plan" }].filter(puedeVer)
+);
 const navGroups = [
   {
     label: "Catálogo",
@@ -375,6 +387,7 @@ const navGroups = [
       // Vivia SOLO en el menu Mas del celular: el paquete Premium la vendia y desde la
       // computadora no habia por donde darla de alta. Mismo caso que "Comparte tu menu".
       { name: "sucursales", icon: "storefront", label: "Sucursales", feature: "branches" },
+      { name: "equipo", icon: "badge", label: "Equipo", feature: "team" },
       { name: "lealtad", icon: "loyalty", label: "Lealtad", feature: "loyalty" },
     ],
   },
@@ -396,10 +409,14 @@ const navGroups = [
   },
 ];
 
-// Filtra items premium no disponibles y oculta grupos que quedan vacíos.
+// Filtra items premium no disponibles, lo que no le toca al rol de quien entra, y
+// oculta los grupos que quedan vacíos: a la cajera no le queda ninguno.
 const visibleGroups = computed(() =>
   navGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.feature || hasFeature(i.feature)) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => (!i.feature || hasFeature(i.feature)) && puedeVer(i)),
+    }))
     .filter((g) => g.items.length)
 );
 

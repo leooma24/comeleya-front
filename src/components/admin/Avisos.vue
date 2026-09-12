@@ -95,6 +95,8 @@ const etiqueta = (a) => a.accion.compacta || a.accion.label;
 const avisos = computed(() => {
   // En Pedidos no: es la pantalla de servicio, y ahi lo unico que importa es la comanda.
   if (!adminStore.showBanners) return [];
+  // La cajera no puede hacer nada con estos avisos: todos llevan a cosas del dueño.
+  if (adminStore.esCajero) return [];
   if (props.compacto && String(adminStore.tab || "").startsWith("pedidos")) return [];
 
   const d = diasDePlan.value;

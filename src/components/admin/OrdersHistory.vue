@@ -38,12 +38,15 @@
         <q-btn unelevated no-caps color="primary" icon="search" label="Buscar" :loading="cargando" @click="buscar" />
         <q-btn flat no-caps color="grey-8" icon="restart_alt" label="Limpiar" @click="limpiar" />
         <q-space />
+        <!-- El CSV trae telefonos y montos de todos los clientes: la cajera no lo baja. -->
         <q-btn
+          v-if="puedeExportarPedidos(adminStore.rolActual)"
           flat no-caps
           color="primary"
           icon="download"
           label="Exportar CSV"
           :disable="!total"
+          :loading="exportando"
           @click="exportar"
         />
       </div>
@@ -193,6 +196,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import { useCompanyStore } from "src/stores/company-store";
 import { printOrderTicket } from "src/utils/orderTicket";
 import { origenDelPedido, tieneSucursales } from "src/utils/sucursales";
+import { puedeExportarPedidos } from "src/utils/permisos";
 import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
@@ -262,12 +266,33 @@ const limpiar = () => {
   cargar(1);
 };
 
-const exportar = () => {
-  const query = new URLSearchParams(params.value).toString();
-  const base = api.defaults.baseURL.replace(/\/$/, "");
-  // Se abre en una pestaña en vez de pedirlo por axios: asi el navegador lo baja como
-  // archivo y no hay que armar un blob para algo que ya viene con su nombre puesto.
-  window.open(`${base}/admin/${adminStore.slug}/orders/history/export?${query}`, "_blank");
+// Se baja con axios y no abriendo la liga en otra pestaña: la pestaña nueva no lleva el
+// token, asi que la exportacion le respondia 401 a todos. Mismo camino que el PDF del QR.
+const exportando = ref(false);
+const exportar = async () => {
+  exportando.value = true;
+  try {
+    const response = await api.get(`/admin/${adminStore.slug}/orders/history/export`, {
+      params: params.value,
+      responseType: "blob",
+      // Un historial largo tarda: sin esto el tiempo limite de axios corta la descarga.
+      timeout: 0,
+    });
+    const url = window.URL.createObjectURL(
+      new Blob([response.data], { type: "text/csv;charset=utf-8" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `pedidos-${adminStore.slug}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch {
+    adminStore.messageStore.error("No se pudo exportar el historial.");
+  } finally {
+    exportando.value = false;
+  }
 };
 
 const detalle = ref(null);

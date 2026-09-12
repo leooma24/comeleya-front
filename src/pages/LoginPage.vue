@@ -196,8 +196,20 @@ const login = async () => {
     if (userStore.user.role === "super_admin") {
       userStore.router.push("/admin");
     } else {
-      const slug = userStore.user.establishments[0].slug ?? route.params.slug;
-      userStore.router.push(`/${slug}/admin`);
+      // El negocio de la liga, si es uno de los suyos: quien es dueña de uno y cajera en
+      // otro entra al que abrio, no siempre al primero de la lista.
+      const propios = userStore.user.establishments ?? [];
+      const slug = propios.some((e) => e.slug === route.params.slug)
+        ? route.params.slug
+        : propios[0]?.slug;
+      if (slug) {
+        userStore.router.push(`/${slug}/admin`);
+      } else {
+        // Sin ningun negocio no hay panel al cual mandarla. Antes esto reventaba al leer
+        // establishments[0] y la pantalla se quedaba cargando.
+        userStore.logout();
+        $q.notify({ type: "negative", message: "Tu cuenta no tiene acceso a ningún negocio." });
+      }
     }
   } else {
     $q.notify({

@@ -470,52 +470,8 @@
       </q-table>
     </q-card>
 
-    <!-- CORTE DE CAJA DIALOG -->
-    <q-dialog v-model="cashCutDialog">
-      <q-card style="min-width: 340px; max-width: 420px; border-radius: 16px" id="mc-cashcut-card">
-        <q-card-section class="row items-center justify-between">
-          <div class="row items-center q-gutter-sm">
-            <q-icon name="point_of_sale" size="24px" color="primary" />
-            <span style="font-size: 18px; font-weight: 700">Corte de caja</span>
-          </div>
-          <q-btn flat round dense icon="close" v-close-popup />
-        </q-card-section>
-
-        <q-card-section class="q-pt-none">
-          <q-input v-model="cashCutDate" type="date" filled dense label="Fecha" @update:model-value="fetchCashCut" />
-        </q-card-section>
-
-        <q-card-section v-if="cashCutLoading" class="text-center">
-          <q-spinner-dots color="primary" size="32px" />
-        </q-card-section>
-
-        <q-card-section v-else-if="cashCut" class="q-pt-none">
-          <div class="mc-cc-summary">
-            <div class="mc-cc-row"><span>Pedidos</span><strong>{{ cashCut.orders }}</strong></div>
-            <div class="mc-cc-row"><span>Ventas</span><strong>${{ formatNumber(cashCut.revenue) }}</strong></div>
-            <div class="mc-cc-row"><span>Propinas</span><strong>${{ formatNumber(cashCut.tips) }}</strong></div>
-            <div class="mc-cc-row"><span>Descuentos</span><strong>-${{ formatNumber(cashCut.discounts) }}</strong></div>
-            <div class="mc-cc-row"><span>Ticket promedio</span><strong>${{ formatNumber(cashCut.avg_ticket) }}</strong></div>
-          </div>
-
-          <div class="mc-cc-methods">
-            <div class="mc-cc-methods__title">Por método de pago</div>
-            <div v-for="m in cashCut.by_method" :key="m.method" class="mc-cc-row">
-              <span>{{ m.method }} ({{ m.count }})</span>
-              <strong>${{ formatNumber(m.total) }}</strong>
-            </div>
-            <div v-if="!cashCut.by_method.length" class="text-caption text-grey-6 q-mt-sm">
-              Sin pedidos en esta fecha.
-            </div>
-          </div>
-        </q-card-section>
-
-        <q-card-actions align="right" class="q-px-md q-pb-md">
-          <q-btn flat no-caps color="grey-7" icon="print" label="Imprimir" @click="printCashCut" />
-          <q-btn unelevated no-caps color="primary" label="Cerrar" v-close-popup />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <!-- Corte de caja. Vive en CorteDeCaja.vue porque tambien se abre desde Pedidos. -->
+    <corte-de-caja v-model="cashCutDialog" />
 
     <!-- FLASH OFFER DIALOG -->
     <q-dialog v-model="showFlashOffer">
@@ -663,6 +619,7 @@ import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
+import CorteDeCaja from "./CorteDeCaja.vue";
 
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
@@ -682,64 +639,10 @@ const flashForm = ref({ dish_id: null, special_price: null, hours: 4 });
 const flashLoading = ref(false);
 
 // --- CORTE DE CAJA ---
+// El dialogo vive en CorteDeCaja.vue, que tambien se abre desde Pedidos: aqui solo se abre.
 const cashCutDialog = ref(false);
-const cashCutDate = ref(new Date().toISOString().slice(0, 10));
-const cashCut = ref(null);
-const cashCutLoading = ref(false);
-
-const fetchCashCut = async () => {
-  cashCutLoading.value = true;
-  try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/cash-cut`, {
-      params: { date: cashCutDate.value },
-    });
-    cashCut.value = data;
-  } catch (e) {
-    adminStore.messageStore.error("No se pudo cargar el corte de caja");
-  } finally {
-    cashCutLoading.value = false;
-  }
-};
-
 const openCashCut = () => {
-  cashCutDate.value = new Date().toISOString().slice(0, 10);
   cashCutDialog.value = true;
-  fetchCashCut();
-};
-
-const printCashCut = () => {
-  if (!cashCut.value) return;
-  const c = cashCut.value;
-  const name = adminStore.company?.name || "Restaurante";
-  const money = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const methods = c.by_method.map((m) => `<div class="row"><span>${m.method} (${m.count})</span><b>${money(m.total)}</b></div>`).join("");
-  const w = window.open("", "_blank");
-  if (!w) return;
-  w.document.write(`
-    <html><head><title>Corte ${c.date}</title><style>
-      body{font-family:'Consolas','DejaVu Sans Mono','Liberation Mono',Menlo,'Courier New',monospace;font-weight:700;line-height:1.35;max-width:320px;margin:0 auto;padding:12px;color:#000}
-      h2{text-align:center;margin:4px 0}.date{text-align:center;margin-bottom:10px}
-      .row{display:flex;justify-content:space-between;padding:3px 0}
-      .sep{border-top:1px dashed #000;margin:8px 0}.title{font-weight:bold;margin-top:8px}
-    </style></head><body>
-      <h2>${name}</h2>
-      <div class="date">Corte de caja — ${c.date}</div>
-      <div class="sep"></div>
-      <div class="row"><span>Pedidos</span><b>${c.orders}</b></div>
-      <div class="row"><span>Ventas</span><b>${money(c.revenue)}</b></div>
-      <div class="row"><span>Propinas</span><b>${money(c.tips)}</b></div>
-      <div class="row"><span>Descuentos</span><b>-${money(c.discounts)}</b></div>
-      <div class="row"><span>Ticket promedio</span><b>${money(c.avg_ticket)}</b></div>
-      <div class="sep"></div>
-      <div class="title">Por método de pago</div>
-      ${methods || "<div>Sin pedidos</div>"}
-      <div class="sep"></div>
-      <div class="date">${new Date().toLocaleString("es-MX")}</div>
-    </body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-  w.close();
 };
 
 // --- Insertar en web (iframe) ---
@@ -1500,19 +1403,6 @@ onMounted(async () => {
   &__tip { font-size: 12.5px; color: var(--color-text-secondary); line-height: 1.45; margin-top: 2px; }
   &__dishes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
   &__btn { flex-shrink: 0; align-self: center; }
-}
-
-// Corte de caja
-.mc-cc-summary { display: flex; flex-direction: column; gap: 2px; }
-.mc-cc-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 5px 0; font-size: 14px; color: var(--color-text-primary);
-  strong { font-variant-numeric: tabular-nums; }
-}
-.mc-cc-methods {
-  margin-top: 12px; padding-top: 10px;
-  border-top: 1px dashed var(--color-border);
-  &__title { font-weight: 700; font-size: 13px; color: var(--color-text-secondary); margin-bottom: 4px; }
 }
 
 // Segmentación de clientes

@@ -5,6 +5,7 @@ import { useUserStore } from "./user-store";
 import { useOrderStore } from "./order-store";
 import { useCompanyStore } from "./company-store";
 import { useMessageStore } from "./message-store";
+import { ROLES, rolEn, puedeAbrirCajon } from "src/utils/permisos";
 
 export const useAdminStore = defineStore({
   id: "admin",
@@ -45,6 +46,12 @@ export const useAdminStore = defineStore({
     orderTab: "pedidos_pendientes",
     product: null,
     slug: "",
+    // El rol en este negocio segun el servidor, que lo manda al cargar el panel. Null
+    // mientras no llega: entonces se usa el de la sesion. Ver rolActual.
+    rolServidor: null,
+    // El mensaje con el que el servidor le niega el panel a una cajera cuyo negocio ya no
+    // tiene el plan. Vacio en cualquier otro caso.
+    bloqueoCajero: "",
     products: [],
     categories: [],
     qr: "",
@@ -85,6 +92,19 @@ export const useAdminStore = defineStore({
     },
     isEstablishment() {
       return this.slug !== "";
+    },
+    /**
+     * El rol del usuario en el negocio que se esta viendo (src/utils/permisos.js).
+     *
+     * Manda el que devolvio el servidor; mientras llega, el de la sesion, para que la
+     * cajera no alcance a ver el menu del dueño en lo que carga el panel.
+     */
+    rolActual() {
+      if (!this.slug) return this.userStore.isSuperAdmin ? ROLES.SUPER_ADMIN : null;
+      return this.rolServidor ?? rolEn(this.userStore.user, this.slug) ?? ROLES.PROPIETARIO;
+    },
+    esCajero() {
+      return this.rolActual === ROLES.CAJERO;
     },
     establishments() {
       return this.companyStore.companies ?? [];
@@ -436,7 +456,11 @@ export const useAdminStore = defineStore({
       this.profileDrawer = false;
       this.addressDrawer = false;
     },
+    // Los cajones del dueño no se abren para la cajera, sin importar quien los pida: se
+    // abren desde unos quince lugares del panel, y adentro todo lo que guarde le
+    // responderia 403. El de su perfil si se abre.
     setAddressDrawer(value) {
+      if (value && !puedeAbrirCajon(this.rolActual, "direccion")) return;
       this.clearDrawers();
       if (value) {
         this.companyStore.setAddressForm();
@@ -444,6 +468,7 @@ export const useAdminStore = defineStore({
       this.addressDrawer = value;
     },
     setConfigurationDrawer(value) {
+      if (value && !puedeAbrirCajon(this.rolActual, "configuracion")) return;
       this.clearDrawers();
       this.configurationDrawer = value;
     },
@@ -456,6 +481,7 @@ export const useAdminStore = defineStore({
       this.profileDrawer = value;
     },
     setScheduleDrawer(value) {
+      if (value && !puedeAbrirCajon(this.rolActual, "horario")) return;
       this.clearDrawers();
       if (value) {
         this.companyStore.setScheduleForm();
@@ -463,6 +489,7 @@ export const useAdminStore = defineStore({
       this.scheduleDrawer = value;
     },
     setEstablishmentDrawer(value) {
+      if (value && !puedeAbrirCajon(this.rolActual, "establecimiento")) return;
       this.clearDrawers();
       if (value) {
         this.companyStore.setForm();
@@ -1094,8 +1121,15 @@ export const useAdminStore = defineStore({
     // Add your actions here
     setSlug(slug) {
       this.slug = slug;
+      // El rol que dio el servidor era del negocio anterior: se vuelve a pedir con este.
+      this.rolServidor = null;
+      this.bloqueoCajero = "";
       if (!slug) {
         this.tab = "inicio";
+      } else if (this.esCajero) {
+        // La cajera aterriza donde trabaja, que ademas es lo unico que ve.
+        this.tab = "pedidos_pendientes";
+        this.orderTab = "pedidos_pendientes";
       } else {
         this.tab = "dashboard";
       }
@@ -1292,6 +1326,8 @@ export const useAdminStore = defineStore({
         data.establishment.categories = null;
         data.establishment.groups = null;
 
+        // El rol en este negocio. Manda sobre el de la sesion, que pudo quedar viejo.
+        this.rolServidor = data.rol ?? null;
         this.companyStore.setCompany(data.establishment);
         this.companyStore.setCategories(data.categories);
         this.companyStore.setFeatures(data.features);
@@ -1299,6 +1335,12 @@ export const useAdminStore = defineStore({
         this.orderStore.setCounts(data.counts);
         this.showBanners = true;
       } catch (e) {
+        // La cajera de un negocio cuyo plan ya no incluye cajeros. No es falla de
+        // conexion, y decirselo asi la mandaba a revisar su internet.
+        if (e?.response?.status === 403 && e.response.data?.code === "plan_sin_equipo") {
+          this.bloqueoCajero = e.response.data.message;
+          return;
+        }
         console.error("Error al obtener el establecimiento", e);
         this.messageStore.error(
           "Error al obtener el establecimiento, Verifica tu conexión a internet"
