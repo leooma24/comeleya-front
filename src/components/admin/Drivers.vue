@@ -80,8 +80,26 @@
           <q-input filled dense rounded v-model="form.name" label="Nombre" class="q-mb-md" />
           <q-input filled dense rounded v-model="form.phone" label="Teléfono" class="q-mb-md" />
           <q-input filled dense rounded v-model="form.email" label="Email (opcional)" class="q-mb-md" />
-          <q-input filled dense rounded v-model="form.vehicle_type" label="Tipo de vehículo" class="q-mb-md" hint="Ej: Moto, Bicicleta, Auto" />
-          <q-input filled dense rounded v-model="form.vehicle_plate" label="Placas (opcional)" />
+          <!-- De una lista y no escrito a mano: libre, "Moto", "moto" y "Motocicleta"
+               salian como tres vehiculos distintos al asignar repartidor. -->
+          <q-select
+            filled
+            dense
+            rounded
+            v-model="form.vehicle_type"
+            :options="opcionesDeVehiculo(form.vehicle_type)"
+            label="Tipo de vehículo"
+            clearable
+            class="q-mb-md"
+          />
+          <q-input
+            v-if="llevaPlacas(form.vehicle_type)"
+            filled
+            dense
+            rounded
+            v-model="form.vehicle_plate"
+            label="Placas (opcional)"
+          />
         </q-card-section>
 
         <q-card-actions class="q-px-lg q-pb-lg">
@@ -101,6 +119,7 @@ import { ref, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
+import { normalizarVehiculo, opcionesDeVehiculo, llevaPlacas } from "src/utils/vehiculos";
 
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
@@ -116,7 +135,15 @@ const form = ref(defaultForm());
 const openForm = (driver = null) => {
   if (driver) {
     editingDriver.value = driver;
-    form.value = { name: driver.name, phone: driver.phone, email: driver.email || "", vehicle_type: driver.vehicle_type || "", vehicle_plate: driver.vehicle_plate || "" };
+    form.value = {
+      name: driver.name,
+      phone: driver.phone,
+      email: driver.email || "",
+      // Lo que se escribio a mano antes de la lista se acomoda a su opcion ("moto" es
+      // "Moto"); si no corresponde a ninguna, se queda como estaba.
+      vehicle_type: normalizarVehiculo(driver.vehicle_type),
+      vehicle_plate: driver.vehicle_plate || "",
+    };
   } else {
     editingDriver.value = null;
     form.value = defaultForm();
@@ -129,14 +156,19 @@ const saveDriver = async () => {
     adminStore.messageStore.error("Nombre y teléfono son obligatorios");
     return;
   }
+  const cuerpo = {
+    ...form.value,
+    // Si ya no se mueve en algo con placas, no se guardan las que tuviera de antes.
+    vehicle_plate: llevaPlacas(form.value.vehicle_type) ? form.value.vehicle_plate : null,
+  };
   saving.value = true;
   try {
     if (editingDriver.value) {
-      const { data } = await api.put(`/admin/${adminStore.slug}/drivers/${editingDriver.value.id}`, form.value);
+      const { data } = await api.put(`/admin/${adminStore.slug}/drivers/${editingDriver.value.id}`, cuerpo);
       drivers.value = drivers.value.map((d) => d.id === data.driver.id ? data.driver : d);
       adminStore.messageStore.success("Repartidor actualizado");
     } else {
-      const { data } = await api.post(`/admin/${adminStore.slug}/drivers`, form.value);
+      const { data } = await api.post(`/admin/${adminStore.slug}/drivers`, cuerpo);
       drivers.value.push(data.driver);
       adminStore.messageStore.success("Repartidor creado");
     }
