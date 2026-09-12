@@ -14,6 +14,7 @@ import { initPixel, trackFb } from "src/utils/fbpixel";
 import { initMessenger } from "src/utils/fbchat";
 import { describeRequestError } from "src/utils/requestError";
 import { etiquetaPago } from "src/utils/metodosPago.js";
+import { matrizDe } from "src/utils/sucursales";
 
 /**
  * Cuánto esperar antes de cada reintento del menú.
@@ -30,7 +31,8 @@ const ESPERAS_DE_REINTENTO = [1000, 3000];
 
 export const useMainStore = defineStore("main", {
   state: () => ({
-    // La sucursal que el cliente eligio a mano. Null = la que decida la cercania.
+    // El local que el cliente eligio a mano: el id de una sucursal, o "matriz". Null = el
+    // que decida la cercania.
     branchId: null,
 
     addCartDrawer: false,
@@ -155,11 +157,16 @@ export const useMainStore = defineStore("main", {
       return this.companyStore.company.coordinates ?? "";
     },
     /**
-     * Las sucursales que se le ofrecen al cliente. Vacío en la enorme mayoría de los
-     * negocios, que no tienen: ahí todo el flujo sigue exactamente igual que antes.
+     * Los locales que se le ofrecen al cliente: la Matriz -el negocio mismo- y las
+     * sucursales activas. Vacío en la enorme mayoría de los negocios, que no tienen
+     * sucursales: ahí todo el flujo sigue exactamente igual que antes.
+     *
+     * La Matriz no se captura en ningún lado. Si hubiera que darla de alta, el negocio
+     * que registra solo su segundo local mandaría todos los pedidos para allá.
      */
     sucursales() {
-      return this.establishment?.active_branches ?? [];
+      const sucursales = this.establishment?.active_branches ?? [];
+      return sucursales.length ? [matrizDe(this.establishment), ...sucursales] : [];
     },
     /**
      * De dónde sale el pedido. La sucursal elegida, o la más cercana si el cliente no

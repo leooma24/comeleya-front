@@ -37,15 +37,33 @@
       </div>
 
       <!-- Lo que hay que entender antes de dar de alta la primera: la sucursal no
-           duplica el menu. Sin esto, lo primero que se pregunta el dueño es si va a
-           tener que capturar sus platillos otra vez. -->
+           duplica el menu, y el local de siempre no se captura aqui. Sin esto, lo
+           primero que se pregunta el dueño es si va a tener que capturar sus platillos
+           otra vez, o si tiene que dar de alta su propio negocio como sucursal. -->
       <div class="mc-suc-intro" v-if="!cargando">
-        Cada sucursal aporta <strong>desde dónde sale la comida</strong>. El menú, los
-        precios y las reglas de cobro siguen siendo los mismos para todas: lo que cambia
-        es el costo del envío, porque se mide desde la sucursal más cercana al cliente.
+        Tu negocio ya cuenta como la <strong>Matriz</strong>, con los datos de Dirección:
+        aquí das de alta tus <strong>otros</strong> locales. El menú, los precios y las
+        reglas de cobro son los mismos para todos; lo que cambia es el costo del envío,
+        porque se mide desde el local más cercano al cliente.
       </div>
 
       <div class="mc-lista" v-if="modoApp && !cargando">
+        <!-- La Matriz, fija arriba. No se edita aqui: sus datos son los del negocio y
+             viven en Direccion; copiarlos era garantizar que un dia no coincidan. -->
+        <div class="mc-lista__fila" @click="editarMatriz">
+          <span class="mc-lista__ini">MA</span>
+          <div class="mc-lista__txt">
+            <div class="mc-lista__nom">Matriz</div>
+            <div class="mc-lista__meta">
+              {{ matriz.full_address || "Sin dirección" }}
+              <span v-if="!matriz.coordinates" class="mc-lista__apagado"> · sin ubicación</span>
+            </div>
+          </div>
+          <div class="mc-lista__der" @click.stop>
+            <row-actions-menu titulo="Matriz" :actions="accionesMatriz" />
+          </div>
+        </div>
+
         <div
           v-for="s in sucursales"
           :key="s.id"
@@ -68,7 +86,8 @@
         </div>
 
         <div v-if="!sucursales.length" class="mc-lista__vacio">
-          Todavía no hay sucursales. Agrega la primera con el botón de arriba.
+          Con tu primera sucursal, tus clientes van a poder elegir entre la Matriz y esa.
+          Agrégala con el botón de arriba.
         </div>
       </div>
 
@@ -84,6 +103,25 @@
             </tr>
           </thead>
           <tbody>
+            <!-- La Matriz, fija arriba. Sin interruptor: es el negocio mismo. -->
+            <tr>
+              <td class="text-left text-weight-medium">Matriz</td>
+              <td class="text-left">{{ matriz.full_address || "—" }}</td>
+              <td class="text-center">
+                <q-chip
+                  dense
+                  size="sm"
+                  :color="matriz.coordinates ? 'positive' : 'grey-4'"
+                  :text-color="matriz.coordinates ? 'white' : 'grey-8'"
+                >
+                  {{ matriz.coordinates ? "Ubicada" : "Sin ubicar" }}
+                </q-chip>
+              </td>
+              <td class="text-center text-caption text-grey-7">Datos del negocio</td>
+              <td class="text-right">
+                <row-actions-menu titulo="Matriz" :actions="accionesMatriz" />
+              </td>
+            </tr>
             <tr v-for="s in sucursales" :key="s.id">
               <td class="text-left text-weight-medium">{{ s.name }}</td>
               <td class="text-left">{{ s.full_address || "—" }}</td>
@@ -115,7 +153,7 @@
         </table>
         <div v-if="!sucursales.length" class="mc-empty-state">
           <q-icon name="storefront" size="48px" color="grey-4" />
-          <p>Todavía no hay sucursales</p>
+          <p>Con tu primera sucursal, tus clientes van a poder elegir entre la Matriz y esa.</p>
         </div>
       </div>
 
@@ -244,6 +282,7 @@ import AdminSection from "./AdminSection.vue";
 import RowActionsMenu from "./RowActionsMenu.vue";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
+import { matrizDe } from "src/utils/sucursales";
 
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
@@ -283,11 +322,50 @@ const volverAMas = () => {
   adminStore.tab = "mc_mas";
 };
 
+/** El negocio mismo, que cuenta como un local más. Se lee de sus datos, no se captura. */
+const matriz = computed(() => matrizDe(adminStore.company));
+
+// Sus datos viven en los cajones de siempre -la dirección en Dirección, la ubicación en
+// Configuración junto al cobro por distancia, el WhatsApp en los datos del
+// establecimiento-. Aquí solo se abren. Tocar la fila lleva a lo que le falta.
+const editarMatriz = () =>
+  matriz.value.coordinates
+    ? adminStore.setAddressDrawer(true)
+    : adminStore.setConfigurationDrawer(true);
+const accionesMatriz = [
+  {
+    key: "dir",
+    icon: "place",
+    color: "grey-7",
+    label: "Editar dirección",
+    handler: () => adminStore.setAddressDrawer(true),
+  },
+  {
+    key: "ubi",
+    icon: "my_location",
+    color: "grey-7",
+    label: "Editar ubicación",
+    handler: () => adminStore.setConfigurationDrawer(true),
+  },
+  {
+    key: "wa",
+    icon: "chat",
+    color: "grey-7",
+    label: "Editar WhatsApp",
+    handler: () => adminStore.setEstablishmentDrawer(true),
+  },
+];
+
 const cargar = async () => {
   cargando.value = true;
   try {
     const { data } = await api.get(`/admin/${adminStore.slug}/branches`);
     sucursales.value = data.branches ?? [];
+    // Los pedidos y la comanda deciden con esta lista si hablar de "Matriz". Se
+    // actualiza aquí para que no haga falta recargar el panel después de dar de alta.
+    if (adminStore.company?.id) {
+      adminStore.company.active_branches = sucursales.value.filter((s) => s.active);
+    }
   } catch (e) {
     adminStore.messageStore.error("No se pudieron cargar las sucursales");
   } finally {

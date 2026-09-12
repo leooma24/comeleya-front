@@ -306,6 +306,13 @@ const printOrder = () => {
   } else {
     deliveryInfo = `<div><strong>Mesa:</strong> ${esc(mainStore.data.table)}</div>`;
   }
+  // De que sucursal sale. Al que pasa a recoger le importa mas que nada en el ticket:
+  // es a donde tiene que ir.
+  const sucursal = mainStore.sucursalElegida;
+  if (sucursal) {
+    const dir = delivery === "Recoger" && sucursal.full_address ? ` · ${esc(sucursal.full_address)}` : "";
+    deliveryInfo += `<div><strong>Sucursal:</strong> ${esc(sucursal.name)}${dir}</div>`;
+  }
 
   const html = `
     <html><head><title>Pedido #${mainStore.orderStore.orderCode}</title>

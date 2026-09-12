@@ -341,6 +341,7 @@ const hasFeature = (featureName) => {
     online_payments: 'has_online_payments',
     ticket_printing: 'has_ticket_printing',
     facebook: 'has_facebook',
+    branches: 'has_branches',
   };
   return !!pkg[map[featureName]];
 };
@@ -371,6 +372,9 @@ const navGroups = [
     items: [
       { name: "reservaciones", icon: "event_seat", label: "Reservaciones", feature: "reservations" },
       { name: "repartidores", icon: "delivery_dining", label: "Repartidores", feature: "delivery" },
+      // Vivia SOLO en el menu Mas del celular: el paquete Premium la vendia y desde la
+      // computadora no habia por donde darla de alta. Mismo caso que "Comparte tu menu".
+      { name: "sucursales", icon: "storefront", label: "Sucursales", feature: "branches" },
       { name: "lealtad", icon: "loyalty", label: "Lealtad", feature: "loyalty" },
     ],
   },

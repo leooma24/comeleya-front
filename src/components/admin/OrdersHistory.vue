@@ -67,7 +67,7 @@
               </q-badge>
             </div>
             <div class="mc-lista__meta">
-              {{ pd.order_code }} · {{ fechaCorta(pd.created_at) }}
+              {{ pd.order_code }} · {{ fechaCorta(pd.created_at) }}<template v-if="origenDelPedido(pd, companyStore.company)"> · {{ origenDelPedido(pd, companyStore.company) }}</template>
             </div>
           </div>
           <span class="mc-lista__monto">${{ Number(pd.total || 0).toFixed(2) }}</span>
@@ -127,7 +127,7 @@
           <div>
             <div class="text-h6">Pedido {{ detalle?.order_code }}</div>
             <div class="text-caption text-grey-7">
-              {{ fechaLarga(detalle?.created_at) }} · {{ detalle?.customer_name }}
+              {{ fechaLarga(detalle?.created_at) }} · {{ detalle?.customer_name }}<template v-if="origenDelPedido(detalle, companyStore.company)"> · Sucursal {{ origenDelPedido(detalle, companyStore.company) }}</template>
             </div>
           </div>
           <q-space />
@@ -192,6 +192,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useCompanyStore } from "src/stores/company-store";
 import { printOrderTicket } from "src/utils/orderTicket";
+import { origenDelPedido, tieneSucursales } from "src/utils/sucursales";
 import AdminSection from "./AdminSection.vue";
 
 const adminStore = useAdminStore();
@@ -208,15 +209,20 @@ const total = ref(0);
 const cargando = ref(false);
 const paginacion = ref({ page: 1, rowsPerPage: 20, rowsNumber: 0 });
 
-const columnas = [
+// La columna de Sucursal solo existe en un negocio con varios locales: en los demas
+// seria una columna vacia en cada renglon.
+const columnas = computed(() => [
   { name: "order_code", label: "Código", field: "order_code", align: "left" },
   { name: "fecha", label: "Fecha", field: (r) => fechaCorta(r.created_at), align: "left" },
   { name: "customer_name", label: "Cliente", field: "customer_name", align: "left" },
+  ...(tieneSucursales(companyStore.company)
+    ? [{ name: "sucursal", label: "Sucursal", field: (r) => origenDelPedido(r, companyStore.company) ?? "", align: "left" }]
+    : []),
   { name: "phone", label: "Teléfono", field: "phone", align: "left" },
   { name: "estado", label: "Estado", field: "current_status_id", align: "left" },
   { name: "total", label: "Total", field: (r) => "$" + Number(r.total || 0).toFixed(2), align: "right" },
   { name: "acciones", label: "", field: "id", align: "right" },
-];
+]);
 
 const fechaCorta = (v) => (v ? new Date(v).toLocaleDateString("es-MX") : "");
 const fechaLarga = (v) => (v ? new Date(v).toLocaleString("es-MX") : "");

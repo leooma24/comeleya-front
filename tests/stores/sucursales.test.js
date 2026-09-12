@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useMainStore } from "stores/main-store";
+import { MATRIZ } from "src/utils/sucursales.js";
 
 /**
  * Sucursales: de dónde sale el pedido y qué cambia por eso.
  *
- * La regla completa cabe en una frase: el menú, los precios y las reglas de cobro son
- * del negocio; la sucursal solo aporta el punto desde el que se mide el envío y el
- * número al que llega el pedido.
+ * La regla completa cabe en dos frases. El menú, los precios y las reglas de cobro son
+ * del negocio; cada local solo aporta el punto desde el que se mide el envío y el
+ * número al que llega el pedido. Y los locales son la Matriz -el negocio mismo- más
+ * las sucursales que dé de alta: la Matriz no se captura en ningún lado.
  *
  * Lo que se prueba aquí es lo que el comensal ve ANTES de mandar. El cobro definitivo
  * lo vuelve a calcular el servidor con la misma regla, así que estas pruebas cuidan
@@ -17,7 +19,7 @@ import { useMainStore } from "stores/main-store";
 describe("sucursales", () => {
   let store;
 
-  // Los Mochis. Norte está ~6 km arriba de Centro.
+  // Los Mochis. La Matriz está en el Centro; Norte, ~6 km arriba.
   const CENTRO = "25.7925,-108.9807";
   const NORTE = "25.8465,-108.9807";
 
@@ -39,13 +41,18 @@ describe("sucursales", () => {
 
   const conSucursales = (lista) => conNegocio({ active_branches: lista });
 
-  /** El cliente vive junto a la sucursal Norte. */
-  const clienteEnElNorte = () => {
+  const clienteEn = (lat, lng) => {
     store.userStore.data.delivery = "Envio";
-    store.userStore.data.latitude = 25.85;
-    store.userStore.data.longitude = -108.98;
+    store.userStore.data.latitude = lat;
+    store.userStore.data.longitude = lng;
     store.getDistance();
   };
+
+  /** El cliente vive junto a la sucursal Norte. */
+  const clienteEnElNorte = () => clienteEn(25.85, -108.98);
+
+  /** El cliente vive junto a la Matriz. */
+  const clienteEnElCentro = () => clienteEn(25.793, -108.981);
 
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -60,7 +67,7 @@ describe("sucursales", () => {
   // ------------------------------------------------- negocio sin sucursales
 
   describe("un negocio sin sucursales", () => {
-    it("no ofrece ninguna", () => {
+    it("no ofrece ninguna, ni siquiera la Matriz", () => {
       expect(store.sucursales).toEqual([]);
       expect(store.sucursalElegida).toBeNull();
     });
@@ -77,14 +84,55 @@ describe("sucursales", () => {
     });
   });
 
+  // ------------------------------------------------------------ la Matriz
+
+  describe("la Matriz", () => {
+    beforeEach(() => {
+      conSucursales([{ id: 2, name: "Norte", coordinates: NORTE, whatsapp: "6684445566" }]);
+    });
+
+    it("cuenta como un local más: con una sola sucursal ya hay dos para elegir", () => {
+      expect(store.sucursales.map((s) => s.name)).toEqual(["Matriz", "Norte"]);
+    });
+
+    it("sale de los datos del negocio, no de una sucursal capturada", () => {
+      conNegocio({
+        whatsapp: "6689990000",
+        address: { street: "Rio Presidio", exterior_number: "351", city: "Los Mochis" },
+      });
+      const matriz = store.sucursales[0];
+
+      expect(matriz.id).toBe(MATRIZ);
+      expect(matriz.coordinates).toBe(CENTRO);
+      expect(matriz.whatsapp).toBe("6689990000");
+      expect(matriz.full_address).toBe("Rio Presidio 351, Los Mochis");
+    });
+
+    it("al que vive junto a la Matriz le toca la Matriz", () => {
+      clienteEnElCentro();
+      expect(store.sucursalElegida.name).toBe("Matriz");
+      expect(store.origenDelEnvio).toBe(CENTRO);
+    });
+
+    it("sin dirección ubicada, el pedido sale de la Matriz", () => {
+      store.userStore.data.latitude = null;
+      store.userStore.data.longitude = null;
+      expect(store.sucursalMasCercana).toBeNull();
+      expect(store.sucursalElegida.name).toBe("Matriz");
+    });
+
+    it("si el negocio no está ubicado, la Matriz no compite por ser la más cercana", () => {
+      conNegocio({ coordinates: null });
+      clienteEnElCentro();
+      expect(store.sucursalMasCercana.name).toBe("Norte");
+    });
+  });
+
   // ------------------------------------------------------------ la cercana
 
   describe("con sucursales", () => {
     beforeEach(() => {
-      conSucursales([
-        { id: 1, name: "Centro", coordinates: CENTRO, whatsapp: "6681112233" },
-        { id: 2, name: "Norte", coordinates: NORTE, whatsapp: "6684445566" },
-      ]);
+      conSucursales([{ id: 2, name: "Norte", coordinates: NORTE, whatsapp: "6684445566" }]);
     });
 
     it("elige sola la más cercana al cliente", () => {
@@ -100,13 +148,14 @@ describe("sucursales", () => {
       expect(store.deliveryCharge).toBe(35);
     });
 
-    it("elegir una más lejana sube el costo del envío", () => {
+    it("elegir la Matriz, más lejana, sube el costo del envío", () => {
       clienteEnElNorte();
       const cerca = store.deliveryCharge;
 
-      store.elegirSucursal(1); // Centro, a ~6 km
+      store.elegirSucursal(MATRIZ);
 
-      expect(store.sucursalElegida.name).toBe("Centro");
+      expect(store.sucursalElegida.name).toBe("Matriz");
+      expect(store.origenDelEnvio).toBe(CENTRO);
       expect(store.deliveryCharge).toBeGreaterThan(cerca);
     });
 
@@ -114,27 +163,16 @@ describe("sucursales", () => {
       clienteEnElNorte();
       const cerca = store.deliveryCharge;
 
-      store.elegirSucursal(1);
+      store.elegirSucursal(MATRIZ);
       store.elegirSucursal(2);
 
       expect(store.deliveryCharge).toBe(cerca);
     });
 
-    it("sin dirección ubicada no se puede saber cuál es la más cercana", () => {
-      store.userStore.data.latitude = null;
-      store.userStore.data.longitude = null;
-      expect(store.sucursalMasCercana).toBeNull();
-      // Aun así hay de dónde salir: la primera de la lista.
-      expect(store.sucursalElegida.name).toBe("Centro");
-    });
-
     it("una sucursal sin coordenadas no compite por ser la más cercana", () => {
-      conSucursales([
-        { id: 1, name: "Centro", coordinates: CENTRO },
-        { id: 3, name: "Sin ubicar", coordinates: null },
-      ]);
+      conSucursales([{ id: 3, name: "Sin ubicar", coordinates: null }]);
       clienteEnElNorte();
-      expect(store.sucursalMasCercana.name).toBe("Centro");
+      expect(store.sucursalMasCercana.name).toBe("Matriz");
     });
   });
 
@@ -169,11 +207,24 @@ describe("sucursales", () => {
       expect(liga()).toContain("526689990000");
     });
 
+    it("al del negocio cuando el cliente eligió la Matriz", () => {
+      conSucursales([{ id: 2, name: "Norte", coordinates: NORTE, whatsapp: "6684445566" }]);
+      clienteEnElNorte();
+      store.elegirSucursal(MATRIZ);
+      expect(liga()).toContain("526689990000");
+    });
+
     it("el mensaje dice de qué sucursal es", () => {
       conSucursales([{ id: 2, name: "Norte", coordinates: NORTE }]);
       clienteEnElNorte();
       expect(decodeURIComponent(liga())).toContain("Sucursal:");
       expect(decodeURIComponent(liga())).toContain("Norte");
+    });
+
+    it("y dice Matriz cuando sale de la Matriz", () => {
+      conSucursales([{ id: 2, name: "Norte", coordinates: NORTE }]);
+      store.elegirSucursal(MATRIZ);
+      expect(decodeURIComponent(liga())).toContain("Matriz");
     });
 
     it("y no lo dice cuando el negocio no tiene sucursales", () => {

@@ -279,6 +279,13 @@
               </q-tooltip>
             </q-badge>
           </div>
+          <!-- De que local es: una sucursal o la Matriz. Un negocio con varios recibe
+               todos los pedidos en el mismo panel, y sin este renglon no hay forma de
+               saber que cocina lo arma. En un negocio de un solo local no existe. -->
+          <div class="mc-order-info-row" v-if="origenDelPedido(order, companyStore.company)">
+            <q-icon name="storefront" size="16px" color="grey-5" />
+            <span>Sucursal {{ origenDelPedido(order, companyStore.company) }}</span>
+          </div>
           <div class="mc-order-info-row">
             <q-icon name="calendar_today" size="16px" color="grey-5" />
             <span>{{ helperStore.formatDate(order.created_at, "YYYY-MM-DD") }}</span>
@@ -572,6 +579,7 @@ import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { printOrderTicket } from "src/utils/orderTicket";
+import { origenDelPedido } from "src/utils/sucursales";
 import OrdersHistory from "./OrdersHistory.vue";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 

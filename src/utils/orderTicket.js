@@ -16,6 +16,7 @@ import { etiquetaPago } from "src/utils/metodosPago.js";
 import { fitPageToContent } from "src/utils/ticketPageSize";
 import { amountToWords } from "src/utils/numberToWords";
 import { orderTotals } from "src/utils/orderTotals";
+import { origenDelPedido } from "src/utils/sucursales";
 
 const ticketStyles = `
   /* El alto de @page lo inyecta fitPageToContent() al imprimir, medido del contenido.
@@ -138,13 +139,19 @@ export function printOrderTicket(order, { company = {}, onError } = {}) {
   }
 
   // ---- Encabezado del negocio ----
+  // En un negocio con varios locales, la comanda dice de cual es -una sucursal o la
+  // Matriz- y da el telefono de ese local: es la cocina que lo arma y el numero al que
+  // va a llamar el cliente. La direccion fiscal sigue siendo la del negocio.
+  const origen = origenDelPedido(order, company);
+  const headerPhone = esc(order.branch?.phone || "") || bizPhone;
   const bizHeader = `
     <div class="biz">
       ${bizName ? `<strong>${bizName}</strong>` : ""}
+      ${origen ? `<span>SUCURSAL ${esc(origen)}</span>` : ""}
       ${legalName ? `<span>${legalName}</span>` : ""}
       ${rfc ? `<span>RFC: ${rfc}</span>` : ""}
       ${showBizAddr && bizAddrLine ? `<span>${bizAddrLine}</span>` : ""}
-      ${bizPhone ? `<span>Tel. ${bizPhone}</span>` : ""}
+      ${headerPhone ? `<span>Tel. ${headerPhone}</span>` : ""}
     </div>`;
 
   // ---- Pie legal configurable ----
