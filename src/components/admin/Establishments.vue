@@ -102,6 +102,8 @@
           <div class="mc-lista__meta">
             {{ est.category?.name || 'Sin categoría' }}
             · {{ est.active_subscription?.package?.name || 'Sin plan' }}
+            <!-- De que menu llego: la liga "Menu hecho con ComeleYa" del pie de cada menu. -->
+            <span v-if="est.referido_por"> · vía {{ est.referido_por.name }}</span>
             <span v-if="est.status !== 'Activo'" class="mc-lista__apagado"> · inactivo</span>
           </div>
         </div>
@@ -140,6 +142,9 @@
           </q-td>
           <q-td key="name" :props="props">
             <span class="text-weight-medium">{{ props.row.name }}</span>
+            <div v-if="props.row.referido_por" class="text-caption text-grey-6">
+              vía {{ props.row.referido_por.name }}
+            </div>
           </q-td>
           <q-td key="category" :props="props">
             <q-chip v-if="props.row.category?.name" dense size="sm" color="grey-3" text-color="grey-8">

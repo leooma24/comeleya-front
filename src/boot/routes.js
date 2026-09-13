@@ -1,8 +1,13 @@
 import { useUserStore } from "src/stores/user-store";
+import { guardarReferencia } from "src/utils/referencia";
 const userStore = useUserStore();
 
 export default ({ router }) => {
   router.beforeEach((to, from, next) => {
+    // De que menu viene, si viene de uno: la liga "Menu hecho con ComeleYa" trae ?ref=.
+    // Se guarda aqui, entre por la pagina que entre, y el alta la manda al servidor.
+    guardarReferencia(to.query);
+
     if (
       window.location.protocol === "http:" &&
       process.env.NODE_ENV === "production"

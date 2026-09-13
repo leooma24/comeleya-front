@@ -288,6 +288,12 @@
               </div>
             </div>
           </div>
+
+          <!-- Al final del menu, donde ya no le estorba a quien esta pidiendo. -->
+          <hecho-con-comeleya
+            v-if="mainStore.categories.length && !mainStore.isSearching"
+            :slug="String(route.params.slug || '')"
+          />
         </div>
       </div>
     </div>
@@ -302,6 +308,7 @@ defineOptions({
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import { useMeta, useQuasar } from "quasar";
 import SidebarComponent from "src/components/client/Sidebar.vue";
+import HechoConComeleya from "src/components/client/HechoConComeleya.vue";
 import CardDish from "src/components/client/CardDish.vue";
 import ListDish from "src/components/client/ListDish.vue";
 import { useRoute } from "vue-router";
