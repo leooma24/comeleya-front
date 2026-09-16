@@ -233,8 +233,9 @@ const fechaLarga = (v) => (v ? new Date(v).toLocaleString("es-MX") : "");
 
 // Los mismos filtros para el listado y para el CSV: si se armaran por separado, el
 // archivo podria traer un conjunto distinto al que el dueño esta viendo en pantalla.
+// Empieza por el local que se esta viendo en Pedidos.
 const params = computed(() => {
-  const p = {};
+  const p = { ...adminStore.paramsDeLocal };
   if (filtros.value.desde) p.desde = filtros.value.desde;
   if (filtros.value.hasta) p.hasta = filtros.value.hasta;
   if (filtros.value.status) p.status = filtros.value.status;

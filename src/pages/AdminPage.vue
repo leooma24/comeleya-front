@@ -44,7 +44,7 @@
         v-else
         :is="getComponentName(adminStore.tab)"
         :status="getStatus(adminStore.tab, adminStore.orderTab)"
-        :key="adminStore.tab + '-' + adminStore.orderTab"
+        :key="claveSeccion"
       />
     </div>
   </q-page>
@@ -172,6 +172,27 @@ if (route.path === "/admin") {
 // Alerta global de pedidos nuevos (suena en cualquier pestaña). Solo aplica al
 // panel de un establecimiento (no en el super-admin, donde no hay slug).
 useOrderAlerts(() => slug);
+
+// Cambiar de local es ver otro juego de pedidos: la alerta aprende de nuevo sin sonar y
+// los contadores se piden otra vez. La primera vuelta solo fija el local; los contadores
+// ya vienen con el negocio. Tambien corre cuando llega el negocio y resulta que el local
+// guardado en este aparato ya no existe.
+watch(
+  () => adminStore.localEfectivo,
+  (local, antes) => {
+    adminStore.orderStore.cambiarLocal(local);
+    if (antes !== undefined) adminStore.recargarConteos();
+  },
+  { immediate: true }
+);
+
+// Pedidos se vuelve a montar al cambiar de local: la lista, la paginacion y el sondeo
+// arrancan de cero con el local nuevo en vez de mezclar los dos. Las demas secciones no
+// dependen del local y no tienen por que recargarse.
+const claveSeccion = computed(() => {
+  const base = `${adminStore.tab}-${adminStore.orderTab}`;
+  return enPedidos.value ? `${base}-${adminStore.localEfectivo ?? "todos"}` : base;
+});
 
 // Unos treinta lugares del panel cambian de seccion: avisos, atajos del Dashboard, el
 // asistente, botones de regreso. En vez de cuidar cada uno, aqui se regresa a Pedidos

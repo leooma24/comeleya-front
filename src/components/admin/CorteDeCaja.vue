@@ -5,6 +5,10 @@
         <div class="row items-center q-gutter-sm">
           <q-icon name="point_of_sale" size="24px" color="primary" />
           <span class="mc-corte__titulo">Corte de caja</span>
+          <!-- De que local, cuando no son todos: el servidor dice cual aplico. -->
+          <q-chip v-if="corte?.local?.nombre" dense square icon="storefront">
+            {{ corte.local.nombre }}
+          </q-chip>
         </div>
         <q-btn flat round dense icon="close" v-close-popup />
       </q-card-section>
@@ -88,8 +92,9 @@ const metodo = (codigo) => etiquetaPago(codigo) || codigo;
 const cargar = async () => {
   cargando.value = true;
   try {
+    // Del local que se esta viendo en Pedidos: la caja de Centro se cuadra con lo de Centro.
     const { data } = await api.get(`/admin/${adminStore.slug}/cash-cut`, {
-      params: { date: fecha.value },
+      params: { ...adminStore.paramsDeLocal, date: fecha.value },
     });
     corte.value = data;
   } catch (e) {
@@ -114,6 +119,7 @@ const imprimir = () => {
   if (!corte.value) return;
   const c = corte.value;
   const nombre = adminStore.company?.name || "Restaurante";
+  const local = c.local?.nombre ? `<div class="date">${c.local.nombre}</div>` : "";
   const dinero = (n) =>
     "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const metodos = c.by_method
@@ -129,6 +135,7 @@ const imprimir = () => {
       .sep{border-top:1px dashed #000;margin:8px 0}.title{font-weight:bold;margin-top:8px}
     </style></head><body>
       <h2>${nombre}</h2>
+      ${local}
       <div class="date">Corte de caja — ${c.date}</div>
       <div class="sep"></div>
       <div class="row"><span>Pedidos</span><b>${c.orders}</b></div>

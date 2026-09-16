@@ -44,6 +44,25 @@ describe("el panel de la cajera", () => {
   });
 });
 
+describe("el local que se ve en Pedidos", () => {
+  it("el selector es del dueño; la cajera solo ve el suyo", () => {
+    const src = leer("src/components/admin/Orders.vue");
+    expect(src).toMatch(/const puedeElegirLocal = computed\(\s*\(\) => !adminStore\.esCajero/);
+    expect(src).toMatch(/<q-btn-dropdown\s+v-if="puedeElegirLocal"/);
+  });
+
+  // Si una de estas se armara aparte, la cajera de Centro veria en el Historial o en el
+  // corte algo distinto de lo que ve en su pestaña.
+  it.each([
+    "src/components/admin/OrdersHistory.vue",
+    "src/components/admin/CorteDeCaja.vue",
+    "src/components/admin/Orders.vue",
+    "src/composables/useOrderAlerts.js",
+  ])("%s pide con el local que se esta viendo", (ruta) => {
+    expect(leer(ruta)).toMatch(/adminStore\.paramsDeLocal/);
+  });
+});
+
 describe("la pestaña Historial", () => {
   const src = leer("src/components/admin/Orders.vue");
 

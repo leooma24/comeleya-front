@@ -5,6 +5,10 @@ import {
   direccionCompleta,
   tieneSucursales,
   origenDelPedido,
+  opcionesDeLocal,
+  localValido,
+  nombreDelLocal,
+  claveLocalVisto,
 } from "src/utils/sucursales.js";
 
 /**
@@ -102,5 +106,51 @@ describe("de que local salio un pedido", () => {
     expect(tieneSucursales(conSucursales)).toBe(true);
     expect(tieneSucursales(unSoloLocal)).toBe(false);
     expect(tieneSucursales(undefined)).toBe(false);
+  });
+});
+
+describe("que local se ve en Pedidos", () => {
+  const negocio = {
+    active_branches: [
+      { id: 2, name: "Norte" },
+      { id: 7, name: "Centro" },
+    ],
+  };
+
+  it("se elige entre todos, la matriz y las sucursales encendidas, con el id como texto", () => {
+    // Como texto porque asi lo manda y lo compara el servidor (App\Support\LocalDePedidos).
+    expect(opcionesDeLocal(negocio)).toEqual([
+      { value: null, label: "Todos los locales" },
+      { value: MATRIZ, label: "Matriz" },
+      { value: "2", label: "Norte" },
+      { value: "7", label: "Centro" },
+    ]);
+  });
+
+  it("un negocio de un solo local no tiene que elegir", () => {
+    expect(opcionesDeLocal({ active_branches: [] })).toEqual([]);
+    expect(opcionesDeLocal(undefined)).toEqual([]);
+  });
+
+  it("lo guardado en el aparato vale mientras el local siga encendido", () => {
+    expect(localValido(null, negocio)).toBe(true);
+    expect(localValido(MATRIZ, negocio)).toBe(true);
+    expect(localValido("7", negocio)).toBe(true);
+    expect(localValido(7, negocio)).toBe(true);
+    // Apagada, borrada, o el negocio bajo de plan y ya no manda sucursales.
+    expect(localValido("9", negocio)).toBe(false);
+    expect(localValido(MATRIZ, { active_branches: [] })).toBe(false);
+  });
+
+  it("se dice con su nombre", () => {
+    expect(nombreDelLocal(null, negocio)).toBe("Todos los locales");
+    expect(nombreDelLocal(MATRIZ, negocio)).toBe("Matriz");
+    expect(nombreDelLocal("2", negocio)).toBe("Norte");
+    expect(nombreDelLocal("9", negocio)).toBeNull();
+  });
+
+  it("cada negocio guarda el suyo", () => {
+    expect(claveLocalVisto("kazuki")).toBe("mc-local:kazuki");
+    expect(claveLocalVisto("kazuki")).not.toBe(claveLocalVisto("bajamar"));
   });
 });

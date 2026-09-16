@@ -426,7 +426,9 @@ const borrar = (s) => {
       adminStore.messageStore.success("Sucursal eliminada");
       await cargar();
     } catch (e) {
-      adminStore.messageStore.error("No se pudo eliminar la sucursal");
+      // El servidor no deja borrar una sucursal con cajeros asignados y dice quienes son:
+      // un "no se pudo" generico dejaba al dueño sin saber que hacer.
+      adminStore.messageStore.error(e?.response?.data?.message || "No se pudo eliminar la sucursal");
     }
   });
 };

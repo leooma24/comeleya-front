@@ -6,7 +6,7 @@
     <mc-encabezado
       v-if="modoApp"
       titulo="Pedidos"
-      :subtitulo="adminStore.company?.name || 'Tu negocio'"
+      :subtitulo="subtituloPedidos"
       :vivo="pollingActive"
       :cifras="[
         { v: activosAhora, l: 'Activos' },
@@ -15,6 +15,33 @@
       ]"
     >
       <template v-slot:acciones>
+        <!-- De que local: el nombre ya va en el subtitulo, aqui solo se cambia. -->
+        <q-btn-dropdown
+          v-if="puedeElegirLocal"
+          flat
+          round
+          dense
+          class="mc-head__ic"
+          dropdown-icon="none"
+          no-icon-animation
+          aria-label="Local"
+        >
+          <template v-slot:label><mc-icon name="pin" :size="17" /></template>
+          <q-list dense>
+            <q-item
+              v-for="o in opcionesLocal"
+              :key="o.value ?? 'todos'"
+              clickable
+              v-close-popup
+              @click="adminStore.elegirLocal(o.value)"
+            >
+              <q-item-section>{{ o.label }}</q-item-section>
+              <q-item-section side v-if="o.value === adminStore.localEfectivo">
+                <q-icon name="check" size="16px" color="primary" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
         <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
           <mc-icon name="buscar" :size="17" />
         </button>
@@ -63,6 +90,47 @@
         <q-icon name="receipt_long" size="24px" color="primary" class="q-mr-sm" />
         Pedidos
       </div>
+
+      <!-- De que local se ven los pedidos, en un negocio con sucursales. El dueño elige y
+           este aparato lo recuerda; a la cajera se lo fijo el dueño y solo se le dice. -->
+      <q-btn-dropdown
+        v-if="puedeElegirLocal"
+        flat
+        no-caps
+        dense
+        icon="storefront"
+        :label="adminStore.nombreLocalVisto || 'Todos los locales'"
+        color="primary"
+      >
+        <q-list style="min-width: 220px">
+          <q-item-label header>Ver pedidos de</q-item-label>
+          <q-item
+            v-for="o in opcionesLocal"
+            :key="o.value ?? 'todos'"
+            clickable
+            v-close-popup
+            @click="adminStore.elegirLocal(o.value)"
+          >
+            <q-item-section avatar>
+              <q-icon
+                :name="o.value === adminStore.localEfectivo ? 'radio_button_checked' : 'radio_button_unchecked'"
+                :color="o.value === adminStore.localEfectivo ? 'primary' : 'grey-5'"
+              />
+            </q-item-section>
+            <q-item-section>{{ o.label }}</q-item-section>
+          </q-item>
+        </q-list>
+      </q-btn-dropdown>
+      <q-chip
+        v-else-if="adminStore.nombreLocalVisto"
+        dense
+        square
+        icon="storefront"
+        color="primary"
+        text-color="white"
+      >
+        {{ adminStore.nombreLocalVisto }}
+      </q-chip>
 
       <q-input
         filled
@@ -603,7 +671,7 @@ import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { printOrderTicket } from "src/utils/orderTicket";
-import { origenDelPedido } from "src/utils/sucursales";
+import { origenDelPedido, opcionesDeLocal, tieneSucursales } from "src/utils/sucursales";
 import OrdersHistory from "./OrdersHistory.vue";
 import CorteDeCaja from "./CorteDeCaja.vue";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
@@ -782,6 +850,17 @@ const printOrder = (order) =>
 const pollingActive = ref(true);
 const filter = ref("");
 
+// --- De que local ---------------------------------------------------------------
+// Elegir solo lo hace el dueño, y solo en un negocio con sucursales. Al cambiar, AdminPage
+// vuelve a montar esta seccion con el local nuevo.
+const puedeElegirLocal = computed(
+  () => !adminStore.esCajero && tieneSucursales(companyStore.company)
+);
+const opcionesLocal = computed(() => opcionesDeLocal(companyStore.company));
+const subtituloPedidos = computed(() =>
+  [adminStore.company?.name || "Tu negocio", adminStore.nombreLocalVisto].filter(Boolean).join(" · ")
+);
+
 // --- Vista de celular -------------------------------------------------------
 // Solo presentacion: los datos y las acciones son los mismos de arriba.
 const { modoApp } = useModoApp();
@@ -927,10 +1006,9 @@ const esHistorial = computed(() => Number(props.status) === 0);
 
 // Si el negocio ya vendio alguna vez. La plantilla la usaba sin que existiera, asi que
 // la tarjeta de "haz un pedido de prueba" salia en cada pestaña vacia, tambien en
-// negocios con cientos de pedidos. Los contadores cuentan todos los pedidos por estado.
-const hayPedidosAlguna = computed(() =>
-  Object.values(adminStore.orderStore.counts ?? {}).some((n) => Number(n) > 0)
-);
+// negocios con cientos de pedidos. Lo dice el servidor: los contadores ya no cuentan lo
+// cerrado, y un negocio que cerro su dia tambien ya vendio.
+const hayPedidosAlguna = computed(() => adminStore.orderStore.hayPedidos);
 
 const longPolling = async () => {
   if (!pollingActive.value) return;
@@ -955,9 +1033,10 @@ const cerrando = ref(false);
 
 const confirmarCierre = () => {
   const cuantos = filteredOrders.value.length;
+  const deQue = adminStore.nombreLocalVisto ? ` de ${adminStore.nombreLocalVisto}` : "";
   confirm(
     "Cerrar el día",
-    `Se cerrarán ${cuantos} ${cuantos === 1 ? "pedido" : "pedidos"} y esta lista quedará vacía. ` +
+    `Se cerrarán ${cuantos} ${cuantos === 1 ? "pedido" : "pedidos"}${deQue} y esta lista quedará vacía. ` +
       "No se borra nada: los vas a seguir viendo completos en la pestaña Historial.",
     cerrarPedidos
   );
@@ -966,17 +1045,19 @@ const confirmarCierre = () => {
 const cerrarPedidos = async () => {
   cerrando.value = true;
   try {
-    const { data } = await api.post(`/admin/${adminStore.slug}/orders/close`, {
-      status: props.status,
-    });
+    // Solo los del local que se esta viendo: cerrar el dia de Centro no cierra la Matriz.
+    const { data } = await api.post(
+      `/admin/${adminStore.slug}/orders/close`,
+      { status: props.status },
+      { params: adminStore.paramsDeLocal }
+    );
     const n = data.cerrados ?? 0;
     adminStore.messageStore.success(
       `${n} ${n === 1 ? "pedido cerrado" : "pedidos cerrados"}. Están en Historial.`
     );
     // El contador de la pestaña sale de otra consulta, asi que se recarga: si no, el
     // badge seguiria enseñando los que acaba de cerrar.
-    adminStore.orderStore.counts[props.status] = 0;
-    await adminStore.getOrders(props.status);
+    await Promise.all([adminStore.recargarConteos(), adminStore.getOrders(props.status)]);
   } catch (error) {
     adminStore.messageStore.error(
       error.response?.data?.message || "No se pudieron cerrar los pedidos."

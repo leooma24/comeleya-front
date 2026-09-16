@@ -46,6 +46,39 @@ export function tieneSucursales(negocio) {
   return (negocio?.active_branches?.length ?? 0) > 0;
 }
 
+// --- Que local se esta viendo en Pedidos ---------------------------------------------
+//
+// Se escribe igual que en el servidor (App\Support\LocalDePedidos): null = todos los
+// locales, "matriz", o el id de una sucursal como texto.
+
+/** Las opciones del selector de Pedidos: todos, la matriz y las sucursales encendidas. */
+export function opcionesDeLocal(negocio) {
+  if (!tieneSucursales(negocio)) return [];
+  return [
+    { value: null, label: "Todos los locales" },
+    { value: MATRIZ, label: "Matriz" },
+    ...negocio.active_branches.map((s) => ({ value: String(s.id), label: s.name })),
+  ];
+}
+
+/**
+ * Si el local que quedo guardado en este aparato todavia se puede ver. Una sucursal que se
+ * apago o se borro ya no: la tableta que se habia quedado en ella vuelve a ver todos.
+ */
+export function localValido(local, negocio) {
+  if (local == null) return true;
+  return opcionesDeLocal(negocio).some((o) => o.value === String(local));
+}
+
+/** El nombre con que se le dice al local. Null si ya no esta entre las opciones. */
+export function nombreDelLocal(local, negocio) {
+  if (local == null) return "Todos los locales";
+  return opcionesDeLocal(negocio).find((o) => o.value === String(local))?.label ?? null;
+}
+
+/** Donde guarda cada aparato el local que eligio, uno por negocio. */
+export const claveLocalVisto = (slug) => `mc-local:${slug}`;
+
 /**
  * De que local salio un pedido, para el panel y la comanda: el nombre de la sucursal
  * o "Matriz". Null en un negocio de un solo local, donde no hay nada que distinguir.

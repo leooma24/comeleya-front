@@ -6,6 +6,17 @@ import { useOrderStore } from "./order-store";
 import { useCompanyStore } from "./company-store";
 import { useMessageStore } from "./message-store";
 import { ROLES, rolEn, puedeAbrirCajon } from "src/utils/permisos";
+import { claveLocalVisto, localValido, nombreDelLocal } from "src/utils/sucursales";
+
+/** El local que este aparato eligio para un negocio. Sin almacenamiento, todos. */
+const leerLocalVisto = (slug) => {
+  if (!slug) return null;
+  try {
+    return localStorage.getItem(claveLocalVisto(slug)) || null;
+  } catch {
+    return null;
+  }
+};
 
 export const useAdminStore = defineStore({
   id: "admin",
@@ -52,6 +63,12 @@ export const useAdminStore = defineStore({
     // El mensaje con el que el servidor le niega el panel a una cajera cuyo negocio ya no
     // tiene el plan. Vacio en cualquier otro caso.
     bloqueoCajero: "",
+    // El local que el dueño eligio ver en Pedidos desde ESTE aparato: la tableta de la
+    // cocina Centro se queda en Centro. Null = todos. Se guarda por negocio.
+    localVisto: null,
+    // El local fijo de la cajera, como lo manda el servidor: { valor, nombre }. Null si
+    // ve todos, o si no es cajera.
+    localCajero: null,
     products: [],
     categories: [],
     qr: "",
@@ -105,6 +122,25 @@ export const useAdminStore = defineStore({
     },
     esCajero() {
       return this.rolActual === ROLES.CAJERO;
+    },
+    /**
+     * El local cuyos pedidos se piden al servidor. La cajera no elige: el suyo lo aplica
+     * el servidor aunque se le mande otro. El dueño, el que eligio si todavia existe.
+     */
+    localEfectivo() {
+      if (this.esCajero) return null;
+      return localValido(this.localVisto, this.companyStore.company) ? this.localVisto : null;
+    },
+    /** Lo que llevan todas las peticiones de Pedidos. Un solo lugar, para que no difieran. */
+    paramsDeLocal() {
+      return this.localEfectivo ? { local: this.localEfectivo } : {};
+    },
+    /** Como se llama el local que se esta viendo. Null cuando son todos. */
+    nombreLocalVisto() {
+      if (this.esCajero) {
+        return this.localCajero ? this.localCajero.nombre || "Sin local" : null;
+      }
+      return this.localEfectivo ? nombreDelLocal(this.localEfectivo, this.companyStore.company) : null;
     },
     establishments() {
       return this.companyStore.companies ?? [];
@@ -497,7 +533,7 @@ export const useAdminStore = defineStore({
       this.establishmentDrawer = value;
     },
     async getMoreOrders(status) {
-      return await this.orderStore.getMoreOrders(status, this.slug);
+      return await this.orderStore.getMoreOrders(status, this.slug, this.paramsDeLocal);
     },
     async startOrder(order) {
       const data = await this.orderStore.startOrder(order, this.slug);
@@ -520,7 +556,23 @@ export const useAdminStore = defineStore({
       this.messageStore.success(data.message);
     },
     async getOrders(status) {
-      this.orderStore.getOrders(this.slug, status);
+      this.orderStore.getOrders(this.slug, status, this.paramsDeLocal);
+    },
+    /** Los contadores de las pestañas del local que se esta viendo. */
+    async recargarConteos() {
+      if (!this.slug) return;
+      await this.orderStore.getCounts(this.slug, this.paramsDeLocal);
+    },
+    /** El dueño elige que local ver en este aparato. Null = todos. */
+    elegirLocal(local) {
+      this.localVisto = local ? String(local) : null;
+      try {
+        const clave = claveLocalVisto(this.slug);
+        if (this.localVisto) localStorage.setItem(clave, this.localVisto);
+        else localStorage.removeItem(clave);
+      } catch {
+        // Sin almacenamiento la eleccion vale mientras no se recargue el panel.
+      }
     },
     async uploadDishImage(image) {
       const formData = new FormData();
@@ -1124,6 +1176,8 @@ export const useAdminStore = defineStore({
       // El rol que dio el servidor era del negocio anterior: se vuelve a pedir con este.
       this.rolServidor = null;
       this.bloqueoCajero = "";
+      this.localCajero = null;
+      this.localVisto = leerLocalVisto(slug);
       if (!slug) {
         this.tab = "inicio";
       } else if (this.esCajero) {
@@ -1317,7 +1371,9 @@ export const useAdminStore = defineStore({
 
 
       try {
-        const { data } = await api.get(`/admin/establishment/${this.slug}`);
+        const { data } = await api.get(`/admin/establishment/${this.slug}`, {
+          params: this.paramsDeLocal,
+        });
         this.products = data.establishment.dishes ?? [];
         this.categories = data.establishment.categories ?? [];
         this.groups = data.establishment.groups ?? [];
@@ -1332,7 +1388,8 @@ export const useAdminStore = defineStore({
         this.companyStore.setCategories(data.categories);
         this.companyStore.setFeatures(data.features);
         this.companyStore.setTypes(data.types);
-        this.orderStore.setCounts(data.counts);
+        this.orderStore.aplicarConteos(data);
+        this.localCajero = this.esCajero ? data.local ?? null : null;
         this.showBanners = true;
       } catch (e) {
         // La cajera de un negocio cuyo plan ya no incluye cajeros. No es falla de

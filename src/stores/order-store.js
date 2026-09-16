@@ -1,6 +1,15 @@
 import { defineStore } from "pinia";
 import { api } from "boot/axios";
 
+/**
+ * Si una respuesta se pidio para otro local que el que se esta viendo ahora.
+ *
+ * El dueño cambia el selector mientras hay una peticion en camino: sin esto, la lista de
+ * Centro llegaba tarde y se mezclaba con la de la Matriz, o la alerta sonaba por pedidos
+ * que ya no le tocan.
+ */
+const deOtroLocal = (store, params) => (params?.local ?? null) !== store.localActual;
+
 export const useOrderStore = defineStore("order", {
   persist: {
     pick: ["orderHistory"],
@@ -9,10 +18,16 @@ export const useOrderStore = defineStore("order", {
     order: {},
     orders: [],
     counts: [],
+    // Si el negocio ya vendio alguna vez, cerrado o no. Lo manda el servidor: los
+    // contadores ya no cuentan lo cerrado y no alcanzan para saberlo.
+    hayPedidos: false,
     orderHistory: [],
     // Seguimiento GLOBAL de pendientes (para la alerta que no depende de la pestaña)
     pendingSeenIds: null,
     pendingCount: 0,
+    // El local cuyos pedidos se estan viendo (null = todos). Lo fija el panel con
+    // cambiarLocal; las respuestas pedidas para otro se tiran.
+    localActual: null,
   }),
   getters: {
     orderCode() {
@@ -20,8 +35,9 @@ export const useOrderStore = defineStore("order", {
     },
   },
   actions: {
-    async getMoreOrders(status, slug) {
-      const { data } = await api.get(`/admin/${slug}/orders/${status}/more`);
+    async getMoreOrders(status, slug, params = {}) {
+      const { data } = await api.get(`/admin/${slug}/orders/${status}/more`, { params });
+      if (deOtroLocal(this, params)) return 0;
 
       let newCount = 0;
       data.orders.forEach((order) => {
@@ -89,16 +105,40 @@ export const useOrderStore = defineStore("order", {
     setCounts(counts) {
       this.counts = counts;
     },
-    async getOrders(slug, status) {
-      const { data } = await api.get(`/admin/${slug}/orders/${status}`);
+    async getOrders(slug, status, params = {}) {
+      const { data } = await api.get(`/admin/${slug}/orders/${status}`, { params });
+      if (deOtroLocal(this, params)) return;
 
       this.orders = data.orders;
     },
-    // Consulta el listado de PENDIENTES (status 1) y detecta pedidos nuevos sin
-    // tocar la lista visible del tab actual. Devuelve cuántos nuevos hay.
-    async refreshPending(slug) {
-      const { data } = await api.get(`/admin/${slug}/orders/1`);
-      const ids = (data.orders || []).map((o) => o.id);
+    /**
+     * Pasa a ver otro local. La alerta vuelve a aprender que pendientes hay sin sonar: si
+     * no, cambiar de la Matriz a Centro sonaba por cada pedido de Centro que ya estaba ahi.
+     */
+    cambiarLocal(local) {
+      this.localActual = local ?? null;
+      this.pendingSeenIds = null;
+    },
+    aplicarConteos(data) {
+      this.counts = data.counts ?? {};
+      this.hayPedidos = !!data.hay_pedidos;
+    },
+    /** Los contadores de las pestañas, sin tocar lo que la alerta ya vio. */
+    async getCounts(slug, params = {}) {
+      const { data } = await api.get(`/admin/${slug}/orders/counts`, { params });
+      if (deOtroLocal(this, params)) return;
+
+      this.aplicarConteos(data);
+    },
+    // Consulta los PENDIENTES y detecta pedidos nuevos sin tocar la lista visible del
+    // tab actual. Devuelve cuántos nuevos hay. De paso deja los contadores al dia: es la
+    // misma peticion.
+    async refreshPending(slug, params = {}) {
+      const { data } = await api.get(`/admin/${slug}/orders/counts`, { params });
+      if (deOtroLocal(this, params)) return { newCount: 0 };
+
+      this.aplicarConteos(data);
+      const ids = data.pendientes || [];
       let newCount = 0;
       // En el primer sondeo solo memoriza (no alerta por pedidos ya existentes)
       if (this.pendingSeenIds !== null) {

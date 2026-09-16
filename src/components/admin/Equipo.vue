@@ -46,6 +46,9 @@
         aceptan, preparan, envían, entregan y cancelan, imprimen el ticket, asignan
         repartidor, ven el historial, cierran el día y sacan el corte de caja. No ven tu
         menú, tus ventas, tu configuración ni tu plan.
+        <template v-if="mostrarLocal">
+          Si le asignas un local, <strong>solo ve los pedidos de ese local</strong>.
+        </template>
       </div>
 
       <!-- Sin el plan no se da de alta a nadie, pero la lista se sigue viendo: si el plan
@@ -60,7 +63,10 @@
           <span class="mc-lista__ini">{{ iniciales(p.name) }}</span>
           <div class="mc-lista__txt">
             <div class="mc-lista__nom">{{ p.name }}</div>
-            <div class="mc-lista__meta">{{ p.email }} · {{ ultimoAcceso(p) }}</div>
+            <div class="mc-lista__meta">
+              {{ p.email }}<template v-if="mostrarLocal"> · {{ nombreLocal(p.local) }}</template> ·
+              {{ ultimoAcceso(p) }}
+            </div>
           </div>
           <div class="mc-lista__der" @click.stop>
             <row-actions-menu :titulo="p.name" :actions="accionesDe(p)" />
@@ -79,6 +85,7 @@
             <tr>
               <th class="text-left">Nombre</th>
               <th class="text-left">Correo</th>
+              <th class="text-left" v-if="mostrarLocal">Local</th>
               <th class="text-left">Último acceso</th>
               <th class="text-right">Acciones</th>
             </tr>
@@ -87,6 +94,7 @@
             <tr v-for="p in equipo" :key="p.id">
               <td class="text-left text-weight-medium">{{ p.name }}</td>
               <td class="text-left">{{ p.email }}</td>
+              <td class="text-left" v-if="mostrarLocal">{{ nombreLocal(p.local) }}</td>
               <td class="text-left">{{ ultimoAcceso(p) }}</td>
               <td class="text-right">
                 <row-actions-menu :titulo="p.name" :actions="accionesDe(p)" />
@@ -119,6 +127,23 @@
         description="Con este nombre lo vas a reconocer en la lista de tu equipo."
       >
         <q-input v-model="forma.name" label="Nombre" filled dense />
+      </admin-section>
+
+      <admin-section
+        v-if="mostrarLocal"
+        title="Local"
+        icon="storefront"
+        description="Con un local, solo ve, acepta y cierra los pedidos de ese local, y su corte de caja es de ese local."
+      >
+        <q-select
+          v-model="forma.local"
+          :options="opcionesLocal"
+          label="Atiende"
+          filled
+          dense
+          emit-value
+          map-options
+        />
       </admin-section>
 
       <admin-section
@@ -163,7 +188,7 @@
  */
 defineOptions({ name: "AdminEquipo" });
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
@@ -173,6 +198,7 @@ import AdminSection from "./AdminSection.vue";
 import RowActionsMenu from "./RowActionsMenu.vue";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
+import { MATRIZ } from "src/utils/sucursales";
 
 const adminStore = useAdminStore();
 const { confirm } = useConfirmDialog();
@@ -186,7 +212,10 @@ const guardando = ref(false);
 const cajon = ref(false);
 const verClave = ref(false);
 
-const vacia = () => ({ id: null, name: "", email: "", password: "" });
+// "todos" y no null: el select de Quasar lee null como "sin elegir" y dejaba el campo en
+// blanco. Al servidor se le manda null.
+const TODOS = "todos";
+const vacia = () => ({ id: null, name: "", email: "", password: "", local: TODOS, localAntes: TODOS });
 const forma = ref(vacia());
 
 const volverAMas = () => {
@@ -197,6 +226,47 @@ const irAPlanes = () => {
 };
 
 const iniciales = (nombre) => (nombre || "?").trim().slice(0, 2).toUpperCase();
+
+// --- Local ---------------------------------------------------------------------
+// Todas las sucursales, tambien las apagadas: el dueño puede dejar lista a la cajera
+// antes de abrir.
+const sucursales = ref([]);
+const conSucursales = ref(false);
+
+/**
+ * Se pregunta por el local si el negocio tiene sucursales, o si alguien ya tiene uno: el
+ * dueño que bajo de plan tiene que poder quitarselo, o no podria borrar esa sucursal.
+ */
+const mostrarLocal = computed(
+  () => (conSucursales.value && sucursales.value.length > 0) || equipo.value.some((p) => p.local)
+);
+
+const opcionesLocal = computed(() => [
+  { value: TODOS, label: "Todos los locales" },
+  { value: MATRIZ, label: "Matriz" },
+  ...sucursales.value.map((s) => ({
+    value: String(s.id),
+    label: s.active ? s.name : `${s.name} (apagada)`,
+  })),
+]);
+
+const nombreLocal = (local) => {
+  if (!local) return "Todos los locales";
+  // Lo que no esta en la lista -una sucursal borrada, o dos filas con locales distintos-
+  // no le deja ver ningun pedido hasta que se le asigne otro.
+  return opcionesLocal.value.find((o) => o.value === local)?.label ?? "Sin local válido";
+};
+
+const cargarSucursales = async () => {
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/branches`);
+    sucursales.value = data.branches ?? [];
+    conSucursales.value = !!data.enabled;
+  } catch {
+    // Sin la lista no se ofrece el local; el equipo se sigue administrando igual.
+    sucursales.value = [];
+  }
+};
 
 const ultimoAcceso = (p) =>
   p.last_login_at
@@ -229,7 +299,10 @@ const nuevo = () => {
 
 const editar = (p) => {
   // Copia, y la contraseña en blanco: nunca viaja del servidor al panel.
-  forma.value = { ...vacia(), id: p.id, name: p.name, email: p.email };
+  // localAntes: para mandar el local solo si cambio. Uno que apunta a una sucursal ya
+  // borrada no pasaria la validacion, y no dejaria corregirle ni el nombre.
+  const local = p.local ?? TODOS;
+  forma.value = { ...vacia(), id: p.id, name: p.name, email: p.email, local, localAntes: local };
   verClave.value = false;
   cajon.value = true;
 };
@@ -256,6 +329,10 @@ const guardar = async () => {
   try {
     const cuerpo = { name: f.name.trim(), email: f.email.trim() };
     if (f.password) cuerpo.password = f.password;
+    // Solo cuando se pregunto y cambio: sin el campo, el servidor le deja el que tenia.
+    if (mostrarLocal.value && f.local !== f.localAntes) {
+      cuerpo.local = f.local === TODOS ? null : f.local;
+    }
 
     if (f.id) {
       await api.put(`/admin/${adminStore.slug}/team/${f.id}`, cuerpo);
@@ -302,7 +379,7 @@ const accionesDe = (p) => [
   },
 ];
 
-onMounted(cargar);
+onMounted(() => Promise.all([cargar(), cargarSucursales()]));
 </script>
 
 <style lang="scss" scoped>

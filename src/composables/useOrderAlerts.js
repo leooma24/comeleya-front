@@ -171,7 +171,8 @@ export function useOrderAlerts(getSlug) {
     const slug = getSlug();
     if (slug) {
       try {
-        const { newCount } = await adminStore.orderStore.refreshPending(slug);
+        // Solo los del local que se esta viendo: la tableta de Centro no suena por la Matriz.
+        const { newCount } = await adminStore.orderStore.refreshPending(slug, adminStore.paramsDeLocal);
         if (newCount > 0) {
           beep();
           vibrate();

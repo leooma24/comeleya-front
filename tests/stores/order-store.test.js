@@ -190,6 +190,83 @@ describe("order-store", () => {
     });
   });
 
+  // El dueño cambia de local con peticiones en camino. Lo que llega del local anterior no
+  // se mezcla con lo del nuevo, y la alerta no suena por pedidos que ya estaban ahi.
+  describe("el local que se esta viendo", () => {
+    it("pide la lista con el local", async () => {
+      store.cambiarLocal("7");
+      api.get.mockResolvedValueOnce({ data: { orders: [{ id: 1 }] } });
+
+      await store.getOrders("slug", 1, { local: "7" });
+
+      expect(api.get).toHaveBeenCalledWith("/admin/slug/orders/1", { params: { local: "7" } });
+      expect(store.orders).toEqual([{ id: 1 }]);
+    });
+
+    it("tira la lista que llega de un local que ya no se ve", async () => {
+      store.orders = [{ id: 9 }];
+      let responder;
+      api.get.mockReturnValueOnce(new Promise((r) => (responder = r)));
+
+      const enCamino = store.getOrders("slug", 1, {});
+      store.cambiarLocal("matriz");
+      responder({ data: { orders: [{ id: 1 }, { id: 2 }] } });
+      await enCamino;
+
+      expect(store.orders).toEqual([{ id: 9 }]);
+    });
+
+    it("el sondeo de otro local no agrega pedidos", async () => {
+      store.cambiarLocal("7");
+      api.get.mockResolvedValueOnce({ data: { orders: [{ id: 1 }] } });
+
+      expect(await store.getMoreOrders(1, "slug", {})).toBe(0);
+      expect(store.orders).toEqual([]);
+    });
+
+    it("la alerta pregunta por los contadores y los deja al dia", async () => {
+      api.get.mockResolvedValueOnce({ data: { counts: { 1: 2 }, pendientes: [4, 5], hay_pedidos: true } });
+
+      await store.refreshPending("slug", {});
+
+      expect(api.get).toHaveBeenCalledWith("/admin/slug/orders/counts", { params: {} });
+      expect(store.counts).toEqual({ 1: 2 });
+      expect(store.hayPedidos).toBe(true);
+      expect(store.pendingSeenIds).toEqual([4, 5]);
+    });
+
+    it("un pedido nuevo del local suena", async () => {
+      api.get.mockResolvedValueOnce({ data: { counts: {}, pendientes: [4] } });
+      await store.refreshPending("slug", {});
+
+      api.get.mockResolvedValueOnce({ data: { counts: {}, pendientes: [4, 6] } });
+      expect(await store.refreshPending("slug", {})).toEqual({ newCount: 1 });
+    });
+
+    it("cambiar de local no suena por los pendientes que ya habia en el otro", async () => {
+      api.get.mockResolvedValueOnce({ data: { counts: {}, pendientes: [4] } });
+      await store.refreshPending("slug", {});
+
+      store.cambiarLocal("7");
+      api.get.mockResolvedValueOnce({ data: { counts: {}, pendientes: [10, 11] } });
+
+      expect(await store.refreshPending("slug", { local: "7" })).toEqual({ newCount: 0 });
+      expect(store.pendingSeenIds).toEqual([10, 11]);
+    });
+
+    it("recargar los contadores no le quita a la alerta un pedido que todavia no avisa", async () => {
+      api.get.mockResolvedValueOnce({ data: { counts: {}, pendientes: [4] } });
+      await store.refreshPending("slug", {});
+
+      api.get.mockResolvedValueOnce({ data: { counts: { 1: 2 }, pendientes: [4, 6] } });
+      await store.getCounts("slug", {});
+      expect(store.counts).toEqual({ 1: 2 });
+
+      api.get.mockResolvedValueOnce({ data: { counts: { 1: 2 }, pendientes: [4, 6] } });
+      expect(await store.refreshPending("slug", {})).toEqual({ newCount: 1 });
+    });
+  });
+
   describe("edge cases", () => {
     it("startOrder initializes counts[2] when undefined", async () => {
       store.counts = [0, 5];
