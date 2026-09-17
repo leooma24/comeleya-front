@@ -23,6 +23,11 @@
           </q-avatar>
           <div>
             <div class="mc-track__biz">{{ data.establishment.name }}</div>
+            <!-- En un negocio con varios locales, de cual es: el boton de WhatsApp le
+                 escribe a ese local. -->
+            <div class="mc-track__code" v-if="data.establishment.local">
+              Sucursal {{ data.establishment.local }}
+            </div>
             <div class="mc-track__code">Pedido #{{ data.order_code }}</div>
           </div>
         </div>

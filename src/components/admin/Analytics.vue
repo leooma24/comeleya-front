@@ -153,6 +153,7 @@
             <div class="mc-ticket-preview" ref="ticketRef">
               <div class="mc-ticket-preview__header">
                 <strong>{{ ticketData.establishment }}</strong>
+                <span v-if="ticketData.local">Sucursal {{ ticketData.local }}</span>
                 <span>{{ ticketData.date }}</span>
               </div>
               <div class="mc-ticket-preview__order">
@@ -270,6 +271,7 @@ const generateTicket = async () => {
     // Lo adaptamos a la forma que espera la vista previa del ticket.
     ticketData.value = {
       establishment: data.establishment?.name || adminStore.company?.name || "",
+      local: data.establishment?.local || "",
       date: data.order?.date || "",
       order_code: data.order?.code || key,
       items: (data.items || []).map((it) => ({
