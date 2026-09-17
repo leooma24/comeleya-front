@@ -627,7 +627,10 @@
                 </q-item-section>
                 <q-item-section>
                   <q-item-label>{{ scope.opt.name }}</q-item-label>
-                  <q-item-label caption>{{ scope.opt.vehicle_type }} {{ scope.opt.vehicle_plate ? '- ' + scope.opt.vehicle_plate : '' }}</q-item-label>
+                  <q-item-label caption>
+                    {{ scope.opt.vehicle_type }} {{ scope.opt.vehicle_plate ? '- ' + scope.opt.vehicle_plate : '' }}
+                    <template v-if="conSucursales"> · {{ localDelRepartidor(scope.opt) }}</template>
+                  </q-item-label>
                 </q-item-section>
                 <q-item-section side>
                   <q-badge :color="scope.opt.status === 'available' ? 'positive' : 'grey'" :label="scope.opt.status === 'available' ? 'Libre' : scope.opt.status === 'busy' ? 'Ocupado' : 'Offline'" />
@@ -671,7 +674,14 @@ import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { printOrderTicket } from "src/utils/orderTicket";
-import { origenDelPedido, opcionesDeLocal, tieneSucursales } from "src/utils/sucursales";
+import {
+  origenDelPedido,
+  opcionesDeLocal,
+  tieneSucursales,
+  nombreDelLocal,
+  localDelPedido,
+  ordenarRepartidores,
+} from "src/utils/sucursales";
 import OrdersHistory from "./OrdersHistory.vue";
 import CorteDeCaja from "./CorteDeCaja.vue";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
@@ -755,20 +765,37 @@ const hasDeliveryFeature = computed(() => {
   return !!feature?.value;
 });
 
+const conSucursales = computed(() => tieneSucursales(companyStore.company));
+
+const localDelRepartidor = (driver) =>
+  driver.local ? nombreDelLocal(driver.local, companyStore.company) ?? "Otro local" : "Compartido";
+
+/**
+ * Abre el dialogo con los repartidores que se pueden asignar a este pedido. El servidor ya
+ * le quita a la cajera los de otros locales; aqui solo se ordenan: primero los del local
+ * del pedido, luego los compartidos.
+ */
+const cargarRepartidores = async (order) => {
+  sendingOrder.value = order;
+  selectedDriver.value = null;
+  loadingDrivers.value = true;
+  driverDialog.value = true;
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/drivers`);
+    const disponibles = (data.drivers || []).filter((d) => d.status !== "offline");
+    availableDrivers.value = conSucursales.value
+      ? ordenarRepartidores(disponibles, localDelPedido(order))
+      : disponibles;
+  } catch (e) {
+    availableDrivers.value = [];
+  } finally {
+    loadingDrivers.value = false;
+  }
+};
+
 const handleSendOrder = async (order) => {
   if (hasDeliveryFeature.value && order.delivery === "Envio") {
-    sendingOrder.value = order;
-    selectedDriver.value = null;
-    loadingDrivers.value = true;
-    driverDialog.value = true;
-    try {
-      const { data } = await api.get(`/admin/${adminStore.slug}/drivers`);
-      availableDrivers.value = (data.drivers || []).filter((d) => d.status !== "offline");
-    } catch (e) {
-      availableDrivers.value = [];
-    } finally {
-      loadingDrivers.value = false;
-    }
+    await cargarRepartidores(order);
   } else {
     runOrderAction(order, () => adminStore.sendOrder(order));
   }
@@ -792,10 +819,11 @@ const confirmSendOrder = async (driver) => {
 
   if (driver) {
     try {
-      await api.post(`/admin/${adminStore.slug}/drivers/${driver.id}/assign`, { order_id: order.id });
+      const { data } = await api.post(`/admin/${adminStore.slug}/drivers/${driver.id}/assign`, { order_id: order.id });
       adminStore.messageStore.success(`Repartidor ${driver.name} asignado`);
-      // Update order in UI
-      order.delivery_assignment = { driver, status: 'assigned' };
+      // Con el id de la asignacion que dio el servidor. Sin el, "cambiar repartidor" antes
+      // de que se recargara la lista mandaba PUT delivery/undefined/status.
+      order.delivery_assignment = { id: data.assignment?.id, driver, status: "assigned" };
     } catch (e) {
       adminStore.messageStore.error(e.response?.data?.message ?? "Error al asignar repartidor");
     }
@@ -809,34 +837,10 @@ const reassigning = ref(false);
 
 const handleReassignDriver = async (order) => {
   reassigning.value = true;
-  sendingOrder.value = order;
-  selectedDriver.value = null;
-  loadingDrivers.value = true;
-  driverDialog.value = true;
-  try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/drivers`);
-    availableDrivers.value = (data.drivers || []).filter((d) => d.status !== "offline");
-  } catch (e) {
-    availableDrivers.value = [];
-  } finally {
-    loadingDrivers.value = false;
-  }
+  await cargarRepartidores(order);
 };
 
-const handleAssignDriver = async (order) => {
-  sendingOrder.value = order;
-  selectedDriver.value = null;
-  loadingDrivers.value = true;
-  driverDialog.value = true;
-  try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/drivers`);
-    availableDrivers.value = (data.drivers || []).filter((d) => d.status !== "offline");
-  } catch (e) {
-    availableDrivers.value = [];
-  } finally {
-    loadingDrivers.value = false;
-  }
-};
+const handleAssignDriver = (order) => cargarRepartidores(order);
 
 // El ticket se dibuja en src/utils/orderTicket.js. Se saco de aqui porque el
 // Historial tambien reimprime y no queria una copia mas: segun CLAUDE.md esta

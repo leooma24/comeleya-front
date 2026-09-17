@@ -9,6 +9,8 @@ import {
   localValido,
   nombreDelLocal,
   claveLocalVisto,
+  localDelPedido,
+  ordenarRepartidores,
 } from "src/utils/sucursales.js";
 
 /**
@@ -152,5 +154,36 @@ describe("que local se ve en Pedidos", () => {
   it("cada negocio guarda el suyo", () => {
     expect(claveLocalVisto("kazuki")).toBe("mc-local:kazuki");
     expect(claveLocalVisto("kazuki")).not.toBe(claveLocalVisto("bajamar"));
+  });
+});
+
+describe("los repartidores para un pedido", () => {
+  it("el local de un pedido se escribe como en el servidor", () => {
+    expect(localDelPedido({ branch_id: 7 })).toBe("7");
+    expect(localDelPedido({ branch_id: null })).toBe(MATRIZ);
+    expect(localDelPedido({})).toBe(MATRIZ);
+  });
+
+  it("primero los del local del pedido, luego los compartidos, al final los de otro local", () => {
+    const repartidores = [
+      { name: "Norte", local: "2" },
+      { name: "Compartido A", local: null },
+      { name: "Centro", local: "7" },
+      { name: "Compartido B", local: null },
+    ];
+
+    expect(ordenarRepartidores(repartidores, "7").map((d) => d.name)).toEqual([
+      "Centro",
+      "Compartido A",
+      "Compartido B",
+      "Norte",
+    ]);
+    // No toca la lista original.
+    expect(repartidores[0].name).toBe("Norte");
+  });
+
+  it("los de la Matriz van primero en un pedido de la Matriz", () => {
+    const repartidores = [{ name: "Centro", local: "7" }, { name: "Matriz", local: MATRIZ }];
+    expect(ordenarRepartidores(repartidores, MATRIZ).map((d) => d.name)).toEqual(["Matriz", "Centro"]);
   });
 });

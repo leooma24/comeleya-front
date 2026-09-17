@@ -76,6 +76,21 @@ export function nombreDelLocal(local, negocio) {
   return opcionesDeLocal(negocio).find((o) => o.value === String(local))?.label ?? null;
 }
 
+/** El local de un pedido como lo escribe el servidor: el id de su sucursal, o "matriz". */
+export function localDelPedido(order) {
+  return order?.branch_id ? String(order.branch_id) : MATRIZ;
+}
+
+/**
+ * Los repartidores para un pedido: primero los de su local, despues los compartidos y al
+ * final los de otros locales, que solo le llegan al dueño. Dentro de cada grupo se
+ * respeta el orden en que venian.
+ */
+export function ordenarRepartidores(repartidores, localPedido) {
+  const grupo = (d) => (d.local == null ? 1 : String(d.local) === String(localPedido) ? 0 : 2);
+  return [...repartidores].sort((a, b) => grupo(a) - grupo(b));
+}
+
 /** Donde guarda cada aparato el local que eligio, uno por negocio. */
 export const claveLocalVisto = (slug) => `mc-local:${slug}`;
 

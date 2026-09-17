@@ -36,6 +36,9 @@
             <div class="mc-driver-card__info">
               <span class="mc-driver-card__name">{{ driver.name }}</span>
               <span class="mc-driver-card__phone">{{ driver.phone }}</span>
+              <span class="mc-driver-card__phone" v-if="mostrarLocal">
+                <q-icon name="storefront" size="12px" /> {{ nombreLocal(driver.local) }}
+              </span>
             </div>
             <q-chip
               dense
@@ -80,6 +83,20 @@
           <q-input filled dense rounded v-model="form.name" label="Nombre" class="q-mb-md" />
           <q-input filled dense rounded v-model="form.phone" label="Teléfono" class="q-mb-md" />
           <q-input filled dense rounded v-model="form.email" label="Email (opcional)" class="q-mb-md" />
+          <!-- De que local reparte. Compartido le sirve a todos; uno de Centro solo le sale
+               a la cajera de Centro (y al dueño). -->
+          <q-select
+            v-if="mostrarLocal"
+            filled
+            dense
+            rounded
+            v-model="form.local"
+            :options="opcionesLocal"
+            emit-value
+            map-options
+            label="Local"
+            class="q-mb-md"
+          />
           <!-- De una lista y no escrito a mano: libre, "Moto", "moto" y "Motocicleta"
                salian como tres vehiculos distintos al asignar repartidor. -->
           <q-select
@@ -115,9 +132,11 @@
 <script setup>
 defineOptions({ name: "DriversComponent" });
 
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { useCompanyStore } from "src/stores/company-store";
+import { opcionesDeLocal, nombreDelLocal, tieneSucursales } from "src/utils/sucursales";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { normalizarVehiculo, opcionesDeVehiculo, llevaPlacas } from "src/utils/vehiculos";
 
@@ -129,8 +148,45 @@ const showForm = ref(false);
 const saving = ref(false);
 const editingDriver = ref(null);
 
-const defaultForm = () => ({ name: "", phone: "", email: "", vehicle_type: "", vehicle_plate: "" });
+// "compartido" y no null: el select de Quasar lee null como "sin elegir". Al servidor se
+// le manda null.
+const COMPARTIDO = "compartido";
+const defaultForm = () => ({
+  name: "",
+  phone: "",
+  email: "",
+  vehicle_type: "",
+  vehicle_plate: "",
+  local: COMPARTIDO,
+  localAntes: COMPARTIDO,
+});
 const form = ref(defaultForm());
+
+// --- Local ---------------------------------------------------------------------
+const companyStore = useCompanyStore();
+
+/** Se pregunta si el negocio tiene sucursales, o si alguien ya tiene local: asi se le puede quitar. */
+const mostrarLocal = computed(
+  () => tieneSucursales(companyStore.company) || drivers.value.some((d) => d.local)
+);
+
+const nombreLocal = (local) => {
+  if (!local) return "Compartido";
+  return nombreDelLocal(local, companyStore.company) ?? "Sucursal apagada";
+};
+
+const opcionesLocal = computed(() => {
+  const opciones = [
+    { value: COMPARTIDO, label: "Compartido (todos los locales)" },
+    ...opcionesDeLocal(companyStore.company).filter((o) => o.value !== null),
+  ];
+  // Uno que ya estaba en una sucursal apagada: que se vea como tal y no como un numero.
+  const actual = form.value.local;
+  if (actual !== COMPARTIDO && !opciones.some((o) => o.value === actual)) {
+    opciones.push({ value: actual, label: nombreLocal(actual) });
+  }
+  return opciones;
+});
 
 const openForm = (driver = null) => {
   if (driver) {
@@ -143,6 +199,8 @@ const openForm = (driver = null) => {
       // "Moto"); si no corresponde a ninguna, se queda como estaba.
       vehicle_type: normalizarVehiculo(driver.vehicle_type),
       vehicle_plate: driver.vehicle_plate || "",
+      local: driver.local ?? COMPARTIDO,
+      localAntes: driver.local ?? COMPARTIDO,
     };
   } else {
     editingDriver.value = null;
@@ -156,11 +214,16 @@ const saveDriver = async () => {
     adminStore.messageStore.error("Nombre y teléfono son obligatorios");
     return;
   }
+  const { local, localAntes, ...datos } = form.value;
   const cuerpo = {
-    ...form.value,
+    ...datos,
     // Si ya no se mueve en algo con placas, no se guardan las que tuviera de antes.
     vehicle_plate: llevaPlacas(form.value.vehicle_type) ? form.value.vehicle_plate : null,
   };
+  // El local solo viaja si cambio: sin la llave, el servidor deja el que tenia.
+  if (mostrarLocal.value && local !== localAntes) {
+    cuerpo.local = local === COMPARTIDO ? null : local;
+  }
   saving.value = true;
   try {
     if (editingDriver.value) {
@@ -183,7 +246,9 @@ const saveDriver = async () => {
 const toggleActive = async (driver) => {
   const newStatus = driver.status === 'available' ? 'offline' : 'available';
   try {
-    const { data } = await api.put(`/admin/${adminStore.slug}/drivers/${driver.id}`, { ...driver, status: newStatus });
+    // Sin el local: activar no es cambiarlo de local, y asi el servidor no lo vuelve a validar.
+    const { local, active_delivery, ...datos } = driver;
+    const { data } = await api.put(`/admin/${adminStore.slug}/drivers/${driver.id}`, { ...datos, status: newStatus });
     drivers.value = drivers.value.map((d) => d.id === data.driver.id ? data.driver : d);
     adminStore.messageStore.success(data.driver.status === 'available' ? "Repartidor activado" : "Repartidor desactivado");
   } catch (e) {
