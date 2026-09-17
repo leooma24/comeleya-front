@@ -546,6 +546,8 @@ onMounted(async () => {
   window.addEventListener("scroll", onScrollSpy, { capture: true, passive: true });
   window.addEventListener("touchmove", onScrollSpy, { passive: true });
   await mainStore.getEstablishment(route.params.slug);
+  // El QR de un local trae ?local=: se abre el menu con ese local elegido.
+  if (route.query.local) mainStore.elegirSucursalDeLaUrl(route.query.local);
   // Los destacados pueden venir ya cargados (store persistido), así que el watch
   // no siempre dispara: inicializamos el carrusel aquí también.
   if (mainStore.featuredProducts.length) {

@@ -339,6 +339,58 @@ const editarMatriz = () =>
   matriz.value.coordinates
     ? adminStore.setAddressDrawer(true)
     : adminStore.setConfigurationDrawer(true);
+/**
+ * La liga del menu de un local. Es la que lleva su QR: quien la abre entra al menu con ese
+ * local ya elegido, sin tener que escogerlo al pagar.
+ */
+const ligaDelLocal = (local) =>
+  `${window.location.origin}/${adminStore.slug}?local=${encodeURIComponent(local)}`;
+
+const copiarLiga = async (local, nombre) => {
+  try {
+    await navigator.clipboard.writeText(ligaDelLocal(local));
+    adminStore.messageStore.success(`Liga de ${nombre} copiada`);
+  } catch {
+    adminStore.messageStore.error("No se pudo copiar la liga");
+  }
+};
+
+/** El cartel para imprimir, con el QR de ESE local. Lo arma el servidor. */
+const descargarQr = async (local, nombre) => {
+  try {
+    const { data } = await api.get(`/admin/${adminStore.slug}/qr-pdf`, {
+      params: { local },
+      responseType: "blob",
+    });
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qr-${adminStore.slug}-${String(nombre).toLowerCase().replace(/[^a-z0-9]+/g, "-")}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    adminStore.messageStore.error("No se pudo generar el QR");
+  }
+};
+
+/** Las dos acciones que comparten la Matriz y las sucursales. */
+const accionesDeQr = (local, nombre) => [
+  {
+    key: "qr",
+    icon: "qr_code_2",
+    color: "grey-7",
+    label: "Descargar QR",
+    handler: () => descargarQr(local, nombre),
+  },
+  {
+    key: "liga",
+    icon: "link",
+    color: "grey-7",
+    label: "Copiar liga",
+    handler: () => copiarLiga(local, nombre),
+  },
+];
+
 /** Con al menos una sucursal encendida: sin ellas, pausar la Matriz no significa nada. */
 const hayActivas = computed(() => sucursales.value.some((s) => s.active));
 
@@ -355,6 +407,8 @@ const accionPausa = (local, pausado) => ({
 
 const accionesMatriz = computed(() => [
   ...(hayActivas.value ? [accionPausa("matriz", matriz.value.orders_paused)] : []),
+  // El QR propio de la Matriz solo tiene sentido cuando hay mas locales de donde elegir.
+  ...(hayActivas.value ? accionesDeQr("matriz", "Matriz") : []),
   {
     key: "dir",
     icon: "place",
@@ -457,8 +511,8 @@ const borrar = (s) => {
 
 const accionesDe = (s) => [
   { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => editar(s) },
-  // Una apagada no se ofrece al cliente: no hay nada que pausar.
-  ...(s.active ? [accionPausa(String(s.id), s.orders_paused)] : []),
+  // Una apagada no se ofrece al cliente: no hay nada que pausar ni QR que pegar.
+  ...(s.active ? [accionPausa(String(s.id), s.orders_paused), ...accionesDeQr(String(s.id), s.name)] : []),
   {
     key: "toggle",
     icon: s.active ? "visibility_off" : "visibility",

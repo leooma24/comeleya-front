@@ -1135,6 +1135,23 @@ export const useMainStore = defineStore("main", {
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     },
 
+    /**
+     * El local que viene en la direccion (?local=), que es lo que abre el QR pegado en ese
+     * mostrador: el cliente llega al menu con ese local ya elegido.
+     *
+     * Se respeta solo si existe y no esta en pausa. Si no, se sigue con el de siempre -el
+     * mas cercano- en vez de dejarlo pidiendole a un local que no puede atenderlo.
+     */
+    elegirSucursalDeLaUrl(valor) {
+      const pedido = String(valor ?? "").trim();
+      if (!pedido) return false;
+
+      const local = this.sucursales.find((s) => String(s.id) === pedido && !s.orders_paused);
+      if (!local) return false;
+
+      this.elegirSucursal(local.id);
+      return true;
+    },
     /** Cambiar de sucursal recalcula el envio: cambia el punto desde el que se mide. */
     elegirSucursal(id) {
       this.branchId = id;

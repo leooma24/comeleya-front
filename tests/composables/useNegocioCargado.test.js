@@ -101,3 +101,27 @@ describe("la API en comeleya.com/api", () => {
     expect(leer("src/components/client/LoyaltyBanner.vue")).not.toMatch(/onMounted/);
   });
 });
+
+/**
+ * El QR de cada local (ver QrPorLocalTest en el backend).
+ *
+ * El cartel del mostrador de Centro abre el menu con Centro elegido: quien pasa a
+ * recoger ahi no deberia tener que escogerlo a mano.
+ */
+describe("el QR y la liga de cada local", () => {
+  const AQUI = dirname(fileURLToPath(import.meta.url));
+  const leer = (ruta) => readFileSync(resolve(AQUI, "../..", ruta), "utf8");
+
+  it("el menu respeta el ?local= de la liga", () => {
+    expect(leer("src/pages/IndexPage.vue")).toMatch(/route\.query\.local.*elegirSucursalDeLaUrl|elegirSucursalDeLaUrl\(route\.query\.local\)/s);
+  });
+
+  it("Sucursales ofrece el QR y la liga de cada local", () => {
+    const src = leer("src/components/admin/Sucursales.vue");
+    expect(src).toMatch(/const ligaDelLocal = /);
+    expect(src).toMatch(/qr-pdf`, \{\s*params: \{ local \}/);
+    expect(src).toMatch(/Descargar QR/);
+    expect(src).toMatch(/Copiar liga/);
+  });
+});
+

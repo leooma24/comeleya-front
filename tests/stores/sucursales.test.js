@@ -300,4 +300,38 @@ describe("sucursales", () => {
       expect(store.sucursalElegida.id).toBe(3);
     });
   });
+
+  // ------------------------------------------------- el local que viene en la liga
+
+  describe("el QR de un local", () => {
+    const norte = (props = {}) => ({ id: 2, name: "Norte", coordinates: NORTE, ...props });
+
+    it("abre el menu con ese local elegido, aunque otro quede mas cerca", () => {
+      conSucursales([norte()]);
+      clienteEnElCentro();
+      expect(store.sucursalElegida.id).toBe(MATRIZ);
+
+      expect(store.elegirSucursalDeLaUrl("2")).toBe(true);
+      expect(store.sucursalElegida.id).toBe(2);
+    });
+
+    it("tambien para la Matriz", () => {
+      conSucursales([norte()]);
+      clienteEnElNorte();
+      expect(store.sucursalElegida.id).toBe(2);
+
+      expect(store.elegirSucursalDeLaUrl(MATRIZ)).toBe(true);
+      expect(store.sucursalElegida.id).toBe(MATRIZ);
+    });
+
+    it("un local que no existe o esta en pausa se ignora: sigue el mas cercano", () => {
+      conSucursales([norte({ orders_paused: true })]);
+      clienteEnElNorte();
+
+      expect(store.elegirSucursalDeLaUrl("2")).toBe(false);
+      expect(store.elegirSucursalDeLaUrl("99")).toBe(false);
+      expect(store.elegirSucursalDeLaUrl("")).toBe(false);
+      expect(store.sucursalElegida.id).toBe(MATRIZ);
+    });
+  });
 });
