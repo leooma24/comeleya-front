@@ -30,6 +30,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   // Solo manejamos el mismo origen (comeleya.com). La API vive en otro origen: se ignora.
   if (url.origin !== self.location.origin) return;
+  // La API tambien se sirve en comeleya.com/api (ver laravel-api.php). Ahora es del mismo
+  // origen, pero no es un asset: cacheada, el menu se quedaria con precios y platillos
+  // viejos. Va directo a la red, igual que cuando vivia solo en app.comeleya.com.
+  if (url.pathname.startsWith("/api/")) return;
 
   // Navegaciones / HTML: SIEMPRE fresco del servidor (cache: "reload" ignora la
   // caché HTTP del navegador), así cada deploy se refleja de inmediato. Fallback a

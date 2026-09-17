@@ -286,8 +286,14 @@ const config = ref({
 });
 const saving = ref(false);
 
+// Meta descarga este archivo desde sus servidores, asi que necesita una direccion completa.
+// En produccion el panel pide la API con ruta relativa (/api, ver laravel-api.php): ahi se
+// usa la direccion propia de la API, que sigue viva.
+const API_PUBLICA = "https://app.comeleya.com/api";
+
 const feedUrl = computed(() => {
-  const base = (api.defaults.baseURL || "").replace(/\/$/, "");
+  const propia = api.defaults.baseURL || "";
+  const base = (/^https?:\/\//.test(propia) ? propia : API_PUBLICA).replace(/\/$/, "");
   return `${base}/establishment/${adminStore.slug}/facebook-feed.csv`;
 });
 

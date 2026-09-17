@@ -12,8 +12,15 @@ import { useUserStore } from "src/stores/user-store";
 // problema nuevo.
 const TIMEOUT_MS = 20000;
 
+// En produccion la API se pide al mismo host del menu (/api, ver public/laravel-api.php) y
+// no a app.comeleya.com: con la API en otro host de la misma IP, Safari mandaba sus
+// peticiones por la conexion de comeleya.com, Apache respondia 421 sin CORS y el menu
+// decia "sin conexion". .env.production lo dice igual, pero no esta en el repo: este
+// default es el que queda si alguien compila sin el.
+const API_POR_DEFECTO = import.meta.env.PROD ? "/api/" : "https://app.comeleya.com/api/";
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://app.comeleya.com/api/",
+  baseURL: import.meta.env.VITE_API_URL || API_POR_DEFECTO,
   timeout: TIMEOUT_MS,
 });
 

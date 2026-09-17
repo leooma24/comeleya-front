@@ -42,9 +42,10 @@
 <script setup>
 defineOptions({ name: "LoyaltyBanner" });
 
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { api } from "boot/axios";
 import { useCompanyStore } from "src/stores/company-store";
+import { useNegocioCargado } from "src/composables/useNegocioCargado";
 
 const companyStore = useCompanyStore();
 
@@ -85,9 +86,12 @@ const lookup = async () => {
   }
 };
 
-onMounted(async () => {
+// Cuando ya cargo el negocio de la ruta: al montar, companyStore puede seguir siendo el de
+// la visita anterior y se enseñaban los puntos de otro restaurante.
+useNegocioCargado(async (slug) => {
+  visible.value = false;
   try {
-    const { data } = await api.get(`/establishment/${companyStore.slug}/loyalty/config`);
+    const { data } = await api.get(`/establishment/${slug}/loyalty/config`);
     if (data.config) {
       Object.assign(config.value, data.config);
       visible.value = true;

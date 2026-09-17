@@ -364,6 +364,7 @@ import ReviewDialog from "./ReviewDialog.vue";
 import ReviewsDrawer from "./ReviewsDrawer.vue";
 import ReservationDialog from "./ReservationDialog.vue";
 import LoyaltyBanner from "./LoyaltyBanner.vue";
+import { useNegocioCargado } from "src/composables/useNegocioCargado";
 import { cartBarCta } from "src/utils/cartBarCta";
 import { centerTabScroll } from "src/utils/categoryScroll";
 import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
@@ -437,8 +438,11 @@ const orderHistoryDrawer = ref(false);
 const reviewData = ref({ avg: 0, total: 0 });
 
 const refreshReviews = async () => {
+  // Del negocio ya cargado: el slug guardado puede ser el de la visita anterior.
+  const slug = mainStore.companyStore.company?.slug;
+  if (!slug) return;
   try {
-    const { data } = await api.get(`/establishment/${mainStore.companyStore.slug}/reviews`);
+    const { data } = await api.get(`/establishment/${slug}/reviews`);
     reviewData.value = { avg: data.avg_rating || 0, total: data.total_reviews || 0 };
   } catch {
     // silently fail
@@ -625,9 +629,10 @@ onMounted(async () => {
     observador = new ResizeObserver(() => updateSidebarHeight());
     if (fijoRef.value) observador.observe(fijoRef.value);
   }
-
-  await refreshReviews();
 });
+
+// Las reseñas se piden cuando ya cargo el negocio de la ruta, no al montar.
+useNegocioCargado(() => refreshReviews());
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateSidebarHeight);
