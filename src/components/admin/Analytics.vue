@@ -7,6 +7,8 @@
     <div class="mc-embudo" v-if="embudo">
       <div class="mc-embudo__tit">
         Últimos {{ embudo.dias }} días
+        <!-- Las visitas al menu no son de un local: se dice para que no se lea como de el. -->
+        <small v-if="nombreLocal"> · de todo el negocio</small>
         <small v-if="embudo.robots"> · {{ embudo.robots }} visitas de buscadores, no contadas</small>
       </div>
 
@@ -32,7 +34,35 @@
         <q-icon name="analytics" size="24px" color="primary" class="q-mr-sm" />
         Analíticas y Exportación
       </div>
-      <div class="row q-gutter-sm">
+      <div class="row q-gutter-sm items-center">
+          <!-- De que local son los numeros. Propio de esta pantalla: arranca en todo el
+               negocio y no toca el local que se ve en Pedidos. -->
+          <q-btn-dropdown
+            v-if="hayLocales"
+            flat no-caps dense
+            icon="storefront"
+            :label="nombreLocal || 'Todos los locales'"
+            color="primary"
+          >
+            <q-list style="min-width: 220px">
+              <q-item-label header>Ventas de</q-item-label>
+              <q-item
+                v-for="o in opcionesLocal"
+                :key="o.value ?? 'todos'"
+                clickable
+                v-close-popup
+                @click="cambiarLocal(o.value)"
+              >
+                <q-item-section avatar>
+                  <q-icon
+                    :name="o.value === localStats ? 'radio_button_checked' : 'radio_button_unchecked'"
+                    :color="o.value === localStats ? 'primary' : 'grey-5'"
+                  />
+                </q-item-section>
+                <q-item-section>{{ o.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
         <q-btn
           unelevated no-caps color="positive" icon="download" label="Exportar CSV" size="sm"
           @click="exportCSV" :loading="exporting"
@@ -198,8 +228,17 @@ import { etiquetaPago } from "src/utils/metodosPago.js";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { fitPageToContent } from "src/utils/ticketPageSize";
+import { useFiltroDeLocal } from "src/composables/useFiltroDeLocal";
 
 const adminStore = useAdminStore();
+const {
+  local: localStats,
+  hayLocales,
+  opciones: opcionesLocal,
+  nombre: nombreLocal,
+  params: paramsLocal,
+  elegir: elegirLocal,
+} = useFiltroDeLocal();
 const loading = ref(true);
 const exporting = ref(false);
 const rows = ref([]);
@@ -360,14 +399,13 @@ const lectura = computed(() => {
   return `De cada 100 que ven tu menú, ${Math.round((e.pedido / e.menu) * 100)} terminan pidiendo.`;
 });
 
-onMounted(async () => {
-  api
-    .get(`/admin/${adminStore.slug}/funnel?dias=30`)
-    .then(({ data }) => { embudo.value = data; })
-    .catch(() => {});
-
+/** Las ventas del mes, del local elegido. El embudo no cambia: es de todo el negocio. */
+const cargarVentas = async () => {
+  loading.value = true;
   try {
-    const { data } = await api.get(`/admin/${adminStore.slug}/stats/export`);
+    const { data } = await api.get(`/admin/${adminStore.slug}/stats/export`, {
+      params: paramsLocal.value,
+    });
     rows.value = data.data;
     summary.value = data.summary;
   } catch (e) {
@@ -375,6 +413,20 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const cambiarLocal = (valor) => {
+  elegirLocal(valor);
+  cargarVentas();
+};
+
+onMounted(async () => {
+  api
+    .get(`/admin/${adminStore.slug}/funnel?dias=30`)
+    .then(({ data }) => { embudo.value = data; })
+    .catch(() => {});
+
+  await cargarVentas();
 });
 </script>
 

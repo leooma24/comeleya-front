@@ -118,9 +118,33 @@
       <mc-encabezado
         v-if="modoApp"
         titulo="Hoy"
-        :subtitulo="fechaLarga"
+        :subtitulo="subtituloHoy"
       >
         <template v-slot:acciones>
+          <q-btn-dropdown
+            v-if="hayLocales"
+            flat round dense
+            class="mc-head__ic"
+            dropdown-icon="none"
+            no-icon-animation
+            aria-label="Local"
+          >
+            <template v-slot:label><mc-icon name="pin" :size="16" /></template>
+            <q-list dense>
+              <q-item
+                v-for="o in opcionesLocal"
+                :key="o.value ?? 'todos'"
+                clickable
+                v-close-popup
+                @click="cambiarLocal(o.value)"
+              >
+                <q-item-section>{{ o.label }}</q-item-section>
+                <q-item-section side v-if="o.value === localStats">
+                  <q-icon name="check" size="16px" color="primary" />
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <button
             type="button" class="mc-head__ic mc-head__ic--fuerte"
             title="Oferta flash" aria-label="Oferta flash"
@@ -158,6 +182,34 @@
           Dashboard
         </div>
         <div class="row q-gutter-sm items-center">
+          <!-- De que local son los numeros. Propio de esta pantalla: arranca en todo el
+               negocio y no toca el local que se ve en Pedidos. -->
+          <q-btn-dropdown
+            v-if="hayLocales"
+            flat no-caps dense
+            icon="storefront"
+            :label="nombreLocal || 'Todos los locales'"
+            color="primary"
+          >
+            <q-list style="min-width: 220px">
+              <q-item-label header>Ver números de</q-item-label>
+              <q-item
+                v-for="o in opcionesLocal"
+                :key="o.value ?? 'todos'"
+                clickable
+                v-close-popup
+                @click="cambiarLocal(o.value)"
+              >
+                <q-item-section avatar>
+                  <q-icon
+                    :name="o.value === localStats ? 'radio_button_checked' : 'radio_button_unchecked'"
+                    :color="o.value === localStats ? 'primary' : 'grey-5'"
+                  />
+                </q-item-section>
+                <q-item-section>{{ o.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <q-btn unelevated no-caps color="red" icon="local_fire_department" label="Oferta flash" size="sm" @click="showFlashOffer = true" />
           <q-btn outline no-caps color="primary" icon="point_of_sale" label="Corte de caja" size="sm" @click="openCashCut" />
           <q-btn outline no-caps color="primary" icon="code" label="Insertar en web" size="sm" @click="showEmbed = true" class="gt-xs" />
@@ -471,7 +523,7 @@
     </q-card>
 
     <!-- Corte de caja. Vive en CorteDeCaja.vue porque tambien se abre desde Pedidos. -->
-    <corte-de-caja v-model="cashCutDialog" />
+    <corte-de-caja v-model="cashCutDialog" :params="paramsLocal" />
 
     <!-- FLASH OFFER DIALOG -->
     <q-dialog v-model="showFlashOffer">
@@ -620,6 +672,7 @@ import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
 import CorteDeCaja from "./CorteDeCaja.vue";
+import { useFiltroDeLocal } from "src/composables/useFiltroDeLocal";
 
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
@@ -628,6 +681,18 @@ const fechaLarga = new Date().toLocaleDateString("es-MX", {
   day: "numeric",
   month: "long",
 });
+
+// De que local son los numeros (ver useFiltroDeLocal). El corte de caja que se abre
+// desde aqui sigue a este selector, no al de Pedidos.
+const {
+  local: localStats,
+  hayLocales,
+  opciones: opcionesLocal,
+  nombre: nombreLocal,
+  params: paramsLocal,
+  elegir: elegirLocal,
+} = useFiltroDeLocal();
+const subtituloHoy = computed(() => [fechaLarga, nombreLocal.value].filter(Boolean).join(" · "));
 const loading = ref(true);
 const period = ref("today");
 const showTemplates = ref(false);
@@ -1142,7 +1207,7 @@ const cargarMes = async (mes) => {
   cargandoMes.value = true;
   try {
     const { data } = await api.get(`/admin/${adminStore.slug}/stats`, {
-      params: mes ? { mes } : {},
+      params: { ...paramsLocal.value, ...(mes ? { mes } : {}) },
     });
     stats.value = data;
     // Al elegir un mes, el filtro se pone en "Mes": es lo que se acaba de pedir.
@@ -1181,6 +1246,12 @@ const mesesDisponibles = computed(() => {
   }
   return meses;
 });
+
+/** Otro local: los mismos numeros del mismo mes, de ese local. */
+const cambiarLocal = (valor) => {
+  elegirLocal(valor);
+  cargarMes(mesElegido.value);
+};
 
 // --- LOAD ---
 onMounted(async () => {

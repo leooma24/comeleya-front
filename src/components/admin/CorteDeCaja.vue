@@ -66,6 +66,9 @@ import { etiquetaPago } from "src/utils/metodosPago.js";
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
+  // De que local es el corte. Sin darlo, el que se esta viendo en Pedidos; el Dashboard
+  // pasa el de su propio selector.
+  params: { type: Object, default: null },
 });
 const emit = defineEmits(["update:modelValue"]);
 
@@ -92,9 +95,10 @@ const metodo = (codigo) => etiquetaPago(codigo) || codigo;
 const cargar = async () => {
   cargando.value = true;
   try {
-    // Del local que se esta viendo en Pedidos: la caja de Centro se cuadra con lo de Centro.
+    // Del local que se esta viendo -el de Pedidos, o el que pase quien lo abre-: la caja de
+    // Centro se cuadra con lo de Centro.
     const { data } = await api.get(`/admin/${adminStore.slug}/cash-cut`, {
-      params: { ...adminStore.paramsDeLocal, date: fecha.value },
+      params: { ...(props.params ?? adminStore.paramsDeLocal), date: fecha.value },
     });
     corte.value = data;
   } catch (e) {
