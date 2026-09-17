@@ -57,6 +57,7 @@
             <div class="mc-lista__meta">
               {{ matriz.full_address || "Sin dirección" }}
               <span v-if="!matriz.coordinates" class="mc-lista__apagado"> · sin ubicación</span>
+              <span v-else-if="matriz.orders_paused && hayActivas" class="mc-lista__apagado"> · en pausa</span>
             </div>
           </div>
           <div class="mc-lista__der" @click.stop>
@@ -78,6 +79,7 @@
               {{ s.full_address || "Sin dirección" }}
               <span v-if="!s.coordinates" class="mc-lista__apagado"> · sin ubicación</span>
               <span v-else-if="!s.active" class="mc-lista__apagado"> · apagada</span>
+              <span v-else-if="s.orders_paused" class="mc-lista__apagado"> · en pausa</span>
             </div>
           </div>
           <div class="mc-lista__der" @click.stop>
@@ -117,7 +119,12 @@
                   {{ matriz.coordinates ? "Ubicada" : "Sin ubicar" }}
                 </q-chip>
               </td>
-              <td class="text-center text-caption text-grey-7">Datos del negocio</td>
+              <td class="text-center text-caption text-grey-7">
+                <q-chip v-if="matriz.orders_paused && hayActivas" dense size="sm" color="warning" text-color="white">
+                  En pausa
+                </q-chip>
+                <template v-else>Datos del negocio</template>
+              </td>
               <td class="text-right">
                 <row-actions-menu titulo="Matriz" :actions="accionesMatriz" />
               </td>
@@ -139,10 +146,10 @@
                 <q-chip
                   dense
                   size="sm"
-                  :color="s.active ? 'positive' : 'grey-4'"
+                  :color="!s.active ? 'grey-4' : s.orders_paused ? 'warning' : 'positive'"
                   :text-color="s.active ? 'white' : 'grey-8'"
                 >
-                  {{ s.active ? "Activa" : "Apagada" }}
+                  {{ !s.active ? "Apagada" : s.orders_paused ? "En pausa" : "Activa" }}
                 </q-chip>
               </td>
               <td class="text-right">
@@ -332,7 +339,22 @@ const editarMatriz = () =>
   matriz.value.coordinates
     ? adminStore.setAddressDrawer(true)
     : adminStore.setConfigurationDrawer(true);
-const accionesMatriz = [
+/** Con al menos una sucursal encendida: sin ellas, pausar la Matriz no significa nada. */
+const hayActivas = computed(() => sucursales.value.some((s) => s.active));
+
+/** Pausar o reanudar un local desde la lista, sin tener que ir a Pedidos. */
+const accionPausa = (local, pausado) => ({
+  key: "pausa",
+  icon: pausado ? "play_arrow" : "pause",
+  color: pausado ? "positive" : "warning",
+  label: pausado ? "Reanudar pedidos" : "Pausar pedidos",
+  handler: async () => {
+    if (await adminStore.pausarLocal(local, !pausado)) await cargar();
+  },
+});
+
+const accionesMatriz = computed(() => [
+  ...(hayActivas.value ? [accionPausa("matriz", matriz.value.orders_paused)] : []),
   {
     key: "dir",
     icon: "place",
@@ -354,7 +376,7 @@ const accionesMatriz = [
     label: "Editar WhatsApp",
     handler: () => adminStore.setEstablishmentDrawer(true),
   },
-];
+]);
 
 const cargar = async () => {
   cargando.value = true;
@@ -435,6 +457,8 @@ const borrar = (s) => {
 
 const accionesDe = (s) => [
   { key: "edit", icon: "edit", color: "grey-7", label: "Editar", handler: () => editar(s) },
+  // Una apagada no se ofrece al cliente: no hay nada que pausar.
+  ...(s.active ? [accionPausa(String(s.id), s.orders_paused)] : []),
   {
     key: "toggle",
     icon: s.active ? "visibility_off" : "visibility",

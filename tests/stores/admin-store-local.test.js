@@ -159,3 +159,66 @@ describe("la cajera no elige local", () => {
     expect(store.localCajero).toBeNull();
   });
 });
+
+describe("pausar el local que se esta viendo", () => {
+  let store;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    localStorage.clear();
+    vi.clearAllMocks();
+    store = useAdminStore();
+    store.userStore.user = sesion("kazuki", "propietario");
+    store.companyStore.company = {
+      ...negocio,
+      matriz_pausada: false,
+      active_branches: negocio.active_branches.map((s) => ({ ...s, orders_paused: false })),
+    };
+    store.setSlug("kazuki");
+  });
+
+  it("con todos los locales no hay un local en vista que pausar", () => {
+    expect(store.localEnVista).toBeNull();
+    expect(store.localEnVistaPausado).toBe(false);
+  });
+
+  it("el dueño que ve Centro puede pausar Centro", () => {
+    store.elegirLocal("7");
+    expect(store.localEnVista).toBe("7");
+  });
+
+  it("la cajera fija a una sucursal que ya no se ofrece no tiene boton", () => {
+    store.userStore.user = sesion("kazuki", "cajero");
+    store.localCajero = { valor: "9", nombre: "Apagada" };
+    expect(store.localEnVista).toBeNull();
+
+    store.localCajero = { valor: "7", nombre: "Centro" };
+    expect(store.localEnVista).toBe("7");
+  });
+
+  it("pausar actualiza el negocio cargado sin recargarlo", async () => {
+    store.elegirLocal("7");
+    api.put.mockResolvedValueOnce({ data: { local: "7", pausado: true, message: "Local en pausa" } });
+
+    expect(await store.pausarLocal("7", true)).toBe(true);
+
+    expect(api.put).toHaveBeenCalledWith("/admin/kazuki/local/pausa", { local: "7", pausado: true });
+    expect(store.localEnVistaPausado).toBe(true);
+    expect(store.localesEnPausa).toEqual([{ valor: "7", nombre: "Centro" }]);
+
+    api.put.mockResolvedValueOnce({ data: { local: "matriz", pausado: true, message: "Local en pausa" } });
+    await store.pausarLocal("matriz", true);
+    expect(store.localesEnPausa.map((l) => l.nombre)).toEqual(["Matriz", "Centro"]);
+  });
+
+  it("si el servidor lo niega, lo dice y no cambia nada", async () => {
+    const error = vi.spyOn(store.messageStore, "error");
+    api.put.mockRejectedValueOnce({ response: { status: 404, data: { message: "Local no encontrado" } } });
+
+    expect(await store.pausarLocal("2", true)).toBe(false);
+
+    expect(error).toHaveBeenCalledWith("Local no encontrado");
+    expect(store.localesEnPausa).toEqual([]);
+  });
+});
+

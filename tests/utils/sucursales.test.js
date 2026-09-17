@@ -44,7 +44,13 @@ describe("la matriz", () => {
       whatsapp: "6689990000",
       phone: "6681234567",
       full_address: "Rio Presidio 351, Centro, Los Mochis, 81200",
+      orders_paused: false,
     });
+  });
+
+  it("dice si la Matriz esta en pausa con el mismo campo que una sucursal", () => {
+    expect(matrizDe({ matriz_pausada: true }).orders_paused).toBe(true);
+    expect(matrizDe({}).orders_paused).toBe(false);
   });
 
   it("un negocio sin ubicar da una matriz sin coordenadas, no unas inventadas", () => {

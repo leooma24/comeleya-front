@@ -35,6 +35,8 @@ export function matrizDe(negocio = {}) {
     whatsapp: negocio.whatsapp || null,
     phone: negocio.phone || null,
     full_address: direccionCompleta(negocio.address ?? {}),
+    // Mismo campo que una sucursal, para que la pausa se lea igual en los dos.
+    orders_paused: !!negocio.matriz_pausada,
   };
 }
 

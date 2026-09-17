@@ -42,6 +42,18 @@
             </q-item>
           </q-list>
         </q-btn-dropdown>
+        <!-- Pausar el local que se esta viendo. -->
+        <button
+          v-if="adminStore.localEnVista"
+          type="button"
+          class="mc-head__ic"
+          :title="textoPausa"
+          :aria-label="textoPausa"
+          :disabled="pausando"
+          @click="alternarPausa"
+        >
+          <q-icon :name="adminStore.localEnVistaPausado ? 'play_arrow' : 'pause'" size="18px" />
+        </button>
         <button type="button" class="mc-head__ic" @click="buscarAbierto = !buscarAbierto">
           <mc-icon name="buscar" :size="17" />
         </button>
@@ -199,9 +211,36 @@
         class="q-px-sm"
         @click="corteAbierto = true"
       />
+      <q-btn
+        v-if="adminStore.localEnVista"
+        outline
+        no-caps
+        dense
+        :color="adminStore.localEnVistaPausado ? 'positive' : 'warning'"
+        :icon="adminStore.localEnVistaPausado ? 'play_arrow' : 'pause'"
+        :label="textoPausa"
+        class="q-px-sm"
+        :loading="pausando"
+        @click="alternarPausa"
+      />
     </div>
 
     <corte-de-caja v-model="corteAbierto" />
+
+    <!-- Una pausa olvidada no se nota en ningun otro lado: el panel sigue igual y los
+         pedidos simplemente dejan de llegar. -->
+    <div v-if="adminStore.localEnVistaPausado" class="mc-pausa-aviso">
+      <q-icon name="pause_circle" size="20px" />
+      <span><strong>{{ adminStore.nombreLocalVisto }}</strong> está en pausa: los clientes no pueden pedirle.</span>
+      <q-btn flat dense no-caps color="positive" label="Reanudar" :loading="pausando" @click="alternarPausa" />
+    </div>
+    <div
+      v-else-if="!adminStore.localEnVista && adminStore.localesEnPausa.length"
+      class="mc-pausa-aviso mc-pausa-aviso--suave"
+    >
+      <q-icon name="pause_circle" size="20px" />
+      <span>En pausa: {{ adminStore.localesEnPausa.map((l) => l.nombre).join(", ") }}</span>
+    </div>
 
     <!-- En celular, chips: las pestañas de Quasar se desbordaban y los globos se
          encimaban con el texto. Mismo v-model, misma navegacion. -->
@@ -861,6 +900,32 @@ const puedeElegirLocal = computed(
   () => !adminStore.esCajero && tieneSucursales(companyStore.company)
 );
 const opcionesLocal = computed(() => opcionesDeLocal(companyStore.company));
+// --- Pausar el local que se esta viendo -------------------------------------------
+const pausando = ref(false);
+const textoPausa = computed(
+  () => `${adminStore.localEnVistaPausado ? "Reanudar" : "Pausar"} ${adminStore.nombreLocalVisto ?? ""}`.trim()
+);
+const alternarPausa = () => {
+  const local = adminStore.localEnVista;
+  if (!local || pausando.value) return;
+  const pausar = !adminStore.localEnVistaPausado;
+  const hacer = async () => {
+    pausando.value = true;
+    try {
+      await adminStore.pausarLocal(local, pausar);
+    } finally {
+      pausando.value = false;
+    }
+  };
+  // Reanudar no se confirma: es deshacer. Pausar si, porque deja de entrar dinero.
+  if (!pausar) return hacer();
+  confirm(
+    "Pausar pedidos",
+    `Los clientes van a ver ${adminStore.nombreLocalVisto} en pausa y no le van a poder pedir hasta que la reanudes.`,
+    hacer
+  );
+};
+
 const subtituloPedidos = computed(() =>
   [adminStore.company?.name || "Tu negocio", adminStore.nombreLocalVisto].filter(Boolean).join(" · ")
 );
@@ -1082,6 +1147,28 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+
+/* Un local en pausa, arriba de las pestañas. */
+.mc-pausa-aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px var(--mc-lado, 16px);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--q-warning, #fb8c00) 16%, transparent);
+
+  span {
+    flex: 1;
+  }
+
+  &--suave {
+    background: var(--color-surface-variant);
+    color: var(--color-text-secondary);
+  }
+}
 
 /* Los diálogos como hoja en celular: llegan desde abajo, cerca del pulgar, y toman
    todo el ancho. La esquina inferior queda recta porque la hoja nace del borde. */

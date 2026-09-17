@@ -6,7 +6,14 @@ import { useOrderStore } from "./order-store";
 import { useCompanyStore } from "./company-store";
 import { useMessageStore } from "./message-store";
 import { ROLES, rolEn, puedeAbrirCajon } from "src/utils/permisos";
-import { claveLocalVisto, localValido, nombreDelLocal } from "src/utils/sucursales";
+import {
+  MATRIZ,
+  claveLocalVisto,
+  localValido,
+  matrizDe,
+  nombreDelLocal,
+  tieneSucursales,
+} from "src/utils/sucursales";
 
 /** El local que este aparato eligio para un negocio. Sin almacenamiento, todos. */
 const leerLocalVisto = (slug) => {
@@ -134,6 +141,26 @@ export const useAdminStore = defineStore({
     /** Lo que llevan todas las peticiones de Pedidos. Un solo lugar, para que no difieran. */
     paramsDeLocal() {
       return this.localEfectivo ? { local: this.localEfectivo } : {};
+    },
+    /**
+     * El local concreto que se esta viendo en Pedidos, el que se puede pausar desde ahi:
+     * el que eligio el dueño o el fijo de la cajera. Null con todos, o si ese local ya no
+     * se ofrece (apagado, o el plan ya no incluye sucursales).
+     */
+    localEnVista() {
+      const local = this.esCajero ? this.localCajero?.valor : this.localEfectivo;
+      return local && localValido(local, this.companyStore.company) ? String(local) : null;
+    },
+    /** Los locales en pausa, con su nombre. Vacio en un negocio de un solo local. */
+    localesEnPausa() {
+      const negocio = this.companyStore.company;
+      if (!tieneSucursales(negocio)) return [];
+      return [matrizDe(negocio), ...negocio.active_branches]
+        .filter((s) => s.orders_paused)
+        .map((s) => ({ valor: String(s.id), nombre: s.name }));
+    },
+    localEnVistaPausado() {
+      return !!this.localEnVista && this.localesEnPausa.some((l) => l.valor === this.localEnVista);
     },
     /** Como se llama el local que se esta viendo. Null cuando son todos. */
     nombreLocalVisto() {
@@ -562,6 +589,30 @@ export const useAdminStore = defineStore({
     async recargarConteos() {
       if (!this.slug) return;
       await this.orderStore.getCounts(this.slug, this.paramsDeLocal);
+    },
+    /**
+     * Pausa o reanuda los pedidos de un local. Actualiza el negocio cargado en su lugar
+     * -sin setCompany, que ademas marca en el embudo una visita al menu- para que el
+     * boton y el aviso cambien sin recargar.
+     */
+    async pausarLocal(local, pausado) {
+      try {
+        const { data } = await api.put(`/admin/${this.slug}/local/pausa`, { local, pausado });
+        const negocio = this.companyStore.company;
+        if (negocio) {
+          if (data.local === MATRIZ) {
+            negocio.matriz_pausada = data.pausado;
+          } else {
+            const sucursal = (negocio.active_branches || []).find((s) => String(s.id) === data.local);
+            if (sucursal) sucursal.orders_paused = data.pausado;
+          }
+        }
+        this.messageStore.success(data.message);
+        return true;
+      } catch (e) {
+        this.messageStore.error(e?.response?.data?.message || "No se pudo cambiar la pausa");
+        return false;
+      }
     },
     /** El dueño elige que local ver en este aparato. Null = todos. */
     elegirLocal(local) {

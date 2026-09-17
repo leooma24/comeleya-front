@@ -176,14 +176,18 @@ export const useMainStore = defineStore("main", {
     sucursalElegida() {
       const lista = this.sucursales;
       if (!lista.length) return null;
-      const puesta = lista.find((s) => s.id === this.branchId);
-      return puesta || this.sucursalMasCercana || lista[0];
+      // Un local en pausa no se puede elegir: si era el elegido, se cae al mas cercano de
+      // los abiertos. Con todos en pausa el checkout ya esta bloqueado (ordersPaused).
+      const abiertos = lista.filter((s) => !s.orders_paused);
+      const puesta = abiertos.find((s) => s.id === this.branchId);
+      return puesta || this.sucursalMasCercana || abiertos[0] || lista[0];
     },
     /** La sucursal más cercana a la dirección ya ubicada del cliente. */
     sucursalMasCercana() {
       const { latitude, longitude } = this.data;
       if (latitude == null || longitude == null) return null;
       const conDistancia = this.sucursales
+        .filter((s) => !s.orders_paused)
         .map((s) => ({ s, km: this.kmEntre(s.coordinates, latitude, longitude) }))
         .filter((x) => x.km !== null)
         .sort((a, b) => a.km - b.km);
@@ -323,11 +327,17 @@ export const useMainStore = defineStore("main", {
         return true;
       }
     },
+    /** Todo el negocio en pausa, o todos sus locales a la vez. */
     ordersPaused() {
-      return !!this.establishment?.orders_paused;
+      if (this.establishment?.orders_paused) return true;
+      return this.sucursales.length > 0 && this.sucursales.every((s) => s.orders_paused);
     },
+    /**
+     * El mensaje del dueño solo acompaña a la pausa de todo el negocio. Con todos los
+     * locales en pausa se queda el generico: paused_message pudo quedar de otra ocasion.
+     */
     pausedMessage() {
-      return this.establishment?.paused_message || "";
+      return this.establishment?.orders_paused ? this.establishment?.paused_message || "" : "";
     },
     btnType() {
       return this.cartStore.isEditing ? "Actualizar" : "Agregar";
@@ -579,10 +589,29 @@ export const useMainStore = defineStore("main", {
 
         return true;
       } catch (error) {
+        // El menu no se refresca solo: quien lo abrio antes de que pausaran un local se
+        // entera aqui. Se marca en pausa sin recargar la pagina, para que el cajon ya no
+        // deje elegirlo y el envio se calcule desde el local que queda.
+        if (error.response?.data?.code === "local_en_pausa") {
+          this.aplicarPausas(error.response.data);
+        }
         this.messageStore.error(
           error.response?.data?.message || "Error al crear el pedido. Intenta de nuevo."
         );
         return false;
+      }
+    },
+    /** Marca en el negocio cargado los locales que el servidor dijo que estan en pausa. */
+    aplicarPausas({ matriz_pausada, sucursales_pausadas } = {}) {
+      const negocio = this.companyStore.company;
+      if (!negocio) return;
+      negocio.matriz_pausada = !!matriz_pausada;
+      const pausadas = new Set((sucursales_pausadas || []).map(Number));
+      (negocio.active_branches || []).forEach((s) => {
+        s.orders_paused = pausadas.has(Number(s.id));
+      });
+      if (this.data.latitude != null && this.data.longitude != null) {
+        this.getDistance();
       }
     },
     async getEstablishment(slug) {

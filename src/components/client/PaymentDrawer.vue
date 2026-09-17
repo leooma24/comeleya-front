@@ -152,13 +152,20 @@
             type="button"
             :class="[
               'mc-sucursal__op',
-              { 'mc-sucursal__op--on': mainStore.sucursalElegida?.id === s.id },
+              {
+                'mc-sucursal__op--on': mainStore.sucursalElegida?.id === s.id,
+                'mc-sucursal__op--pausa': s.orders_paused,
+              },
             ]"
+            :disabled="s.orders_paused"
             @click="mainStore.elegirSucursal(s.id)"
           >
             <span class="mc-sucursal__nom">
               {{ s.name }}
-              <em v-if="mainStore.sucursalMasCercana?.id === s.id">la más cerca</em>
+              <!-- En pausa se sigue viendo -el cliente sabe que existe y que vuelve- pero no
+                   se puede elegir. -->
+              <em v-if="s.orders_paused">En pausa</em>
+              <em v-else-if="mainStore.sucursalMasCercana?.id === s.id">la más cerca</em>
             </span>
             <span class="mc-sucursal__dir">{{ s.full_address }}</span>
             <span class="mc-sucursal__km" v-if="kmDe(s) !== null">
@@ -447,6 +454,11 @@ const submitOrder = async () => {
     border-color: var(--q-primary);
     box-shadow: inset 0 0 0 1px var(--q-primary);
   }
+}
+
+.mc-sucursal__op--pausa {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .mc-sucursal__nom {

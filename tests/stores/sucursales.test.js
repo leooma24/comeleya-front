@@ -250,4 +250,54 @@ describe("sucursales", () => {
       expect(km).toBeLessThan(6.5);
     });
   });
+
+  // ------------------------------------------------- locales en pausa
+
+  describe("un local en pausa", () => {
+    const norte = (props = {}) => ({ id: 2, name: "Norte", coordinates: NORTE, ...props });
+
+    it("no es el mas cercano: el pedido sale del siguiente abierto", () => {
+      conSucursales([norte({ orders_paused: true })]);
+      clienteEnElNorte();
+
+      expect(store.sucursalMasCercana.id).toBe(MATRIZ);
+      expect(store.sucursalElegida.id).toBe(MATRIZ);
+    });
+
+    it("si era el elegido, se cae a otro local abierto", () => {
+      conSucursales([norte()]);
+      store.elegirSucursal(2);
+      expect(store.sucursalElegida.id).toBe(2);
+
+      conSucursales([norte({ orders_paused: true })]);
+      expect(store.sucursalElegida.id).toBe(MATRIZ);
+    });
+
+    it("con la Matriz en pausa sale de la sucursal", () => {
+      conNegocio({ matriz_pausada: true });
+      conSucursales([norte()]);
+      clienteEnElCentro();
+
+      expect(store.sucursalElegida.id).toBe(2);
+      expect(store.ordersPaused).toBe(false);
+    });
+
+    it("con todos en pausa se bloquea el checkout, sin el mensaje viejo del dueño", () => {
+      conNegocio({ matriz_pausada: true, paused_message: "Cerrado por vacaciones" });
+      conSucursales([norte({ orders_paused: true })]);
+
+      expect(store.ordersPaused).toBe(true);
+      expect(store.pausedMessage).toBe("");
+    });
+
+    it("el rechazo del servidor marca los locales en pausa sin recargar el menu", () => {
+      conSucursales([norte(), { id: 3, name: "Sur", coordinates: CENTRO }]);
+
+      store.aplicarPausas({ matriz_pausada: true, sucursales_pausadas: [2] });
+
+      expect(store.companyStore.company.matriz_pausada).toBe(true);
+      expect(store.companyStore.company.active_branches.map((s) => s.orders_paused)).toEqual([true, false]);
+      expect(store.sucursalElegida.id).toBe(3);
+    });
+  });
 });
