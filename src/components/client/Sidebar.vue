@@ -48,12 +48,12 @@
           <div class="mc-restaurant-details">
             <div class="mc-restaurant-meta">
               <q-chip
-                :color="mainStore.company.isOpen ? 'positive' : 'negative'"
+                :color="mainStore.estaAbierto ? 'positive' : 'negative'"
                 text-color="white"
                 size="sm"
                 dense
-                :icon="mainStore.company.isOpen ? 'check_circle' : 'cancel'"
-                :label="mainStore.company.isOpen ? 'Abierto' : 'Cerrado'"
+                :icon="mainStore.estaAbierto ? 'check_circle' : 'cancel'"
+                :label="mainStore.estaAbierto ? 'Abierto' : 'Cerrado'"
               />
 
               <q-btn
@@ -118,7 +118,7 @@
               <span>{{ mainStore.businessAddress }}</span>
             </div>
             <div
-              v-if="!mainStore.company.isOpen && mainStore.nextOpenText"
+              v-if="!mainStore.estaAbierto && mainStore.nextOpenText"
               class="mc-next-open"
             >
               <q-icon name="access_time" class="q-mr-xs mc-ic-sm" />

@@ -119,6 +119,40 @@
         </div>
       </div>
 
+      <!-- De que sucursal.
+           Va aqui y no solo al pagar: si el comensal eligio "Recoger", la direccion
+           que se le enseña abajo es la de ESTE local, y necesita haberlo escogido
+           antes de leerla. Para envio tambien manda, porque de ahi se mide la
+           distancia. Solo aparece en negocios con sucursales. -->
+      <div class="mc-form-section" v-if="mainStore.sucursales.length > 1">
+        <h6 class="mc-section-title">¿De qué sucursal?</h6>
+        <div class="mc-local__lista">
+          <button
+            v-for="s in mainStore.sucursales"
+            :key="s.id"
+            type="button"
+            :class="[
+              'mc-local__op',
+              {
+                'mc-local__op--on': mainStore.sucursalElegida?.id === s.id,
+                'mc-local__op--cerrado': s.orders_paused || !s.is_open,
+              },
+            ]"
+            :disabled="s.orders_paused"
+            @click="mainStore.elegirSucursal(s.id)"
+          >
+            <span class="mc-local__nom">
+              {{ s.name }}
+              <!-- En pausa o cerrado se sigue viendo -el cliente sabe que existe- pero
+                   se dice por que no le conviene. -->
+              <em v-if="s.orders_paused">En pausa</em>
+              <em v-else-if="!s.is_open">Cerrado ahora</em>
+            </span>
+            <span class="mc-local__dir">{{ s.full_address }}</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Address (delivery) -->
       <div
         :class="[
@@ -218,7 +252,11 @@
         class="mc-form-section"
         v-if="mainStore.data.delivery === 'Recoger'"
       >
-        <h6 class="mc-section-title">Dirección del Comercio</h6>
+        <h6 class="mc-section-title">
+          {{ mainStore.sucursales.length > 1 && mainStore.sucursalElegida
+            ? `Recoges en ${mainStore.sucursalElegida.name}`
+            : "Dirección del Comercio" }}
+        </h6>
         <!-- La direccion se arma interpolando campos sueltos, asi que a un negocio con
              la ficha incompleta le salia "undefined undefined, Culiacan" justo en la
              pantalla donde el cliente necesita saber a donde ir. La ficha del menu ya
@@ -314,7 +352,8 @@ const mainStore = useMainStore();
 
 /** La direccion del local, o vacio si viene incompleta. Misma regla que la ficha. */
 const direccionDelLocal = computed(() => {
-  const d = mainStore.businessAddress || "";
+  // La del local elegido: con sucursales, la de la Matriz no es la de Norte.
+  const d = mainStore.direccionDelLocalElegido || "";
   return d && !d.includes("undefined") ? d : "";
 });
 const formRef = ref(null);
@@ -456,7 +495,7 @@ const validateData = async () => {
 // el menu del navegador.
 const urlMapa = computed(() =>
   urlDelMapa({
-    coordenadas: mainStore.bussinessMap,
+    coordenadas: mainStore.mapaDelLocalElegido,
     direccion: direccionDelLocal.value,
   })
 );
@@ -472,6 +511,59 @@ const getMapDirection = () => {
 </script>
 
 <style lang="scss" scoped>
+/* ===== De que sucursal (mismo control que en el paso de pago) ===== */
+.mc-local__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mc-local__op {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+
+  &--on {
+    border-color: var(--q-primary);
+    box-shadow: 0 0 0 1px var(--q-primary) inset;
+  }
+
+  &--cerrado {
+    opacity: 0.65;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.mc-local__nom {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+
+  em {
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 600;
+    color: #b06a00;
+    margin-left: 6px;
+  }
+}
+
+.mc-local__dir {
+  display: block;
+  font-size: 12px;
+  color: #6b6b6b;
+  line-height: 1.3;
+}
+
 .mc-drawer-title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);

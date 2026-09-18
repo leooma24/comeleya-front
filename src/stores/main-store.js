@@ -116,8 +116,28 @@ export const useMainStore = defineStore("main", {
     specialOffers() {
       return this.productStore.specialOffers;
     },
+    /**
+     * El horario que se le enseña al cliente: el del local que eligió.
+     *
+     * Una sucursal sin horario propio lo manda vacío -hereda el del negocio-, y ese
+     * respaldo es tambien el de la Matriz y el de los negocios de un solo local.
+     */
     getHours() {
-      return this.companyStore.hours ?? [];
+      const propias = this.sucursalElegida?.hours;
+
+      return (propias?.length ? propias : this.companyStore.hours) ?? [];
+    },
+    /**
+     * Si el local desde el que está pidiendo este cliente está abierto AHORA.
+     *
+     * Con sucursales ya no hay un "abierto" del negocio: Centro puede haber cerrado y
+     * Norte seguir sirviendo. Quien resuelve la herencia es el servidor, que manda el
+     * `is_open` de cada local ya calculado en su zona horaria.
+     */
+    estaAbierto() {
+      if (!this.sucursales.length) return this.companyStore.isOpen;
+
+      return !!this.sucursalElegida?.is_open;
     },
     // Texto de próxima apertura (reusado por Sidebar y el banner de "Cerrado")
     nextOpenText() {
@@ -153,6 +173,19 @@ export const useMainStore = defineStore("main", {
     },
     businessAddress() {
       return this.companyStore.companyAddress;
+    },
+    /**
+     * La direccion del local del que sale el pedido, que es a donde va el que recoge.
+     *
+     * Antes aqui salia siempre la del negocio: en un negocio con sucursales, quien
+     * elegia Norte veia la direccion de la Matriz y llegaba al local equivocado.
+     */
+    direccionDelLocalElegido() {
+      return this.sucursalElegida?.full_address || this.businessAddress;
+    },
+    /** Sus coordenadas, para el boton de "Ver en Mapa". */
+    mapaDelLocalElegido() {
+      return this.sucursalElegida?.coordinates || this.bussinessMap;
     },
     bussinessMap() {
       return this.companyStore.company.coordinates ?? "";
@@ -827,8 +860,12 @@ export const useMainStore = defineStore("main", {
         this.messageStore.error("Este restaurante no está recibiendo pedidos en línea");
         return;
       }
-      if (!this.companyStore.isOpen) {
-        this.messageStore.error("Establecimiento cerrado");
+      if (!this.estaAbierto) {
+        this.messageStore.error(
+          this.sucursales.length && this.sucursalElegida
+            ? `${this.sucursalElegida.name} está cerrado en este momento`
+            : "Establecimiento cerrado"
+        );
 
         return;
       }

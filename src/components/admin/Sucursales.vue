@@ -200,9 +200,36 @@
           <q-input class="col-8" v-model="forma.street" label="Calle" filled dense />
           <q-input class="col-4" v-model="forma.exterior_number" label="Número" filled dense />
         </div>
+        <!-- El C.P. va PRIMERO porque de el salen los demas: al escribirlo se llena
+             la ciudad, el estado y la lista de colonias, igual que en la direccion del
+             negocio y en la del comensal. Capturar una sucursal a mano son seis campos;
+             asi son dos. -->
         <div class="row q-col-gutter-sm q-mt-xs">
-          <q-input class="col-6" v-model="forma.town" label="Colonia" filled dense />
-          <q-input class="col-6" v-model="forma.postal_code" label="C.P." filled dense />
+          <q-input
+            class="col-6"
+            v-model="forma.postal_code"
+            label="C.P."
+            filled
+            dense
+            :loading="buscandoCp"
+            @blur="buscarPorCp"
+            @keyup.enter="buscarPorCp"
+          />
+          <!-- Con colonias encontradas es una lista; sin ellas -un C.P. que no esta en
+               el catalogo- se sigue pudiendo escribir a mano. -->
+          <q-select
+            v-if="colonias.length"
+            class="col-6"
+            v-model="forma.town"
+            :options="colonias"
+            label="Colonia"
+            filled
+            dense
+            use-input
+            new-value-mode="add-unique"
+            @new-value="(v, done) => done(v, 'add-unique')"
+          />
+          <q-input v-else class="col-6" v-model="forma.town" label="Colonia" filled dense />
         </div>
         <div class="row q-col-gutter-sm q-mt-xs">
           <q-input class="col-6" v-model="forma.city" label="Ciudad" filled dense />
@@ -300,6 +327,35 @@ const cargando = ref(true);
 const guardando = ref(false);
 const ubicando = ref(false);
 const cajon = ref(false);
+const buscandoCp = ref(false);
+const colonias = ref([]);
+
+/**
+ * El C.P. llena lo demas.
+ *
+ * Mismo endpoint y mismo criterio que la direccion del negocio (AddressDrawer) y la
+ * del comensal: una sola fuente para el catalogo de colonias. Si el C.P. no esta en el
+ * catalogo no se estorba -la colonia se puede escribir a mano- y no se borra nada de
+ * lo que el dueño ya habia capturado.
+ */
+const buscarPorCp = async () => {
+  const cp = (forma.value.postal_code || "").trim();
+  if (cp.length < 5 || buscandoCp.value) return;
+
+  buscandoCp.value = true;
+  try {
+    const { data } = await api.get(`/towns/${cp}/all`);
+    colonias.value = data.towns ?? [];
+    forma.value.city = data.d_ciudad || data.D_mnpio || forma.value.city;
+    forma.value.state = data.d_estado || forma.value.state;
+    // Una sola colonia no es una eleccion: se pone.
+    if (colonias.value.length === 1) forma.value.town = colonias.value[0];
+  } catch (e) {
+    colonias.value = [];
+  } finally {
+    buscandoCp.value = false;
+  }
+};
 
 const vacia = () => ({
   id: null,
@@ -451,6 +507,7 @@ const cargar = async () => {
 
 const nueva = () => {
   forma.value = vacia();
+  colonias.value = [];
   cajon.value = true;
 };
 
@@ -458,6 +515,9 @@ const editar = (s) => {
   // Copia y no el objeto de la lista: si se cierra sin guardar, la fila no debe
   // quedarse con lo que se alcanzó a teclear.
   forma.value = { ...vacia(), ...s };
+  // Las colonias son del C.P. de la sucursal anterior: se limpian para que la de
+  // ahora no aparezca con una lista que no le toca.
+  colonias.value = [];
   cajon.value = true;
 };
 

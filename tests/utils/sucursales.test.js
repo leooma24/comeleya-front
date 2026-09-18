@@ -45,7 +45,17 @@ describe("la matriz", () => {
       phone: "6681234567",
       full_address: "Rio Presidio 351, Centro, Los Mochis, 81200",
       orders_paused: false,
+      // El horario de la Matriz ES el del negocio, asi que su lista propia va vacia
+      // -igual que la de una sucursal que hereda- y is_open es el del negocio.
+      is_open: false,
+      hours: [],
     });
+  });
+
+  it("su horario es el del negocio: lista propia vacia y el abierto del negocio", () => {
+    expect(matrizDe({ isOpen: true }).is_open).toBe(true);
+    expect(matrizDe({ isOpen: false }).is_open).toBe(false);
+    expect(matrizDe({}).hours).toEqual([]);
   });
 
   it("dice si la Matriz esta en pausa con el mismo campo que una sucursal", () => {

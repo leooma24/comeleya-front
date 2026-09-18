@@ -136,7 +136,13 @@ export const useCompanyStore = defineStore("company", {
         show_business_address: tc.show_business_address ?? true,
       };
     },
-    setScheduleForm() {
+    /**
+     * Arma el formulario de horarios.
+     *
+     * `horas` es la lista del local que se esta editando. Sin ella, la del negocio,
+     * que es lo de siempre y lo que ve un negocio de un solo local.
+     */
+    setScheduleForm(horas = null) {
       const defaults = [
         { day_of_week: "lunes", open_time: "09:00", close_time: "18:00", is_closed: false },
         { day_of_week: "martes", open_time: "09:00", close_time: "18:00", is_closed: false },
@@ -146,7 +152,7 @@ export const useCompanyStore = defineStore("company", {
         { day_of_week: "sábado", open_time: "09:00", close_time: "18:00", is_closed: true },
         { day_of_week: "domingo", open_time: "09:00", close_time: "18:00", is_closed: true },
       ];
-      const existing = this.company.hours ?? [];
+      const existing = horas ?? this.company.hours ?? [];
       this.scheduleForm = defaults.map((d) => {
         const found = existing.find(
           (h) => h.day_of_week?.toLowerCase() === d.day_of_week.toLowerCase()

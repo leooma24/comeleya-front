@@ -37,6 +37,10 @@ export function matrizDe(negocio = {}) {
     full_address: direccionCompleta(negocio.address ?? {}),
     // Mismo campo que una sucursal, para que la pausa se lea igual en los dos.
     orders_paused: !!negocio.matriz_pausada,
+    // Y lo mismo con el horario: la Matriz usa el del negocio, asi que su `hours` va
+    // vacio -igual que el de una sucursal que hereda- y `is_open` es el del negocio.
+    is_open: !!negocio.isOpen,
+    hours: [],
   };
 }
 

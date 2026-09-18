@@ -53,7 +53,7 @@
 
           <!-- Aviso: establecimiento cerrado -->
           <div
-            v-if="mainStore.categories.length && !mainStore.company.isOpen"
+            v-if="mainStore.categories.length && !mainStore.estaAbierto"
             class="mc-closed-banner"
           >
             <q-icon name="schedule" size="22px" class="mc-closed-banner__icon" />

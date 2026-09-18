@@ -74,6 +74,9 @@ export const useAdminStore = defineStore({
     // El local que el dueño eligio ver en Pedidos desde ESTE aparato: la tableta de la
     // cocina Centro se queda en Centro. Null = todos. Se guarda por negocio.
     localVisto: null,
+    // El local cuyo horario se esta editando. Null = el del negocio, que es tambien el
+    // de la Matriz y el que heredan las sucursales sin horario propio.
+    localDelHorario: null,
     // El local fijo de la cajera, como lo manda el servidor: { valor, nombre }. Null si
     // ve todos, o si no es cajera.
     localCajero: null,
@@ -158,6 +161,16 @@ export const useAdminStore = defineStore({
      */
     locales() {
       return opcionesDeLocal(this.companyStore.company).filter((o) => o.value !== null);
+    },
+    /** La sucursal cuyo horario se edita. Null cuando se edita el del negocio. */
+    sucursalDelHorario() {
+      const locales = this.companyStore.company?.active_branches ?? [];
+
+      return locales.find((s) => String(s.id) === String(this.localDelHorario)) ?? null;
+    },
+    /** Si ese local no tiene horario propio y usa el del negocio. */
+    horarioHeredado() {
+      return !!this.localDelHorario && !this.sucursalDelHorario?.hours?.length;
     },
     /** Los locales en pausa, con su nombre. Vacio en un negocio de un solo local. */
     localesEnPausa() {
@@ -826,22 +839,72 @@ export const useAdminStore = defineStore({
         }
       }
     },
-    async saveSchedule() {
+    /**
+     * Cambia de local en el editor de horarios.
+     *
+     * Una sucursal que hereda arranca con una COPIA del horario del negocio, sin los
+     * ids: son renglones del negocio y guardarlos como suyos no tocaria nada. Es el
+     * punto de partida natural, porque casi siempre se cambia una hora, no los siete
+     * dias.
+     */
+    elegirLocalDelHorario(local) {
+      this.localDelHorario = local ? String(local) : null;
 
+      const propias = this.sucursalDelHorario?.hours ?? [];
+      if (this.localDelHorario && !propias.length) {
+        const copia = (this.companyStore.company?.hours ?? []).map(({ id, ...resto }) => resto);
+        this.companyStore.setScheduleForm(copia);
+        return;
+      }
+
+      this.companyStore.setScheduleForm(this.localDelHorario ? propias : null);
+    },
+
+    async saveSchedule() {
       try {
         this.loading = true;
+        const local = this.localDelHorario;
         const { data } = await api.put(
           `/admin/establishment/${this.slug}/schedule`,
           {
             hours: this.companyStore.scheduleForm,
+            ...(local ? { local } : {}),
           }
         );
         const savedHours = data.hours || data.post || this.companyStore.scheduleForm;
-        this.companyStore.companyForm.hours = savedHours;
-        this.companyStore.company.hours = savedHours;
-        this.messageStore.success("Horarios actualizados");
+
+        if (local) {
+          // El horario de esa sucursal vive con ella, no en el del negocio.
+          const sucursal = this.sucursalDelHorario;
+          if (sucursal) sucursal.hours = savedHours;
+          this.messageStore.success(`Horario de ${sucursal?.name ?? "la sucursal"} actualizado`);
+        } else {
+          this.companyStore.companyForm.hours = savedHours;
+          this.companyStore.company.hours = savedHours;
+          this.messageStore.success("Horarios actualizados");
+        }
       } catch (err) {
         this.messageStore.error("Error al actualizar los horarios");
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    /** Esa sucursal vuelve a usar el horario del negocio. */
+    async heredarHorarioDelNegocio() {
+      const local = this.localDelHorario;
+      if (!local) return;
+
+      try {
+        this.loading = true;
+        await api.put(`/admin/establishment/${this.slug}/schedule`, { local, heredar: true });
+
+        const sucursal = this.sucursalDelHorario;
+        if (sucursal) sucursal.hours = [];
+        this.elegirLocalDelHorario(local);
+        this.messageStore.success(`${sucursal?.name ?? "La sucursal"} usa el horario del negocio`);
+      } catch (err) {
+        this.messageStore.error("No se pudo volver al horario del negocio");
       } finally {
         this.loading = false;
       }
