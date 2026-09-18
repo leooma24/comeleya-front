@@ -264,7 +264,7 @@
                 :product="element"
                 @featured="adminStore.toggleFeatured(element)"
                 @offer="openOfferDialog(element)"
-                @soldout="adminStore.toggleSoldOut(element)"
+                @soldout="marcarAgotado(element)"
                 @edit="editProduct(element)"
                 @extras="adminStore.extraProduct(element)"
                 @clone="cloneProduct(element)"
@@ -297,7 +297,7 @@
         :key="element.id"
         v-show="isInPage(index)"
         class="mc-mrow"
-        :class="{ 'mc-mrow--agotado': element.is_sold_out }"
+        :class="{ 'mc-mrow--agotado': faltaEnAlgunLado(element) }"
       >
         <div class="mc-mrow__foto">
           <img v-if="element.photo" :src="element.photo" :alt="element.name" loading="lazy" />
@@ -310,14 +310,19 @@
             <span class="mc-mrow__precio">{{ sinCentavos(element.price) }}</span>
             <span v-if="element.dish_category?.name">&nbsp;· {{ element.dish_category.name }}</span>
             <span v-if="element.special_price" class="mc-mrow__oferta">&nbsp;· oferta {{ sinCentavos(element.special_price) }}</span>
+            <!-- Agotado en una cocina y no en las otras: sin esto la fila se veia igual
+                 que un platillo a la venta en todos lados. -->
+            <span v-if="!element.is_sold_out && dondeFalta(element)" class="mc-mrow__falta">
+              &nbsp;· agotado en {{ dondeFalta(element) }}
+            </span>
           </div>
         </div>
 
         <!-- El interruptor es la accion de hora pico: se acabo el producto y hay que
              bajarlo del menu sin abrir nada. Prendido = a la venta. -->
         <q-toggle
-          :model-value="!element.is_sold_out"
-          @update:model-value="adminStore.toggleSoldOut(element)"
+          :model-value="!faltaEnAlgunLado(element)"
+          @update:model-value="marcarAgotado(element)"
           color="green-7"
           dense
           class="mc-mrow__sw"
@@ -327,7 +332,7 @@
           :product="element"
           @featured="adminStore.toggleFeatured(element)"
           @offer="openOfferDialog(element)"
-          @soldout="adminStore.toggleSoldOut(element)"
+          @soldout="marcarAgotado(element)"
           @edit="editProduct(element)"
           @extras="adminStore.extraProduct(element)"
           @clone="cloneProduct(element)"
@@ -382,7 +387,7 @@
                 :product="product"
                 @featured="adminStore.toggleFeatured(product)"
                 @offer="openOfferDialog(product)"
-                @soldout="adminStore.toggleSoldOut(product)"
+                @soldout="marcarAgotado(product)"
                 @edit="editProduct(product)"
                 @extras="adminStore.extraProduct(product)"
                 @clone="cloneProduct(product)"
@@ -521,6 +526,49 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <!-- Con sucursales, agotar es una pregunta de donde: lo que se acabo en Centro sigue
+       habiendo en Norte, y apagarlo en todos deja sin venderlo a quien si tiene. -->
+  <q-dialog v-model="dondeAbierto">
+    <q-card class="mc-donde">
+      <q-card-section class="mc-donde__head">
+        <div>
+          <div class="mc-donde__tit">¿Dónde se acabó?</div>
+          <div class="mc-donde__sub">{{ dondeProducto?.name }}</div>
+        </div>
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <div class="mc-donde__row">
+          <div class="mc-donde__nom">
+            En todo el negocio
+            <em>lo baja del menú en todos los locales</em>
+          </div>
+          <q-toggle
+            :model-value="!!dondeEstado?.is_sold_out"
+            color="negative"
+            dense
+            @update:model-value="adminStore.toggleSoldOut(dondeProducto)"
+          />
+        </div>
+
+        <!-- Cada cocina por separado. Deshabilitadas mientras esta agotado en todo el
+             negocio: ahi ya no hay nada que decidir por local. -->
+        <div v-for="l in adminStore.locales" :key="l.value" class="mc-donde__row">
+          <div class="mc-donde__nom">{{ l.label }}</div>
+          <q-toggle
+            :model-value="agotadoEnLocal(l.value)"
+            :disable="!!dondeEstado?.is_sold_out"
+            color="negative"
+            dense
+            @update:model-value="adminStore.toggleSoldOut(dondeProducto, l.value)"
+          />
+        </div>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+
 </template>
 
 <script setup>
@@ -539,9 +587,12 @@ import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./products/FormDrawer.vue";
 import ProductActions from "./products/ProductActions.vue";
 import { DIAS_LUNES_PRIMERO, diasValidos } from "src/utils/weekDays";
+import { useCompanyStore } from "src/stores/company-store";
+import { nombreDelLocal, tieneSucursales } from "src/utils/sucursales";
 
 const draggable = VueDraggableNext;
 const adminStore = useAdminStore();
+const companyStore = useCompanyStore();
 const { modoApp } = useModoApp();
 
 /** Regresa la lista a su tamaño inicial y sube: al colapsar, quedarse a media
@@ -565,9 +616,43 @@ const categoryFilter = ref(null); // id de categoría o null (todas)
 const buscarAbierto = ref(false);
 /** En una fila de celular los centavos solo estorban: casi siempre son .00. */
 const sinCentavos = (n) => '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+/** Si falta en algun lado: en todo el negocio, o en alguna de sus cocinas. */
+const faltaEnAlgunLado = (p) => !!p.is_sold_out || (p.locales_agotados?.length ?? 0) > 0;
+
+/** En que cocinas falta, escrito para la fila: "Centro, Norte". Vacio si no falta. */
+const dondeFalta = (p) =>
+  (p.locales_agotados ?? [])
+    .map((l) => nombreDelLocal(l, companyStore.company))
+    .filter(Boolean)
+    .join(", ");
+
 const agotadosCuenta = computed(
-  () => (adminStore.products || []).filter((x) => x.is_sold_out).length
+  () => (adminStore.products || []).filter(faltaEnAlgunLado).length
 );
+
+// --- Donde se acabo -------------------------------------------------------------
+// En un negocio de un solo local el boton hace lo de siempre: apagarlo y ya. Con
+// sucursales pregunta donde, porque lo que se acabo en Centro sigue habiendo en Norte.
+
+const dondeAbierto = ref(false);
+const dondeProducto = ref(null);
+
+/** El platillo vivo del store: `dondeProducto` es la copia con la que se abrio. */
+const dondeEstado = computed(() =>
+  (adminStore.products || []).find((p) => p.id === dondeProducto.value?.id)
+);
+
+const agotadoEnLocal = (local) =>
+  (dondeEstado.value?.locales_agotados ?? []).some((l) => String(l) === String(local));
+
+const marcarAgotado = (producto) => {
+  if (!tieneSucursales(companyStore.company)) {
+    adminStore.toggleSoldOut(producto);
+    return;
+  }
+  dondeProducto.value = producto;
+  dondeAbierto.value = true;
+};
 
 /** Las ofertas puestas. Sin este numero nadie se entera de que el bloque de ofertas
     del menu esta vacio, que es lo que pasaba en casi todos los negocios. */
@@ -967,6 +1052,46 @@ body.mc-modo-app {
   font-variant-numeric: tabular-nums;
 }
 .mc-mrow__oferta { color: var(--q-primary); font-weight: 620; }
+.mc-mrow__falta { color: #b06a00; font-weight: 620; }
+
+/* ===== Donde se acabo ===== */
+.mc-donde {
+  width: 380px;
+  max-width: 92vw;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__tit { font-size: 17px; font-weight: 600; }
+  &__sub { font-size: 13px; color: #8a8a8a; }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 2px;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child { border-bottom: none; }
+  }
+
+  &__nom {
+    font-size: 14px;
+    line-height: 1.3;
+
+    em {
+      display: block;
+      font-size: 11px;
+      font-style: normal;
+      color: #8a8a8a;
+    }
+  }
+}
 .mc-mrow__sw { margin-left: auto; }
 
 .mc-menu-app__vacio {

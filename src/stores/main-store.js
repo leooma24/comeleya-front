@@ -14,7 +14,7 @@ import { initPixel, trackFb } from "src/utils/fbpixel";
 import { initMessenger } from "src/utils/fbchat";
 import { describeRequestError } from "src/utils/requestError";
 import { etiquetaPago } from "src/utils/metodosPago.js";
-import { matrizDe } from "src/utils/sucursales";
+import { agotadoEn, matrizDe, MATRIZ } from "src/utils/sucursales";
 
 /**
  * Cuánto esperar antes de cada reintento del menú.
@@ -192,6 +192,42 @@ export const useMainStore = defineStore("main", {
         .filter((x) => x.km !== null)
         .sort((a, b) => a.km - b.km);
       return conDistancia.length ? conDistancia[0].s : null;
+    },
+    /**
+     * El local desde el que el cliente está viendo el menú: "matriz" o el id de la
+     * sucursal. Null en un negocio de un solo local, que es donde no hay nada que
+     * distinguir y todo sigue igual que siempre.
+     */
+    localDelCliente() {
+      return this.sucursales.length ? String(this.sucursalElegida?.id ?? MATRIZ) : null;
+    },
+    /**
+     * Si ese platillo está agotado para este cliente.
+     *
+     * Getter que devuelve función porque la respuesta depende del platillo: así el menú
+     * se vuelve a pintar solo cuando cambia de local, sin que cada tarjeta se suscriba
+     * por su cuenta.
+     */
+    estaAgotado() {
+      const local = this.localDelCliente;
+      return (platillo) => agotadoEn(platillo, local);
+    },
+    /**
+     * Lo que trae en el carrito y no hay en el local elegido.
+     *
+     * Aparece al cambiar de sucursal en el checkout: el cliente armó su pedido viendo
+     * el menú de Centro y al mandarlo desde Norte se entera antes de darle Enviar, no
+     * con un error del servidor. Se busca en el menú y no en el carrito porque el
+     * carrito se guarda entre visitas y puede traer datos de ayer.
+     */
+    faltanEnElLocal() {
+      if (!this.localDelCliente) return [];
+      const menu = this.productStore.items ?? [];
+
+      return this.cart
+        .map((linea) => menu.find((p) => p.id === linea.id))
+        .filter((p) => p && this.estaAgotado(p))
+        .map((p) => p.name);
     },
     /** El punto desde el que se mide el envío: la sucursal, o el negocio si no hay. */
     origenDelEnvio() {
@@ -732,7 +768,7 @@ export const useMainStore = defineStore("main", {
       return items;
     },
     async seeProduct(product) {
-      if (product.is_sold_out) {
+      if (this.estaAgotado(product)) {
         this.messageStore.error("Este producto está agotado");
         return;
       }
@@ -792,7 +828,7 @@ export const useMainStore = defineStore("main", {
 
         return;
       }
-      if (this.productStore.product?.is_sold_out) {
+      if (this.estaAgotado(this.productStore.product)) {
         this.messageStore.error("Este producto está agotado");
         return;
       }

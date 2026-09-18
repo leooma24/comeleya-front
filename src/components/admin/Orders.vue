@@ -42,6 +42,17 @@
             </q-item>
           </q-list>
         </q-btn-dropdown>
+        <!-- Se acabo algo en esta cocina. La cajera no ve el menu: este es su camino. -->
+        <button
+          v-if="adminStore.localEnVista"
+          type="button"
+          class="mc-head__ic"
+          title="Lo que se acabó"
+          aria-label="Lo que se acabó"
+          @click="agotadosAbierto = true"
+        >
+          <q-icon name="remove_shopping_cart" size="18px" />
+        </button>
         <!-- Pausar el local que se esta viendo. -->
         <button
           v-if="adminStore.localEnVista"
@@ -216,6 +227,17 @@
         outline
         no-caps
         dense
+        color="primary"
+        icon="remove_shopping_cart"
+        label="Agotados"
+        class="q-px-sm"
+        @click="agotadosAbierto = true"
+      />
+      <q-btn
+        v-if="adminStore.localEnVista"
+        outline
+        no-caps
+        dense
         :color="adminStore.localEnVistaPausado ? 'positive' : 'warning'"
         :icon="adminStore.localEnVistaPausado ? 'play_arrow' : 'pause'"
         :label="textoPausa"
@@ -226,6 +248,7 @@
     </div>
 
     <corte-de-caja v-model="corteAbierto" />
+    <agotados-dialog v-model="agotadosAbierto" />
 
     <!-- Una pausa olvidada no se nota en ningun otro lado: el panel sigue igual y los
          pedidos simplemente dejan de llegar. -->
@@ -723,6 +746,7 @@ import {
 } from "src/utils/sucursales";
 import OrdersHistory from "./OrdersHistory.vue";
 import CorteDeCaja from "./CorteDeCaja.vue";
+import AgotadosDialog from "./AgotadosDialog.vue";
 import { ALERT_TONES, getAlertTone, setAlertTone, previewTone } from "src/composables/useOrderAlerts";
 
 const helperStore = useHelperStore();
@@ -901,6 +925,7 @@ const puedeElegirLocal = computed(
 );
 const opcionesLocal = computed(() => opcionesDeLocal(companyStore.company));
 // --- Pausar el local que se esta viendo -------------------------------------------
+const agotadosAbierto = ref(false);
 const pausando = ref(false);
 const textoPausa = computed(
   () => `${adminStore.localEnVistaPausado ? "Reanudar" : "Pausar"} ${adminStore.nombreLocalVisto ?? ""}`.trim()

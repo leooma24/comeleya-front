@@ -1,7 +1,7 @@
 <template>
   <q-card
     class="dish-card cursor-pointer"
-    :class="{ 'dish-card--sold-out': item.is_sold_out }"
+    :class="{ 'dish-card--sold-out': agotado }"
     flat
     bordered
     @click="seeProduct"
@@ -11,7 +11,7 @@
       <!-- Etiquetas -->
       <!-- Prioridad: agotado > oferta > nuevo. La oferta le gana a NUEVO porque un
            descuento mueve más que una novedad, y dos sellos encimados no se leen. -->
-      <div v-if="item.is_sold_out" class="dish-card__badge dish-card__badge--sold-out">
+      <div v-if="agotado" class="dish-card__badge dish-card__badge--sold-out">
         AGOTADO
       </div>
       <!-- El descuento en número. Antes solo se tachaba el precio anterior, y tachar
@@ -96,7 +96,7 @@
       </q-btn>
       <q-space />
       <q-btn
-        v-if="item.is_sold_out"
+        v-if="agotado"
         flat
         dense
         color="grey-6"
@@ -134,7 +134,7 @@ const props = defineProps({
   },
 });
 
-const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+const { agotado, hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
 

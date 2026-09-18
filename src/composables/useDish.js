@@ -13,6 +13,10 @@ export function useDish(item) {
   // la aplicaba: se anunciaba un descuento que nunca se cobraba.
   const hasSpecialPrice = computed(() => isSpecialActive(item.value));
 
+  // Agotado para QUIEN ESTA VIENDO: en un negocio con sucursales, lo que se acabo en
+  // Centro sigue habiendo en Norte. Lo resuelve el store, que sabe de que local pide.
+  const agotado = computed(() => mainStore.estaAgotado(item.value));
+
   // "Nuevo" = creado en los últimos 14 días
   const isNew = computed(() => {
     if (!item.value?.created_at) return false;
@@ -67,5 +71,5 @@ export function useDish(item) {
     }
   };
 
-  return { hasSpecialPrice, isNew, seeProduct, shareProduct };
+  return { agotado, hasSpecialPrice, isNew, seeProduct, shareProduct };
 }

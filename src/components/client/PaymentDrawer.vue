@@ -175,6 +175,20 @@
         </div>
       </div>
 
+      <!-- Lo que no hay en el local elegido.
+           Va pegado al selector porque es su consecuencia: armó el pedido viendo el menú
+           de un local y al cambiarse se entera aquí, no con un error al enviarlo. -->
+      <div class="mc-falta" v-if="mainStore.faltanEnElLocal.length">
+        <q-icon name="report_problem" size="20px" />
+        <div>
+          <strong>
+            En {{ mainStore.sucursalElegida?.name }} no hay
+            {{ mainStore.faltanEnElLocal.join(", ") }}.
+          </strong>
+          <span>Quítalo del pedido o elige otra sucursal.</span>
+        </div>
+      </div>
+
       <!-- Order Summary -->
       <div class="mc-order-summary">
         <div class="mc-summary-row">
@@ -351,7 +365,7 @@
         size="lg"
         class="full-width mc-submit-btn"
         :loading="sendingOrder"
-        :disable="sendingOrder"
+        :disable="sendingOrder || mainStore.faltanEnElLocal.length > 0"
         @click="submitOrder"
       >
         <q-icon name="check_circle" size="20px" class="q-mr-sm" />
@@ -416,6 +430,24 @@ const submitOrder = async () => {
 </script>
 
 <style lang="scss" scoped>
+
+/* ===== Lo que no hay en el local elegido ===== */
+.mc-falta {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #f0c36d;
+  border-radius: 12px;
+  background: #fff8e6;
+  color: #7a5200;
+  font-size: 13px;
+  line-height: 1.4;
+
+  strong { display: block; font-weight: 600; }
+  span { opacity: 0.85; }
+}
 
 /* ===== Elegir sucursal ===== */
 .mc-sucursal {

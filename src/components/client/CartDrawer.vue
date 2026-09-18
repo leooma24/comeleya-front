@@ -291,7 +291,7 @@ const unitCount = computed(() =>
 const upsellItems = computed(() => {
   const inCart = new Set(mainStore.cart.map((p) => p.id));
   return mainStore.featuredProducts
-    .filter((p) => !inCart.has(p.id) && !p.is_sold_out && p.photo)
+    .filter((p) => !inCart.has(p.id) && !mainStore.estaAgotado(p) && p.photo)
     .slice(0, 8);
 });
 

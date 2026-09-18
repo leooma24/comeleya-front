@@ -1,7 +1,7 @@
 <template>
   <q-card
     class="dish-card dish-card--list cursor-pointer"
-    :class="{ 'dish-card--sold-out': item.is_sold_out }"
+    :class="{ 'dish-card--sold-out': agotado }"
     flat
     bordered
     @click="seeProduct"
@@ -10,7 +10,7 @@
       <!-- Imagen -->
       <div class="col-4 relative-position">
         <!-- Etiquetas -->
-        <div v-if="item.is_sold_out" class="dish-card__sold-out-badge">
+        <div v-if="agotado" class="dish-card__sold-out-badge">
           AGOTADO
         </div>
         <!-- El platillo que ES la promoción: en la lista el descuento se cuenta abajo
@@ -79,7 +79,7 @@
             >
               <q-tooltip>Compartir</q-tooltip>
             </q-btn>
-            <span v-if="item.is_sold_out" class="dish-card__unavailable">No disponible</span>
+            <span v-if="agotado" class="dish-card__unavailable">No disponible</span>
             <q-icon v-else name="arrow_forward" size="18px" class="dish-card__go" />
           </div>
         </div>
@@ -104,7 +104,7 @@ const props = defineProps({
   },
 });
 
-const { hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
+const { agotado, hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
   toRef(props, "item")
 );
 

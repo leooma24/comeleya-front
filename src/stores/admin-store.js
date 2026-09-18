@@ -12,6 +12,7 @@ import {
   localValido,
   matrizDe,
   nombreDelLocal,
+  opcionesDeLocal,
   tieneSucursales,
 } from "src/utils/sucursales";
 
@@ -150,6 +151,13 @@ export const useAdminStore = defineStore({
     localEnVista() {
       const local = this.esCajero ? this.localCajero?.valor : this.localEfectivo;
       return local && localValido(local, this.companyStore.company) ? String(local) : null;
+    },
+    /**
+     * Los locales concretos del negocio: la Matriz y las sucursales encendidas, sin la
+     * opcion "todos" del selector de Pedidos. Vacio en un negocio de un solo local.
+     */
+    locales() {
+      return opcionesDeLocal(this.companyStore.company).filter((o) => o.value !== null);
     },
     /** Los locales en pausa, con su nombre. Vacio en un negocio de un solo local. */
     localesEnPausa() {
@@ -1002,22 +1010,64 @@ export const useAdminStore = defineStore({
         this.loading = false;
       }
     },
-    async toggleSoldOut(product) {
+    /**
+     * Se acabo un platillo: en todo el negocio, o solo en un local.
+     *
+     * Sin `local` es el agotado de siempre, el de todo el negocio, y el servidor borra
+     * los de cada local: ya no dicen nada. Con `local` es el de esa cocina nada mas. La
+     * cajera manda el suyo -el servidor no la deja tocar otro- y el dueño el que elija.
+     *
+     * Devuelve la respuesta del servidor para quien la necesite: la lista de agotados
+     * del Pedidos de la cajera no vive en `products`, que ella nunca carga.
+     */
+    async toggleSoldOut(product, local = null) {
       try {
         const { data } = await api.put(
-          `/admin/${this.slug}/${product.id}/sold-out`
+          `/admin/${this.slug}/${product.id}/sold-out`,
+          local ? { local } : {}
         );
         this.products = this.products.map((p) => {
           if (p.id === product.id) {
-            return { ...p, is_sold_out: data.is_sold_out };
+            return {
+              ...p,
+              is_sold_out: data.is_sold_out,
+              locales_agotados: data.locales_agotados ?? [],
+            };
           }
           return p;
         });
+
+        const agotado = data.local
+          ? (data.locales_agotados ?? []).includes(String(data.local))
+          : data.is_sold_out;
+        const donde = data.local
+          ? ` en ${nombreDelLocal(data.local, this.companyStore.company) ?? "tu local"}`
+          : "";
         this.messageStore.success(
-          data.is_sold_out ? "Producto agotado" : "Producto disponible"
+          agotado ? `Agotado${donde}` : `Disponible${donde}`
         );
+
+        return data;
       } catch (error) {
         this.messageStore.error("Error al actualizar el platillo");
+        return null;
+      }
+    },
+    /**
+     * Lo que se acabo en el local que se esta viendo, para marcarlo en plena hora pico.
+     *
+     * Es la lista de Productos en chiquito, y la pide tambien la cajera, que no ve el
+     * menu. Quien decide el local es el servidor, con el mismo criterio que los pedidos.
+     */
+    async cargarAgotados() {
+      try {
+        const { data } = await api.get(`/admin/${this.slug}/agotados`, {
+          params: this.paramsDeLocal,
+        });
+        return data;
+      } catch (error) {
+        this.messageStore.error("No se pudo cargar la lista de agotados");
+        return null;
       }
     },
     async setSpecialOffer(product, specialPrice, specialUntil, specialDays = null) {

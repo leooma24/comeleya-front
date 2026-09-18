@@ -11,6 +11,10 @@ defineOptions({ name: "ProductActions" });
 
 import { computed } from "vue";
 import RowActionsMenu from "../RowActionsMenu.vue";
+import { useCompanyStore } from "src/stores/company-store";
+import { tieneSucursales } from "src/utils/sucursales";
+
+const companyStore = useCompanyStore();
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -25,6 +29,9 @@ const emit = defineEmits([
   "clone",
   "delete",
 ]);
+
+/** Si falta en algun lado: en todo el negocio, o en alguna de sus cocinas. */
+const faltaEnAlgunLado = (p) => !!p.is_sold_out || (p.locales_agotados?.length ?? 0) > 0;
 
 // Misma lista para escritorio (iconos) y móvil (menú), sin duplicar markup.
 const actions = computed(() => {
@@ -44,11 +51,17 @@ const actions = computed(() => {
       label: p.special_price ? "Editar oferta" : "Crear oferta",
       handler: () => emit("offer"),
     },
+    // Con sucursales la pregunta no es si se acabo sino donde: se abre el dialogo en
+    // lugar de apagarlo en todos los locales de una.
     {
       key: "soldout",
-      icon: p.is_sold_out ? "remove_shopping_cart" : "shopping_cart_checkout",
-      color: p.is_sold_out ? "negative" : "grey-7",
-      label: p.is_sold_out ? "Marcar disponible" : "Marcar agotado",
+      icon: faltaEnAlgunLado(p) ? "remove_shopping_cart" : "shopping_cart_checkout",
+      color: faltaEnAlgunLado(p) ? "negative" : "grey-7",
+      label: tieneSucursales(companyStore.company)
+        ? "¿Dónde se acabó?"
+        : p.is_sold_out
+          ? "Marcar disponible"
+          : "Marcar agotado",
       handler: () => emit("soldout"),
     },
     {

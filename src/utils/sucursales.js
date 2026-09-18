@@ -48,6 +48,21 @@ export function tieneSucursales(negocio) {
   return (negocio?.active_branches?.length ?? 0) > 0;
 }
 
+/**
+ * Si el platillo esta agotado para quien pide desde ese local.
+ *
+ * Escrito igual que en el servidor (Dish::agotadoEn): `is_sold_out` es el agotado de
+ * todo el negocio y manda siempre; `locales_agotados` son las cocinas donde se acabo
+ * solo ahi. Sin local -un negocio de un solo local- no hay nada mas que revisar.
+ */
+export function agotadoEn(platillo, local) {
+  if (!platillo) return false;
+  if (platillo.is_sold_out) return true;
+  if (!local) return false;
+
+  return (platillo.locales_agotados ?? []).some((l) => String(l) === String(local));
+}
+
 // --- Que local se esta viendo en Pedidos ---------------------------------------------
 //
 // Se escribe igual que en el servidor (App\Support\LocalDePedidos): null = todos los
