@@ -311,6 +311,83 @@
         <q-input v-model="forma.phone" label="Teléfono" filled dense class="q-mt-xs" />
       </admin-section>
 
+      <!-- Envio propio. Apagado -como nacen todas- esta sucursal cobra el envio del
+           negocio. Es todo o nada a proposito: media configuracion propia y media
+           heredada no se le puede explicar a nadie, y esto es dinero. -->
+      <admin-section
+        title="Envío"
+        icon="local_shipping"
+        description="Si esta sucursal reparte más lejos o cobra distinto, dale su propio cobro. Apagado, usa el del negocio."
+      >
+        <q-toggle
+          v-model="forma.delivery_own"
+          color="primary"
+          label="Esta sucursal cobra el envío distinto"
+        />
+
+        <div v-if="forma.delivery_own" class="q-mt-sm">
+          <q-select
+            v-model="forma.delivery_mode"
+            :options="modosDeEnvio"
+            emit-value
+            map-options
+            label="Cómo cobra"
+            filled
+            dense
+          />
+
+          <q-input
+            v-if="forma.delivery_mode !== 'distance'"
+            v-model.number="forma.delivery_charge"
+            type="number"
+            min="0"
+            label="Costo del envío"
+            prefix="$"
+            filled
+            dense
+            class="q-mt-xs"
+          />
+
+          <div v-else class="q-mt-xs">
+            <div class="row q-col-gutter-sm">
+              <q-input
+                class="col-6"
+                v-model.number="forma.delivery_base_fee"
+                type="number" min="0" label="Tarifa base" prefix="$" filled dense
+              />
+              <q-input
+                class="col-6"
+                v-model.number="forma.delivery_base_km"
+                type="number" min="0" label="Km incluidos" suffix="km" filled dense
+              />
+            </div>
+            <div class="row q-col-gutter-sm q-mt-xs">
+              <q-input
+                class="col-6"
+                v-model.number="forma.delivery_per_km"
+                type="number" min="0" label="Por km extra" prefix="$" filled dense
+              />
+              <q-input
+                class="col-6"
+                v-model.number="forma.delivery_max_km"
+                type="number" min="0" label="Hasta" suffix="km" filled dense
+              />
+            </div>
+            <q-input
+              v-model.number="forma.delivery_free_from"
+              type="number" min="0" label="Envío gratis desde" prefix="$" filled dense
+              class="q-mt-xs"
+              hint="Déjalo en 0 si nunca es gratis"
+            />
+          </div>
+
+          <p class="mc-suc-hint q-mt-sm" v-if="!forma.coordinates && forma.delivery_mode === 'distance'">
+            Para cobrar por distancia, esta sucursal necesita su ubicación en el mapa.
+            Sin ella cobra la tarifa fija.
+          </p>
+        </div>
+      </admin-section>
+
       <admin-section
         title="Disponibilidad"
         icon="visibility"
@@ -347,6 +424,11 @@ const cargando = ref(true);
 const guardando = ref(false);
 const ubicando = ref(false);
 const cajon = ref(false);
+const modosDeEnvio = [
+  { value: "flat", label: "Tarifa fija" },
+  { value: "distance", label: "Por distancia" },
+];
+
 const buscandoCp = ref(false);
 const geocodificando = ref(false);
 const colonias = ref([]);
@@ -390,6 +472,15 @@ const vacia = () => ({
   postal_code: "",
   references: "",
   coordinates: "",
+  // Envio: apagado hereda el del negocio, y por eso las cifras nacen vacias.
+  delivery_own: false,
+  delivery_mode: "flat",
+  delivery_charge: null,
+  delivery_base_fee: null,
+  delivery_base_km: null,
+  delivery_per_km: null,
+  delivery_max_km: null,
+  delivery_free_from: null,
   whatsapp: "",
   phone: "",
   active: true,

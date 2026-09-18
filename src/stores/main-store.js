@@ -267,9 +267,20 @@ export const useMainStore = defineStore("main", {
     origenDelEnvio() {
       return this.sucursalElegida?.coordinates || this.companyStore.companyMap;
     },
+    /**
+     * Con qué se cobra el envío desde el local elegido.
+     *
+     * El servidor la manda ya resuelta en cada sucursal (`delivery`): si esa sucursal
+     * cobra distinto va la suya, y si hereda va la del negocio. Aquí no se resuelve
+     * ninguna herencia a proposito — el numero que se le enseña al cliente y el que
+     * cobra el servidor tienen que salir de la misma cuenta.
+     */
+    configDeEnvio() {
+      return this.sucursalElegida?.delivery ?? this.establishment ?? {};
+    },
     deliveryCharge() {
       if (this.data.delivery !== "Envio") return 0;
-      const e = this.establishment || {};
+      const e = this.configDeEnvio;
       if ((e.delivery_mode ?? "flat") !== "distance") {
         return Number(e.delivery_charge ?? 0);
       }
@@ -294,7 +305,7 @@ export const useMainStore = defineStore("main", {
     // pueda ajustarlo.
     deliveryEstimated() {
       if (this.data.delivery !== "Envio") return false;
-      const e = this.establishment || {};
+      const e = this.configDeEnvio;
       if ((e.delivery_mode ?? "flat") !== "distance") return false;
       const dist = Number(this.data.distance);
       return !dist || Number.isNaN(dist);
@@ -302,7 +313,7 @@ export const useMainStore = defineStore("main", {
     // ¿La dirección del cliente está dentro del área de entrega? (modo distancia)
     deliveryCovered() {
       if (this.data.delivery !== "Envio") return true;
-      const e = this.establishment || {};
+      const e = this.configDeEnvio;
       if ((e.delivery_mode ?? "flat") !== "distance") return true;
       const dist = Number(this.data.distance);
       if (!dist || Number.isNaN(dist)) return true; // sin GPS no bloqueamos

@@ -49,6 +49,17 @@ describe("la matriz", () => {
       // -igual que la de una sucursal que hereda- y is_open es el del negocio.
       is_open: false,
       hours: [],
+      // El envio de la Matriz ES el del negocio, con la misma forma que el de una
+      // sucursal: asi el carrito no tiene que preguntar de que local se trata.
+      delivery: {
+        delivery_mode: "flat",
+        delivery_charge: 0,
+        delivery_base_fee: 0,
+        delivery_base_km: 0,
+        delivery_per_km: 0,
+        delivery_max_km: 0,
+        delivery_free_from: 0,
+      },
     });
   });
 

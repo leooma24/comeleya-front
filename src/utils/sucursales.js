@@ -41,6 +41,17 @@ export function matrizDe(negocio = {}) {
     // vacio -igual que el de una sucursal que hereda- y `is_open` es el del negocio.
     is_open: !!negocio.isOpen,
     hours: [],
+    // El envio de la Matriz ES el del negocio. Va con la misma forma que el de una
+    // sucursal para que el carrito no tenga que preguntar de que local se trata.
+    delivery: {
+      delivery_mode: negocio.delivery_mode ?? "flat",
+      delivery_charge: negocio.delivery_charge ?? 0,
+      delivery_base_fee: negocio.delivery_base_fee ?? 0,
+      delivery_base_km: negocio.delivery_base_km ?? 0,
+      delivery_per_km: negocio.delivery_per_km ?? 0,
+      delivery_max_km: negocio.delivery_max_km ?? 0,
+      delivery_free_from: negocio.delivery_free_from ?? 0,
+    },
   };
 }
 

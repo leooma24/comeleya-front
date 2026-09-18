@@ -415,6 +415,26 @@
             <q-icon name="person" size="16px" color="grey-5" />
             <span>{{ order.customer_name }}</span>
           </div>
+          <!-- El telefono del comensal.
+               Ya viajaba en la respuesta y ya salia impreso en el ticket, pero en la
+               pantalla no estaba: para llamarle -"no encuentro tu casa", "ya llegue"-
+               habia que imprimir el pedido o abrir el historial. Es una liga: en la
+               tableta de la cocina marca, y en el celular tambien. -->
+          <div class="mc-order-info-row" v-if="order.phone">
+            <q-icon name="call" size="16px" color="grey-5" />
+            <a :href="`tel:${order.phone}`" class="mc-order-tel" @click.stop>
+              {{ order.phone }}
+            </a>
+            <a
+              :href="`https://wa.me/${paraWhatsApp(order.phone)}`"
+              target="_blank"
+              rel="noopener"
+              class="mc-order-tel mc-order-tel--wa"
+              @click.stop
+            >
+              WhatsApp
+            </a>
+          </div>
           <div class="mc-order-info-row">
             <q-icon :name="getDeliveryIcon(order)" size="16px" color="grey-5" />
             <span>{{ getTypeDelivery(order) }}</span>
@@ -736,6 +756,7 @@ import { useHelperStore } from "src/stores/helper";
 import { useCompanyStore } from "src/stores/company-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import { printOrderTicket } from "src/utils/orderTicket";
+import { paraWhatsApp } from "src/utils/telefono";
 import {
   origenDelPedido,
   opcionesDeLocal,
@@ -1172,6 +1193,21 @@ if (!esHistorial.value) adminStore.getOrders(props.status);
 </script>
 
 <style lang="scss" scoped>
+/* El telefono del comensal, para marcarle desde la tarjeta */
+.mc-order-tel {
+  color: var(--q-primary);
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover { text-decoration: underline; }
+
+  &--wa {
+    margin-left: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
 
 /* Un local en pausa, arriba de las pestañas. */
 .mc-pausa-aviso {
