@@ -19,6 +19,20 @@
     return document.querySelectorAll("iframe[data-comeleya], iframe[src*='comeleya']");
   }
 
+  /* De quien aceptamos mensajes.
+     Este script vive en el sitio del negocio, donde cualquier ventana o iframe puede
+     mandar un "comeleya:cart" y controlar el href del boton "Ver pedido". No se
+     compara contra un dominio fijo -el negocio incrusta el iframe con el dominio que
+     quiera- sino contra los iframes que este script ya reconoce como suyos. */
+  function esNuestro(source) {
+    if (!source) return false;
+    var fs = comeleyaIframes();
+    for (var i = 0; i < fs.length; i++) {
+      if (fs[i].contentWindow === source) return true;
+    }
+    return false;
+  }
+
   function setColor(c) {
     if (bar) bar.style.background = c || "#1976D2";
   }
@@ -107,9 +121,9 @@
     elCount.textContent = d.count;
     elTotal.textContent = fmt(d.total);
     if (d.label) elRight.textContent = d.label + " →";
-    // El menú ya validó esta URL, pero el listener de abajo no verifica origen: en la
-    // página del cliente cualquier ventana puede mandar un "comeleya:cart". Un href es
-    // lo primero de este mensaje que sería ejecutable, así que se revalida aquí.
+    // El listener ya descarta los mensajes que no vienen del menú incrustado. Esto se
+    // queda como segunda red: un href es lo primero de este mensaje que sería
+    // ejecutable, y no cuesta nada revalidarlo aquí.
     if (d.ctaUrl && /^https?:\/\//i.test(d.ctaUrl)) {
       elRight.setAttribute("href", d.ctaUrl);
     } else {
@@ -183,6 +197,7 @@
   window.addEventListener("message", function (e) {
     var d = e.data;
     if (!d || typeof d !== "object") return;
+    if (!esNuestro(e.source)) return;
     if (d.type === "comeleya:height") {
       resize(e.source, d.height);
       notify(e.source);

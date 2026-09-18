@@ -62,6 +62,7 @@ defineOptions({ name: "CorteDeCaja" });
 import { ref, watch } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
+import { esc } from "src/utils/orderTicket";
 import { etiquetaPago } from "src/utils/metodosPago.js";
 
 const props = defineProps({
@@ -122,12 +123,15 @@ watch(
 const imprimir = () => {
   if (!corte.value) return;
   const c = corte.value;
-  const nombre = adminStore.company?.name || "Restaurante";
-  const local = c.local?.nombre ? `<div class="date">${c.local.nombre}</div>` : "";
+  // Todo lo que se interpola va escapado. El metodo de pago lo escribe el comensal
+  // -un valor que no conocemos se guarda tal cual para no perder el pedido- y de ahi
+  // llegaba crudo a este document.write.
+  const nombre = esc(adminStore.company?.name || "Restaurante");
+  const local = c.local?.nombre ? `<div class="date">${esc(c.local.nombre)}</div>` : "";
   const dinero = (n) =>
     "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const metodos = c.by_method
-    .map((m) => `<div class="row"><span>${metodo(m.method)} (${m.count})</span><b>${dinero(m.total)}</b></div>`)
+    .map((m) => `<div class="row"><span>${esc(metodo(m.method))} (${Number(m.count) || 0})</span><b>${dinero(m.total)}</b></div>`)
     .join("");
   const w = window.open("", "_blank");
   if (!w) return;

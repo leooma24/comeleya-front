@@ -1627,8 +1627,8 @@ export const useAdminStore = defineStore({
       }
     },
 
-    logout() {
-      this.userStore.logout();
+    async logout() {
+      await this.userStore.cerrarSesion();
     },
   },
 });

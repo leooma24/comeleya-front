@@ -52,8 +52,10 @@ const ticketStyles = `
 `;
 const SEP = '<div class="sep">- - - - - - - - - - - - - -</div>';
 
-// Escapa datos provistos por el cliente para no romper el ticket ni inyectar HTML
-const esc = (s) =>
+// Escapa datos provistos por el cliente para no romper el ticket ni inyectar HTML.
+// Se exporta porque el corte de caja imprime igual, en una ventana con la sesion del
+// panel abierta: lo que se imprime sin escapar ahi corre con el token a la mano.
+export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({
     "&": "&amp;",
     "<": "&lt;",

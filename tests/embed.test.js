@@ -33,7 +33,28 @@ const carrito = (extra = {}) => ({
 });
 
 /** El iframe del menú: lo único que nos importa de él es que recibe mensajes. */
-const menu = () => ({ postMessage: vi.fn() });
+// close() existe porque jsdom la llama en cada ventana hija al terminar la prueba.
+const menu = () => ({ postMessage: vi.fn(), close: vi.fn() });
+
+/**
+ * Pone el iframe del menú en la página y devuelve su "ventana".
+ *
+ * El script solo atiende mensajes que vengan de un iframe suyo, así que la ventana
+ * falsa tiene que estar colgada de un `<iframe data-comeleya>` de verdad: es como
+ * llega en el sitio del negocio.
+ */
+function incrustarMenu() {
+  const el = document.createElement("iframe");
+  // Sin src: el selector del script lo reconoce por data-comeleya, y una URL de
+  // verdad hace que jsdom intente navegarlo.
+  el.setAttribute("data-comeleya", "");
+  document.body.appendChild(el);
+
+  const ventana = menu();
+  Object.defineProperty(el, "contentWindow", { value: ventana, configurable: true });
+
+  return ventana;
+}
 
 /** Monta el script en una página limpia y devuelve las piezas de la barra. */
 function montar() {
@@ -41,7 +62,7 @@ function montar() {
   // eslint-disable-next-line no-new-func
   new Function(CODIGO)();
 
-  const iframe = menu();
+  const iframe = incrustarMenu();
   return { iframe };
 }
 
@@ -53,7 +74,7 @@ function mandar(data, source) {
   window.dispatchEvent(ev);
 }
 
-const barra = () => document.body.lastElementChild;
+const barra = () => document.body.querySelector("div[style*='position: fixed']");
 /** El lado derecho: el que dice "Ver pedido →". */
 const derecha = () => barra().children[2];
 
@@ -268,15 +289,18 @@ describe("embed.js — pasa el platillo y la categoría al iframe", () => {
  */
 describe("embed.js — abre enlaces por cuenta del menú", () => {
   let abrir;
+  let elMenu;
 
   beforeEach(() => {
     document.body.innerHTML = "";
     abrir = vi.spyOn(window, "open").mockReturnValue({});
     // eslint-disable-next-line no-new-func
     new Function(CODIGO)();
+    elMenu = incrustarMenu();
   });
 
-  const pedir = (url, source) => mandar({ type: "comeleya:abrir", url }, source);
+  // Por omisión lo pide el menú incrustado, que es el único que el script atiende.
+  const pedir = (url, source) => mandar({ type: "comeleya:abrir", url }, source ?? elMenu);
 
   it("abre el mapa del negocio", () => {
     pedir("https://www.google.com/maps/search/?api=1&query=25.79,-108.98");
@@ -306,17 +330,53 @@ describe("embed.js — abre enlaces por cuenta del menú", () => {
   });
 
   it("le contesta al menu que si se pudo", () => {
-    const iframe = menu();
-    pedir("https://wa.me/?text=Maguro", iframe);
+    pedir("https://wa.me/?text=Maguro");
 
-    expect(iframe.postMessage).toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
+    expect(elMenu.postMessage).toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
   });
 
   it("si el popup tambien se bloquea aqui arriba, no contesta nada", () => {
     abrir.mockReturnValue(null);
-    const iframe = menu();
-    pedir("https://wa.me/?text=Maguro", iframe);
+    pedir("https://wa.me/?text=Maguro");
 
-    expect(iframe.postMessage).not.toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
+    expect(elMenu.postMessage).not.toHaveBeenCalledWith({ type: "comeleya:abierto" }, "*");
+  });
+});
+
+/**
+ * De quien acepta mensajes.
+ *
+ * Este script corre en el sitio del negocio, donde hay anuncios, chats y otros
+ * iframes. Antes atendia un "comeleya:cart" de cualquiera: con eso se cambiaba el
+ * enlace del boton "Ver pedido" y el comensal salia del sitio del restaurante con un
+ * click legitimo. Ahora solo le habla el menu que el propio sitio incrusto.
+ */
+describe("embed.js — solo le habla el menú incrustado", () => {
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    // eslint-disable-next-line no-new-func
+    new Function(CODIGO)();
+    incrustarMenu();
+  });
+
+  it("un carrito de una ventana desconocida no dibuja nada", () => {
+    mandar(carrito({ ctaUrl: "https://sitio-de-otro.com" }), menu());
+
+    expect(barra()).toBeNull();
+  });
+
+  it("un mensaje sin ventana tampoco", () => {
+    mandar(carrito(), null);
+
+    expect(barra()).toBeNull();
+  });
+
+  it("y no abre enlaces por encargo de un desconocido", () => {
+    const abrir = vi.spyOn(window, "open").mockReturnValue({});
+
+    mandar({ type: "comeleya:abrir", url: "https://wa.me/?text=hola" }, menu());
+
+    expect(abrir).not.toHaveBeenCalled();
+    abrir.mockRestore();
   });
 });

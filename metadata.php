@@ -351,6 +351,12 @@ if ($isLanding) {
     }
 }
 
+// JSON_HEX_TAG es lo que impide que un "</script>" dentro de un nombre de platillo
+// -o del negocio- cierre este bloque y lo que siga se ejecute como JavaScript. Este
+// archivo pinta el <head> de TODAS las paginas de comeleya.com, y el token del panel
+// vive en el localStorage de ese mismo origen: era robo de sesion con solo publicar
+// un platillo. JSON_UNESCAPED_SLASHES se quita a proposito: escapar las diagonales es
+// la segunda red para ese mismo "</script>".
 echo '<script type="application/ld+json">'
-    . json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    . json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)
     . '</script>';
