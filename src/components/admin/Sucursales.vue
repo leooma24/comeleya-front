@@ -196,10 +196,6 @@
         icon="place"
         description="La que se imprime en el ticket y la que ve el repartidor."
       >
-        <div class="row q-col-gutter-sm">
-          <q-input class="col-8" v-model="forma.street" label="Calle" filled dense />
-          <q-input class="col-4" v-model="forma.exterior_number" label="Número" filled dense />
-        </div>
         <!-- El C.P. va PRIMERO porque de el salen los demas: al escribirlo se llena
              la ciudad, el estado y la lista de colonias, igual que en la direccion del
              negocio y en la del comensal. Capturar una sucursal a mano son seis campos;
@@ -232,6 +228,10 @@
           <q-input v-else class="col-6" v-model="forma.town" label="Colonia" filled dense />
         </div>
         <div class="row q-col-gutter-sm q-mt-xs">
+          <q-input class="col-8" v-model="forma.street" label="Calle" filled dense />
+          <q-input class="col-4" v-model="forma.exterior_number" label="Número" filled dense />
+        </div>
+        <div class="row q-col-gutter-sm q-mt-xs">
           <q-input class="col-6" v-model="forma.city" label="Ciudad" filled dense />
           <q-input class="col-6" v-model="forma.state" label="Estado" filled dense />
         </div>
@@ -251,10 +251,12 @@
       >
         <q-input
           v-model="forma.coordinates"
-          label="Coordenadas"
+          label="Coordenadas o liga de Google Maps"
           filled
           dense
-          placeholder="25.7925,-108.9807"
+          placeholder="Pega aquí la liga de Google Maps de esta sucursal"
+          @paste="alPegarUbicacion"
+          @blur="traducirLiga"
         >
           <template v-slot:append>
             <q-btn
@@ -266,15 +268,32 @@
               :loading="ubicando"
               @click="usarMiUbicacion"
             >
-              <q-tooltip>Usar mi ubicación actual</q-tooltip>
+              <q-tooltip>Usar mi ubicación actual (estando en la sucursal)</q-tooltip>
             </q-btn>
           </template>
         </q-input>
+
+        <div class="mc-suc-ubicar">
+          <q-btn
+            flat
+            dense
+            no-caps
+            size="sm"
+            color="primary"
+            icon="travel_explore"
+            label="Ubicar por la dirección"
+            :loading="geocodificando"
+            :disable="!forma.postal_code && !forma.town"
+            @click="ubicarPorDireccion"
+          />
+        </div>
+
         <p class="mc-suc-hint">
-          Lo más fácil: párate en la sucursal y toca el botón de ubicación.
+          Busca la sucursal en Google Maps, copia la liga y pégala aquí: de ahí salen
+          las coordenadas. El botón de ubicación sirve solo si estás parado en ella.
           <a
-            v-if="forma.coordinates"
-            :href="'https://maps.google.com/?q=' + forma.coordinates"
+            v-if="coordenadasListas"
+            :href="'https://maps.google.com/?q=' + coordenadasListas"
             target="_blank"
             rel="noopener"
           >
@@ -317,6 +336,7 @@ import RowActionsMenu from "./RowActionsMenu.vue";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
 import { matrizDe } from "src/utils/sucursales";
+import { coordenadasDeTexto, pareceLiga } from "src/utils/coordenadas";
 
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
@@ -328,6 +348,7 @@ const guardando = ref(false);
 const ubicando = ref(false);
 const cajon = ref(false);
 const buscandoCp = ref(false);
+const geocodificando = ref(false);
 const colonias = ref([]);
 
 /**
@@ -526,6 +547,21 @@ const guardar = async () => {
     adminStore.messageStore.error("Ponle un nombre a la sucursal");
     return;
   }
+  // La ubicacion se traduce AQUI, pase lo que pase antes.
+  //
+  // Pegar la liga y darle Guardar sin salir del campo es lo normal, y el evento de
+  // salida no siempre alcanza a correr. Este es el ultimo punto antes de mandar: si
+  // hay una liga, se convierte; si no se puede leer, se detiene el guardado en vez de
+  // mandar una URL entera a la columna de coordenadas.
+  const punto = coordenadasDeTexto(forma.value.coordinates);
+  if (forma.value.coordinates?.trim() && !punto) {
+    adminStore.messageStore.error(
+      "Esa ubicación no se entiende. Pega la liga de Google Maps de la sucursal o escribe las coordenadas."
+    );
+    return;
+  }
+  forma.value.coordinates = punto ?? "";
+
   guardando.value = true;
   try {
     const cuerpo = { ...forma.value };
@@ -593,6 +629,77 @@ const accionesDe = (s) => [
  * Las coordenadas a mano son la parte donde se equivoca cualquiera. Parado en la
  * sucursal, el propio teléfono ya sabe la respuesta.
  */
+/**
+ * Lo que hay en la caja, ya como coordenadas.
+ *
+ * Mientras se pega una liga larga, el "Ver en el mapa" no debe llevar a una URL de
+ * Google metida dentro de otra URL de Google.
+ */
+const coordenadasListas = computed(() => coordenadasDeTexto(forma.value.coordinates));
+
+/**
+ * Una liga de Google Maps se traduce a coordenadas en cuanto se pega.
+ *
+ * El dueño casi nunca sabe las coordenadas de su local, pero siempre lo tiene en Google
+ * Maps. Antes la unica forma era pararse ahi y tocar "usar mi ubicacion", asi que quien
+ * lo tocaba desde su oficina guardaba la ubicacion de su oficina, y de ahi salia el
+ * costo del envio de esa sucursal.
+ */
+const traducirLiga = () => {
+  const texto = forma.value.coordinates;
+  if (!pareceLiga(texto)) return;
+
+  const punto = coordenadasDeTexto(texto);
+  if (punto) {
+    forma.value.coordinates = punto;
+    adminStore.messageStore.success("Ubicación tomada de la liga");
+  } else {
+    adminStore.messageStore.error(
+      "Esa liga no trae coordenadas. Abre la sucursal en Google Maps y copia la liga desde ahí."
+    );
+  }
+};
+
+// Al pegar, el valor llega despues del evento: por eso el tiempo de espera.
+const alPegarUbicacion = () => setTimeout(traducirLiga, 0);
+
+/** Ubicar con la direccion ya capturada, sin salir del formulario. */
+const ubicarPorDireccion = async () => {
+  if (geocodificando.value) return;
+  geocodificando.value = true;
+  try {
+    const { data } = await api.post(`/establishment/${adminStore.slug}/geocode`, {
+      zip: forma.value.postal_code || null,
+      town: forma.value.town || null,
+      street: forma.value.street || null,
+      ext_number: forma.value.exterior_number || null,
+    });
+
+    if (data.lat == null || data.lng == null) {
+      adminStore.messageStore.error(
+        "No encontramos esa dirección. Pega la liga de Google Maps de la sucursal."
+      );
+      return;
+    }
+
+    forma.value.coordinates = `${Number(data.lat).toFixed(6)},${Number(data.lng).toFixed(6)}`;
+    // La precision la manda el proveedor: una calle sin numero cae en el centro de la
+    // colonia, y eso mueve el costo del envio. Mejor decirlo que dejarlo pasar.
+    const aproximada = data.match_precision && data.match_precision !== 'rooftop';
+    // El store solo sabe de exito y error; una ubicacion aproximada SI se tomo, asi que
+    // va como exito, pero diciendo que hay que revisarla.
+    adminStore.messageStore.success(
+      aproximada
+        ? "Ubicación aproximada por la dirección: revísala en el mapa"
+        : "Ubicación tomada de la dirección"
+    );
+  } catch (e) {
+    adminStore.messageStore.error("No se pudo ubicar por la dirección");
+  } finally {
+    geocodificando.value = false;
+  }
+};
+
 const usarMiUbicacion = () => {
   if (!navigator.geolocation) {
     adminStore.messageStore.error("Este dispositivo no puede darnos la ubicación");
@@ -619,6 +726,10 @@ onMounted(cargar);
 </script>
 
 <style lang="scss" scoped>
+.mc-suc-ubicar {
+  margin-top: 6px;
+}
+
 .mc-suc-intro {
   margin: 12px var(--mc-lado, 16px) 0;
   padding: 11px 13px;
