@@ -99,7 +99,11 @@
           icon="local_shipping"
           label="Seguir mi pedido"
           class="full-width q-mb-sm"
-          :to="`/${mainStore.companyStore.slug}/pedido/${mainStore.orderStore.orderCode}`"
+          :to="rutaDeSeguimiento(
+            mainStore.companyStore.slug,
+            mainStore.orderStore.orderCode,
+            mainStore.orderStore.trackingToken
+          )"
         />
         <q-btn
           type="a"
@@ -222,6 +226,7 @@ import { ref, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
 import { fitPageToContent } from "src/utils/ticketPageSize";
+import { rutaDeSeguimiento } from "src/utils/seguimiento";
 const mainStore = useMainStore();
 
 // Paso interno del diálogo: 1 = enviar por WhatsApp, 2 = confirmación

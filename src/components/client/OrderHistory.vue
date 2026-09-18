@@ -50,7 +50,7 @@
                 color="primary"
                 icon="local_shipping"
                 label="Ver estado"
-                :to="`/${order.establishment}/pedido/${order.order_code}`"
+                :to="rutaDeSeguimiento(order.establishment, order.order_code, order.tracking_token)"
               />
               <q-btn
                 unelevated
@@ -93,6 +93,7 @@ defineOptions({
 });
 
 import { useMainStore } from "src/stores/main-store";
+import { rutaDeSeguimiento } from "src/utils/seguimiento";
 
 const mainStore = useMainStore();
 const showDrawer = defineModel({ default: false });

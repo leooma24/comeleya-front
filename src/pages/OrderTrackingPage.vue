@@ -151,6 +151,9 @@ import { api } from "boot/axios";
 const route = useRoute();
 const slug = route.params.slug;
 const code = route.params.code;
+// La llave del pedido, que viaja en la liga. Los pedidos de antes de que existiera el
+// token se siguen abriendo sin ella.
+const token = route.query.t ?? null;
 
 const data = ref(null);
 const loading = ref(true);
@@ -232,7 +235,9 @@ const waUrl = computed(() => {
 
 const fetchStatus = async () => {
   try {
-    const { data: res } = await api.get(`/establishment/${slug}/order/${code}/status`);
+    const { data: res } = await api.get(`/establishment/${slug}/order/${code}/status`, {
+      params: token ? { t: token } : {},
+    });
     data.value = res;
     notFound.value = false;
     if (isFinished.value && timer) {

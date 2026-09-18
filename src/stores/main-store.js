@@ -15,6 +15,7 @@ import { initMessenger } from "src/utils/fbchat";
 import { describeRequestError } from "src/utils/requestError";
 import { etiquetaPago } from "src/utils/metodosPago.js";
 import { agotadoEn, matrizDe, MATRIZ } from "src/utils/sucursales";
+import { ligaDeSeguimiento } from "src/utils/seguimiento";
 
 /**
  * Cuánto esperar antes de cada reintento del menú.
@@ -595,6 +596,9 @@ export const useMainStore = defineStore("main", {
         this.orderStore.setOrder(data);
         this.orderStore.saveToHistory({
           order_code: data.order_code,
+          // Sin esto, el "Ver estado" del historial guardado en este navegador se
+          // queda sin llave y el servidor ya no abre la pagina.
+          tracking_token: data.tracking_token ?? null,
           cart: JSON.parse(JSON.stringify(this.cartStore.cart)),
           total: this.cartStore.total,
           establishment: this.companyStore.slug,
@@ -1097,7 +1101,14 @@ export const useMainStore = defineStore("main", {
       // conversacion de WhatsApp, y de paso el restaurante tiene a la mano la pantalla
       // donde va cambiando el estado.
       lines.push(``);
-      lines.push(`Seguimiento: ${window.location.origin}/${this.companyStore.slug}/pedido/${this.orderStore.orderCode}`);
+      lines.push(
+        `Seguimiento: ${ligaDeSeguimiento(
+          window.location.origin,
+          this.companyStore.slug,
+          this.orderStore.orderCode,
+          this.orderStore.trackingToken
+        )}`
+      );
 
       lines.push(``);
       lines.push(`_Pedido generado desde ${this.establishment.name}_`);

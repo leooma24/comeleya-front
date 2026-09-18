@@ -33,6 +33,10 @@ export const useOrderStore = defineStore("order", {
     orderCode() {
       return this.order.order_code ?? 1;
     },
+    /** El token del pedido recien hecho: es lo que abre su pagina de seguimiento. */
+    trackingToken() {
+      return this.order.tracking_token ?? null;
+    },
   },
   actions: {
     async getMoreOrders(status, slug, params = {}) {
