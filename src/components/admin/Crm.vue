@@ -50,25 +50,42 @@
       </div>
     </div>
 
-    <!-- Stats chips. En celular tambien se deslizan: son una por etapa y en 390 px
-         se envolvian en cuatro renglones antes de enseñar un solo prospecto. -->
+    <!-- Chips por etapa: filtran Lista, Pipeline y Segmentos. En celular se deslizan:
+         son una por etapa y en 390 px se envolvian en cuatro renglones antes de
+         enseñar un solo prospecto. -->
     <div class="mc-cfil" v-if="modoApp">
       <div class="mc-cfil__tira">
-        <span
+        <button type="button" :class="['mc-cfil__c', { 'mc-cfil__c--on': !filter }]" @click="setFilter('')">
+          Todos
+          <i>{{ totalStats }}</i>
+        </button>
+        <button
           v-for="(count, status) in stats"
           :key="status"
-          class="mc-cfil__c"
-          :style="{ cursor: 'default' }"
+          type="button"
+          :class="['mc-cfil__c', { 'mc-cfil__c--on': filter === status }]"
+          @click="setFilter(status)"
         >
           {{ statusLabel(status) }}
           <i>{{ count }}</i>
-        </span>
+        </button>
       </div>
     </div>
 
-    <!-- Stats chips -->
     <div class="mc-crm-stats q-px-md q-pb-md" v-if="!modoApp">
-      <q-chip v-for="(count, status) in stats" :key="status" :color="statusColor(status)" text-color="white" dense>
+      <q-chip clickable dense :outline="!!filter" color="grey-8" text-color="white" @click="setFilter('')">
+        Todos: {{ totalStats }}
+      </q-chip>
+      <q-chip
+        v-for="(count, status) in stats"
+        :key="status"
+        clickable
+        dense
+        :outline="filter !== status"
+        :color="statusColor(status)"
+        :text-color="filter === status ? 'white' : undefined"
+        @click="setFilter(status)"
+      >
         {{ statusLabel(status) }}: {{ count }}
       </q-chip>
     </div>
@@ -89,7 +106,12 @@
 
     <!-- Pipeline View -->
     <div v-if="view === 'pipeline'" class="mc-pipeline">
-      <div class="mc-pipeline-col" v-for="stage in stages" :key="stage.value">
+      <div
+        class="mc-pipeline-col"
+        :class="{ 'mc-pipeline-col--sola': filter }"
+        v-for="stage in visibleStages"
+        :key="stage.value"
+      >
         <div class="mc-pipeline-header" :style="{ borderColor: stageColor(stage.value) }">
           {{ stage.label }}
           <q-badge :color="stageColor(stage.value)" :label="prospectsByStatus(stage.value).length" />
@@ -292,6 +314,7 @@
     <!-- Segments View -->
     <CrmSegments v-if="view === 'segments'"
       :search="search"
+      :status="filter"
       @openActivities="openActivities"
       @openCampaign="openCampaign"
       @whatsapp="openWhatsApp"
@@ -396,10 +419,24 @@ const packageOptions = computed(() =>
   adminStore.packages.map((p) => ({ label: `${p.name} ($${p.monthly_price}/mes)`, value: p.id }))
 );
 
+// El filtro por etapa se toca en los chips; se suma a la busqueda.
+const setFilter = (status) => {
+  filter.value = filter.value === status ? "" : status;
+  // Hoy y Funnel no listan prospectos: filtrar ahi no se veria, se va a la Lista.
+  if (filter.value && ["dashboard", "funnel"].includes(view.value)) view.value = "list";
+};
+
+const totalStats = computed(() => Object.values(stats.value).reduce((a, n) => a + Number(n || 0), 0));
+
+const visibleStages = computed(() => (filter.value ? stages.filter((s) => s.value === filter.value) : stages));
+
 const filteredProspects = computed(() => {
-  if (!search.value) return adminStore.prospects;
+  const byStatus = filter.value
+    ? adminStore.prospects.filter((p) => p.status === filter.value)
+    : adminStore.prospects;
+  if (!search.value) return byStatus;
   const q = search.value.toLowerCase();
-  return adminStore.prospects.filter((p) =>
+  return byStatus.filter((p) =>
     (p.name || "").toLowerCase().includes(q) ||
     (p.business_name || "").toLowerCase().includes(q) ||
     (p.phone || "").includes(q) ||
@@ -713,6 +750,19 @@ const accionesDe = (pr) => [
   flex: 1;
   min-width: 240px;
   max-width: 300px;
+}
+
+// Con una etapa filtrada queda una sola columna: se abre a lo ancho y las
+// tarjetas se acomodan en rejilla en lugar de una tira larga.
+.mc-pipeline-col--sola {
+  max-width: none;
+
+  .mc-pipeline-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    max-height: none;
+    gap: 10px;
+  }
 }
 
 .mc-pipeline-header {

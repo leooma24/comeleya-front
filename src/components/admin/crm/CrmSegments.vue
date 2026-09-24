@@ -112,7 +112,10 @@ import RowActionsMenu from "../RowActionsMenu.vue";
 import { useModoApp } from "src/composables/useModoApp";
 
 const { modoApp } = useModoApp();
-const props = defineProps({ search: { type: String, default: "" } });
+const props = defineProps({
+  search: { type: String, default: "" },
+  status: { type: String, default: "" },
+});
 const emit = defineEmits(["openActivities", "openCampaign", "whatsapp", "sendEmail", "scheduleCall"]);
 const adminStore = useAdminStore();
 
@@ -133,9 +136,12 @@ const segments = [
 const currentSeg = computed(() => segments.find((s) => s.value === selectedSegment.value));
 
 const filteredProspects = computed(() => {
-  if (!props.search) return prospects.value;
+  const byStatus = props.status
+    ? prospects.value.filter((p) => p.status === props.status)
+    : prospects.value;
+  if (!props.search) return byStatus;
   const q = props.search.toLowerCase();
-  return prospects.value.filter((p) =>
+  return byStatus.filter((p) =>
     (p.name || "").toLowerCase().includes(q) ||
     (p.business_name || "").toLowerCase().includes(q) ||
     (p.phone || "").includes(q) ||
