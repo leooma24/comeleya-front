@@ -30,6 +30,9 @@
             { label: 'Funnel', value: 'funnel' },
             { label: 'Segmentos', value: 'segments' },
           ]" />
+        <q-btn outline color="teal" icon="auto_fix_high" no-caps label="Secuencias a todos" :loading="enrolling" @click="enrollAll">
+          <q-tooltip>Cada prospecto con correo recibe la secuencia de su etapa, con copia a info@</q-tooltip>
+        </q-btn>
         <q-btn unelevated color="primary" icon="add" no-caps label="Nuevo prospecto" class="mc-admin-add-btn" @click="adminStore.addProspect" />
       </div>
     </div>
@@ -381,6 +384,7 @@
 <script setup>
 defineOptions({ name: "CrmComponent" });
 import { ref, computed, onMounted } from "vue";
+import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import RowActionsMenu from "./RowActionsMenu.vue";
@@ -396,6 +400,7 @@ import CrmFunnel from "./crm/CrmFunnel.vue";
 const adminStore = useAdminStore();
 const { modoApp } = useModoApp();
 const { confirmDelete } = useConfirmDialog();
+const $q = useQuasar();
 
 const view = ref("dashboard");
 const search = ref("");
@@ -685,6 +690,42 @@ const doConvert = async () => {
   }
 };
 
+// Primero pregunta cuantos entrarian; los correos salen por tandas desde el servidor.
+const enrolling = ref(false);
+const enrollAll = async () => {
+  enrolling.value = true;
+  try {
+    const { data } = await api.post("/admin/prospects/enroll-sequences", { dry_run: true });
+    if (!data.total) {
+      adminStore.messageStore.success("Todos los prospectos con correo ya tienen su secuencia");
+      return;
+    }
+    const c = data.counts;
+    $q.dialog({
+      title: "Secuencias a todos",
+      message:
+        `${data.total} prospectos van a recibir su secuencia: ` +
+        `Bienvenida ${c.welcome}, Nutrición ${c.nurture}, Reactivación ${c.reactivation}. ` +
+        "Los correos salen por tandas de 15 cada 15 minutos, con copia a info@comeleya.com. " +
+        "Los Ganados y los que ya tienen una secuencia activa se quedan fuera.",
+      cancel: { flat: true, label: "Cancelar", noCaps: true },
+      ok: { unelevated: true, color: "teal", label: "Iniciar", noCaps: true },
+    }).onOk(async () => {
+      try {
+        const { data: res } = await api.post("/admin/prospects/enroll-sequences");
+        adminStore.messageStore.success(`${res.total} secuencias iniciadas`);
+        adminStore.getProspects();
+      } catch (e) {
+        adminStore.messageStore.error(e.response?.data?.message || "No se pudieron iniciar");
+      }
+    });
+  } catch (e) {
+    adminStore.messageStore.error(e.response?.data?.message || "No se pudo consultar");
+  } finally {
+    enrolling.value = false;
+  }
+};
+
 const loadStats = async () => {
   try {
     const { data } = await api.get("/admin/prospects/stats");
@@ -702,11 +743,11 @@ onMounted(() => {
 
 const columns = [
   { name: "business_name", label: "Negocio", align: "left", field: "business_name", sortable: true },
-  { name: "phone", label: "Teléfono", align: "left", field: "phone" },
-  { name: "email", label: "Email", align: "left", field: "email" },
+  { name: "phone", label: "Teléfono", align: "left", field: "phone", sortable: true },
+  { name: "email", label: "Email", align: "left", field: "email", sortable: true },
   { name: "deal_value", label: "Valor", align: "right", field: "deal_value", sortable: true },
   { name: "source", label: "Fuente", align: "center", field: "source", sortable: true },
-  { name: "tags", label: "Tags", align: "left", field: "tags" },
+  { name: "tags", label: "Tags", align: "left", field: (r) => (r.tags || []).join(", "), sortable: true },
   { name: "status", label: "Etapa", align: "center", field: "status", sortable: true },
   { name: "last_activity", label: "Última actividad", align: "center", field: (r) => r.activities?.[0]?.created_at, sortable: true },
   { name: "next_contact_at", label: "Próx. contacto", align: "center", field: "next_contact_at", sortable: true },
