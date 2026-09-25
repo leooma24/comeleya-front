@@ -63,6 +63,7 @@ import { ref, watch } from "vue";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { esc } from "src/utils/orderTicket";
+import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { etiquetaPago } from "src/utils/metodosPago.js";
 
 const props = defineProps({
@@ -137,7 +138,7 @@ const imprimir = () => {
   if (!w) return;
   w.document.write(`
     <html><head><title>Corte ${c.date}</title><style>
-      body{font-family:'Consolas','DejaVu Sans Mono','Liberation Mono',Menlo,'Courier New',monospace;font-weight:700;line-height:1.35;max-width:320px;margin:0 auto;padding:12px;color:#000}
+      body{font-family:'Consolas','DejaVu Sans Mono','Liberation Mono',Menlo,'Courier New',monospace;font-weight:700;line-height:1.35;${TICKET_BODY_CSS}color:#000}
       h2{text-align:center;margin:4px 0}.date{text-align:center;margin-bottom:10px}
       .row{display:flex;justify-content:space-between;padding:3px 0}
       .sep{border-top:1px dashed #000;margin:8px 0}.title{font-weight:bold;margin-top:8px}
@@ -158,6 +159,8 @@ const imprimir = () => {
       <div class="date">${new Date().toLocaleString("es-MX")}</div>
     </body></html>`);
   w.document.close();
+  // Sin esto sale en hoja Carta: la termica alimenta todo ese papel en blanco.
+  fitPageToContent(w.document);
   w.focus();
   w.print();
   w.close();

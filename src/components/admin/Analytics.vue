@@ -227,7 +227,7 @@ import { ref, computed, onMounted } from "vue";
 import { etiquetaPago } from "src/utils/metodosPago.js";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
-import { fitPageToContent } from "src/utils/ticketPageSize";
+import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { useFiltroDeLocal } from "src/composables/useFiltroDeLocal";
 
 const adminStore = useAdminStore();
@@ -342,7 +342,7 @@ const printTicketContent = () => {
     <style>
       /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
       html, body { margin: 0; padding: 0; }
-      body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; line-height: 1.35; width: 280px; margin: 0 auto; padding: 10px; }
+      body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; line-height: 1.35; ${TICKET_BODY_CSS} }
       hr { border: none; border-top: 1px dashed #000; }
       .mc-ticket-item, .mc-ticket-preview__totals > div { display: flex; justify-content: space-between; }
       .mc-ticket-total { font-weight: bold; font-size: 14px; margin-top: 4px; }

@@ -9,6 +9,12 @@
 // vuelve a Carta (medido: 215.9 x 279.4 mm, idéntico a no poner nada). La altura
 // tiene que ser una medida concreta, por eso hay que medirla en tiempo de impresión.
 
+// Ancho del ticket en el papel. El rollo mide 80mm pero la cabeza termica solo
+// imprime ~72mm, centrados: lo que cae en los 4mm de cada orilla no sale. Antes el
+// cuerpo media 280px + 10px de padding por lado = 79mm, y se comia la primera y la
+// ultima letra de cada renglon. 70mm deja 1mm de holgura por lado.
+export const TICKET_BODY_CSS = "width: 70mm; box-sizing: border-box; margin: 0 auto; padding: 2mm 1mm;";
+
 const PX_POR_PULGADA = 96;
 const MM_POR_PULGADA = 25.4;
 

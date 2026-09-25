@@ -13,7 +13,7 @@
 
 import { etiquetaPago } from "src/utils/metodosPago.js";
 
-import { fitPageToContent } from "src/utils/ticketPageSize";
+import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { amountToWords } from "src/utils/numberToWords";
 import { orderTotals } from "src/utils/orderTotals";
 import { origenDelPedido } from "src/utils/sucursales";
@@ -22,7 +22,7 @@ const ticketStyles = `
   /* El alto de @page lo inyecta fitPageToContent() al imprimir, medido del contenido.
      Ver src/utils/ticketPageSize.js: sin eso sale una hoja Carta con papel en blanco. */
   html, body { margin: 0; padding: 0; }
-  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; color: #000; line-height: 1.35; }
+  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; ${TICKET_BODY_CSS} color: #000; line-height: 1.35; }
   .item, .row, .cols, .addr, .info div, .letras, .thead, .section-title, .biz span { font-weight: 700; }
   .c-desc, .price, .total, .biz strong { font-weight: 800; }
   .sep { text-align: center; margin: 5px 0; letter-spacing: 1px; }
@@ -31,7 +31,7 @@ const ticketStyles = `
   .biz span { display: block; font-size: 11px; }
   .cols { display: flex; justify-content: space-between; gap: 8px; }
   .cols .col { font-size: 11px; }
-  .cols .col.r { text-align: right; }
+  .cols .col.r { text-align: right; flex: 0 0 auto; white-space: nowrap; }
   .cols .col div { padding: 1px 0; }
   .addr { font-size: 11px; margin-top: 4px; }
   .addr .lbl { font-weight: bold; }

@@ -225,7 +225,7 @@ defineOptions({
 import { ref, watch } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
-import { fitPageToContent } from "src/utils/ticketPageSize";
+import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { rutaDeSeguimiento } from "src/utils/seguimiento";
 const mainStore = useMainStore();
 
@@ -255,7 +255,7 @@ const goToConfirmation = () => {
 const ticketStyles = `
   /* El alto de @page lo inyecta fitPageToContent() al imprimir (ver ticketPageSize.js). */
   html, body { margin: 0; padding: 0; }
-  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; width: 280px; margin: 0 auto; padding: 10px; line-height: 1.35; }
+  body { font-family: 'Consolas', 'DejaVu Sans Mono', 'Liberation Mono', Menlo, 'Courier New', monospace; font-size: 12px; font-weight: 700; ${TICKET_BODY_CSS} line-height: 1.35; }
   .item, .row, .info div { font-weight: 700; }
   .sep { text-align: center; margin: 6px 0; letter-spacing: 2px; color: #333; }
   .item { display: flex; justify-content: space-between; padding: 2px 0; }
