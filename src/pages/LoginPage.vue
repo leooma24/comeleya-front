@@ -452,20 +452,20 @@ onMounted(() => {
   margin-bottom: var(--space-xs);
 }
 
-// Los dos botones del mismo alto: con size="lg" el principal casi doblaba la letra
-// del de Facebook y se veian de dos formularios distintos.
+// Los botones del mismo alto: con size="lg" el principal casi doblaba la letra del de
+// Facebook y se veian de dos formularios distintos. 44 y no 48: el de Google mide 40
+// fijo (lo pinta Google) y con 48 los tres quedaban disparejos.
 .mc-login-btn,
+.mc-facebook-btn {
+  min-height: 44px;
+  font-size: var(--text-base);
+}
+
 // Google pinta un iframe de ancho fijo: se centra para que no quede cargado a la
 // izquierda cuando el formulario es mas ancho que el boton.
 .mc-google-btn {
   display: flex;
   justify-content: center;
-  min-height: 0;
-}
-
-.mc-facebook-btn {
-  min-height: 48px;
-  font-size: var(--text-base);
 }
 
 .mc-login-link {
