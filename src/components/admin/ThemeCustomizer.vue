@@ -196,6 +196,19 @@
             </div>
           </div>
         </admin-section>
+
+        <!-- Abajo tambien: la vista previa pide "dale Guardar" y el unico boton estaba
+             chico, arriba, a varias pantallas de distancia. -->
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="save"
+          label="Guardar tema"
+          class="full-width mc-theme-guardar"
+          :loading="saving"
+          @click="saveTheme"
+        />
       </div>
     </template>
   </q-card>
@@ -213,10 +226,14 @@ const adminStore = useAdminStore();
 const loading = ref(true);
 const saving = ref(false);
 
+// Los de ComeleYa (quasar.config), no los de fabrica de Quasar. Antes aqui estaba el
+// azul #1976D2: un negocio sin tema guardado abria esta pantalla, veia azul, tocaba
+// Guardar y saveTheme copiaba ese azul a `color`. Su menu cambiaba de color sin que
+// nadie lo eligiera.
 const defaultTheme = () => ({
-  primary_color: "#1976D2",
-  secondary_color: "#26A69A",
-  accent_color: "#9C27B0",
+  primary_color: "#E53935",
+  secondary_color: "#1B1B1F",
+  accent_color: "#FF6D00",
   background_color: "#FFFFFF",
   text_color: "#333333",
   font_family: "Inter",
@@ -326,6 +343,12 @@ const saveTheme = async () => {
 };
 
 onMounted(() => {
+  // Primero el color que el negocio YA tiene (el que se ve hoy en su menu); encima,
+  // lo que haya guardado en su tema.
+  const colorActual = adminStore.company?.color;
+  if (colorActual) {
+    theme.value.primary_color = colorActual.startsWith("#") ? colorActual : `#${colorActual}`;
+  }
   const existing = adminStore.company?.theme_config;
   if (existing && typeof existing === "object") {
     Object.assign(theme.value, existing);
@@ -476,5 +499,11 @@ onMounted(() => {
   .mc-color-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.mc-theme-guardar {
+  min-height: 48px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
 }
 </style>

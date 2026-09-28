@@ -300,6 +300,9 @@ const descargarQr = async (tipo = "menu") => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  // En escritorio a lo ancho de la tarjeta los parrafos llegaban a 1,300 px y los
+  // botones parecian barras. Es una pantalla de leer: ancho de lectura.
+  max-width: 860px;
 }
 
 .mc-dif__intro {

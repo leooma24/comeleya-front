@@ -11,7 +11,6 @@
         icon="add"
         label="Nuevo cupón"
         no-caps
-        size="sm"
         class="mc-add-btn"
         @click="openForm()"
       />
@@ -68,9 +67,18 @@
       </div>
     </div>
 
+    <!-- Que es y para que sirve, y el boton ahi mismo: el de arriba es chico y queda
+         lejos de donde se esta viendo. -->
     <div v-else class="mc-empty-state">
-      <q-icon name="confirmation_number" size="56px" color="grey-4" />
-      <p>No hay cupones creados</p>
+      <q-icon name="confirmation_number" size="48px" color="primary" />
+      <p class="text-weight-bold text-body1 q-mb-xs" style="color: var(--color-text-primary)">
+        Aún no tienes cupones
+      </p>
+      <p class="q-mb-md" style="max-width: 440px">
+        Un código como BIENVENIDO10 que tu cliente escribe al pagar para llevarse un
+        descuento. Sirve para atraer clientes nuevos o mover los días flojos.
+      </p>
+      <q-btn unelevated no-caps color="primary" icon="add" label="Crear mi primer cupón" @click="openForm()" />
     </div>
 
     <!-- Form Dialog -->

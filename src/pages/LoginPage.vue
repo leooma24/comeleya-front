@@ -120,6 +120,10 @@
             <span>o continúa con</span>
           </div>
 
+          <!-- Google pinta su propio boton aqui (useGoogleLogin). Sin Client ID en el
+               servidor no aparece nada. -->
+          <div ref="googleBtn" class="mc-google-btn" :class="{ 'q-mb-sm': googleDisponible }" />
+
           <!-- Facebook Button -->
           <q-btn
             outline
@@ -159,6 +163,7 @@ import { reactive, ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useUserStore } from "src/stores/user-store";
 import { useQuasar } from "quasar";
+import { useGoogleLogin } from "src/composables/useGoogleLogin";
 const userStore = useUserStore();
 const route = useRoute();
 const $q = useQuasar();
@@ -193,24 +198,7 @@ const login = async () => {
   const response = await userStore.login(user);
 
   if (response === true) {
-    if (userStore.user.role === "super_admin") {
-      userStore.router.push("/admin");
-    } else {
-      // El negocio de la liga, si es uno de los suyos: quien es dueña de uno y cajera en
-      // otro entra al que abrio, no siempre al primero de la lista.
-      const propios = userStore.user.establishments ?? [];
-      const slug = propios.some((e) => e.slug === route.params.slug)
-        ? route.params.slug
-        : propios[0]?.slug;
-      if (slug) {
-        userStore.router.push(`/${slug}/admin`);
-      } else {
-        // Sin ningun negocio no hay panel al cual mandarla. Antes esto reventaba al leer
-        // establishments[0] y la pantalla se quedaba cargando.
-        userStore.logout();
-        $q.notify({ type: "negative", message: "Tu cuenta no tiene acceso a ningún negocio." });
-      }
-    }
+    irAlPanel();
   } else {
     $q.notify({
       type: "negative",
@@ -220,6 +208,37 @@ const login = async () => {
 
   user.loading = false;
 };
+
+// A donde va cada quien al entrar, sea con contraseña, Google o Facebook.
+const irAlPanel = () => {
+  if (userStore.user.role === "super_admin") {
+    userStore.router.push("/admin");
+  } else {
+    // El negocio de la liga, si es uno de los suyos: quien es dueña de uno y cajera en
+    // otro entra al que abrio, no siempre al primero de la lista.
+    const propios = userStore.user.establishments ?? [];
+    const slug = propios.some((e) => e.slug === route.params.slug)
+      ? route.params.slug
+      : propios[0]?.slug;
+    if (slug) {
+      userStore.router.push(`/${slug}/admin`);
+    } else {
+      // Sin ningun negocio no hay panel al cual mandarla. Antes esto reventaba al leer
+      // establishments[0] y la pantalla se quedaba cargando.
+      userStore.logout();
+      $q.notify({ type: "negative", message: "Tu cuenta no tiene acceso a ningún negocio." });
+    }
+  }
+};
+
+const googleBtn = ref(null);
+const { disponible: googleDisponible } = useGoogleLogin(googleBtn, async (credential) => {
+  user.loading = true;
+  const ok = await userStore.loginWithGoogle(credential);
+  user.loading = false;
+  if (ok === true) irAlPanel();
+  else $q.notify({ type: "negative", message: ok });
+});
 
 const initFb = () => {
   try {
@@ -239,11 +258,9 @@ const initFb = () => {
 const handleFbAuth = async (authResponse) => {
   const ok = await userStore.loginWithFacebook({ access_token: authResponse.accessToken });
   if (ok === true) {
-    if (route.params.slug === undefined) {
-      userStore.router.push("/admin");
-    } else {
-      userStore.router.push(`/${route.params.slug}/admin`);
-    }
+    // Antes Facebook mandaba a /admin a todos: un dueño entraba al panel global,
+    // que no es suyo. Ahora sigue la misma regla que la contraseña.
+    irAlPanel();
   } else if (typeof ok === "string") {
     $q.notify({ type: "negative", message: ok });
   } else {
@@ -438,6 +455,14 @@ onMounted(() => {
 // Los dos botones del mismo alto: con size="lg" el principal casi doblaba la letra
 // del de Facebook y se veian de dos formularios distintos.
 .mc-login-btn,
+// Google pinta un iframe de ancho fijo: se centra para que no quede cargado a la
+// izquierda cuando el formulario es mas ancho que el boton.
+.mc-google-btn {
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
 .mc-facebook-btn {
   min-height: 48px;
   font-size: var(--text-base);

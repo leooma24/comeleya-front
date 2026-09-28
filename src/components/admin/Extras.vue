@@ -115,6 +115,23 @@
       :rows-per-page-options="rowsPerPageOptions"
       class="mc-inner-table"
     >
+      <!-- Vacio de verdad (no por la busqueda): se explica para que sirve. Nadie
+           adivina que "Extras" es donde van los tamaños, salsas y agregados. -->
+      <template v-slot:no-data>
+        <div v-if="!filter" class="mc-extras-vacio">
+          <q-icon name="add_circle_outline" size="40px" color="primary" />
+          <p class="mc-extras-vacio__titulo">Aún no tienes extras</p>
+          <p class="mc-extras-vacio__texto">
+            Los extras son opciones que el cliente elige al pedir: tamaño, salsa,
+            término, ingredientes adicionales con costo. Creas el grupo una vez y lo
+            usas en todos los platillos que lo necesiten.
+          </p>
+          <q-btn unelevated no-caps color="primary" icon="add" label="Crear el primero" @click="adminStore.addGroup" />
+        </div>
+        <div v-else class="full-width text-center text-grey-7 q-pa-md">
+          Ningún extra coincide con "{{ filter }}"
+        </div>
+      </template>
       <template v-slot:body="props">
         <q-tr :props="props">
           <q-td key="name" :props="props">
@@ -234,6 +251,31 @@ const columns = [
 
   :deep(.q-table__top) {
     display: none;
+  }
+}
+
+.mc-extras-vacio {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+
+  &__titulo {
+    margin: var(--space-sm) 0 var(--space-xs);
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  &__texto {
+    max-width: 440px;
+    margin: 0 0 var(--space-md);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
   }
 }
 </style>

@@ -6,7 +6,7 @@
          problemas distintos y hasta hoy se veian iguales. -->
     <div class="mc-embudo" v-if="embudo">
       <div class="mc-embudo__tit">
-        Últimos {{ embudo.dias }} días
+        ¿Cuántos llegan a pedir? · últimos {{ embudo.dias }} días
         <!-- Las visitas al menu no son de un local: se dice para que no se lea como de el. -->
         <small v-if="nombreLocal"> · de todo el negocio</small>
         <small v-if="embudo.robots"> · {{ embudo.robots }} visitas de buscadores, no contadas</small>
@@ -448,9 +448,11 @@ onMounted(async () => {
   small { text-transform: none; letter-spacing: 0; font-weight: 500; }
 }
 
+// Cinco pasos: con cuatro columnas fijas el ultimo ("Te lo mandaron", el que importa)
+// quedaba solo en un segundo renglon.
 .mc-embudo__pasos {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
 }
 
@@ -492,6 +494,8 @@ onMounted(async () => {
 @media (max-width: 1023px) {
   .mc-embudo { padding: 12px var(--mc-lado, 14px) 0; }
   .mc-embudo__pasos { grid-template-columns: repeat(2, 1fr); }
+  // El ultimo es el resultado: a lo ancho, como remate, y no suelto a la mitad.
+  .mc-embudo__paso:last-child { grid-column: 1 / -1; }
 }
 
 .mc-loading {

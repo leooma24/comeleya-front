@@ -92,7 +92,9 @@ module.exports = defineConfig(function (ctx) {
           dark: "#1B1B1F",
           positive: "#43A047",
           negative: "#D32F2F",
-          info: "#F8F9FA",
+          // Era #F8F9FA, casi blanco: la grafica de pedidos por hora del Dashboard, el
+          // icono de ticket promedio y los avisos "info" del pago no se veian.
+          info: "#1E88E5",
           warning: "#FB8C00",
         },
       },

@@ -354,86 +354,9 @@ const getStatus = (tab, orderTab) => {
   padding: var(--space-lg);
 }
 
-.mc-setup-banners {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-/* El aire de abajo solo cuando hay algo que anunciar. Sin esto el contenedor vacio
-   dejaba una franja de 24 px arriba de cada pantalla, que en celular se veia como una
-   banda blanca encima de la cabecera oscura. */
-.mc-setup-banners:not(:empty) {
-  margin-bottom: var(--space-lg);
-}
-
-.mc-setup-banner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid var(--q-warning, #fb8c00);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-fast);
-
-  &:hover {
-    box-shadow: var(--shadow-md);
-  }
-
-  &__icon {
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: color-mix(in srgb, var(--q-warning, #fb8c00) 12%, transparent);
-    color: var(--q-warning, #fb8c00);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  &__text {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-
-    strong {
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--color-text-primary);
-      line-height: 1.3;
-    }
-
-    span {
-      font-size: var(--text-xs);
-      color: var(--color-text-secondary);
-      line-height: 1.4;
-    }
-  }
-
-  &__btn {
-    flex-shrink: 0;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-  }
-}
-
 @media screen and (max-width: 600px) {
   .mc-admin-content {
     padding: var(--space-md);
-  }
-
-  .mc-setup-banner {
-    flex-wrap: wrap;
-    padding: var(--space-md);
-
-    &__btn {
-      width: 100%;
-      margin-top: var(--space-xs);
-    }
   }
 }
 </style>

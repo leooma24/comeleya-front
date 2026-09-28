@@ -281,6 +281,8 @@
     </div>
 
     <!-- Order status tabs -->
+    <!-- Los contadores en linea y no "floating": flotando se encimaban sobre la palabra
+         ("Pendientes" con el 1 encima de la "s"). -->
     <div class="mc-order-tabs" v-if="!modoApp">
       <q-tabs
         v-model="adminStore.orderTab"
@@ -292,31 +294,31 @@
       >
         <q-tab name="pedidos_pendientes">
           <span>Pendientes</span>
-          <q-badge v-if="adminStore.getOrderCounts(1)" color="warning" text-color="dark" floating>
+          <q-badge v-if="adminStore.getOrderCounts(1)" color="warning" text-color="dark" rounded class="q-ml-xs">
             {{ adminStore.getOrderCounts(1) }}
           </q-badge>
         </q-tab>
         <q-tab name="pedidos_en_preparacion">
           <span>En Preparación</span>
-          <q-badge v-if="adminStore.getOrderCounts(2)" color="primary" text-color="white" floating>
+          <q-badge v-if="adminStore.getOrderCounts(2)" color="primary" text-color="white" rounded class="q-ml-xs">
             {{ adminStore.getOrderCounts(2) }}
           </q-badge>
         </q-tab>
         <q-tab name="pedidos_enviados">
           <span>Enviados</span>
-          <q-badge v-if="adminStore.getOrderCounts(3)" color="positive" floating>
+          <q-badge v-if="adminStore.getOrderCounts(3)" color="positive" rounded class="q-ml-xs">
             {{ adminStore.getOrderCounts(3) }}
           </q-badge>
         </q-tab>
         <q-tab name="pedidos_entregados">
           <span>Entregados</span>
-          <q-badge v-if="adminStore.getOrderCounts(4)" color="positive" floating>
+          <q-badge v-if="adminStore.getOrderCounts(4)" color="positive" rounded class="q-ml-xs">
             {{ adminStore.getOrderCounts(4) }}
           </q-badge>
         </q-tab>
         <q-tab name="pedidos_cancelados">
           <span>Cancelados</span>
-          <q-badge v-if="adminStore.getOrderCounts(5)" color="negative" floating>
+          <q-badge v-if="adminStore.getOrderCounts(5)" color="negative" rounded class="q-ml-xs">
             {{ adminStore.getOrderCounts(5) }}
           </q-badge>
         </q-tab>
@@ -523,12 +525,14 @@
              Hasta hoy la tarjeta no decia cuanto valia el pedido, con que se paga ni a
              donde va: para saberlo habia que imprimir el ticket. En la comandera eso es
              justo lo que se necesita antes de aceptar. -->
-        <div class="mc-cobro" v-if="modoApp">
+        <!-- En escritorio tambien: en la computadora del mostrador la tarjeta tampoco
+             decia cuanto cobrar. La direccion ahi ya sale en los datos de arriba. -->
+        <div class="mc-cobro" :class="{ 'mc-cobro--escritorio': !modoApp }">
           <div class="mc-cobro__fila">
             <span class="mc-cobro__monto">{{ dinero(totalCobrar(order)) }}</span>
             <span class="mc-cobro__pago" v-if="pagoTexto(order)">{{ pagoTexto(order) }}</span>
           </div>
-          <div class="mc-cobro__dir" v-if="order.delivery === 'Envio' && order.delivery_address">
+          <div class="mc-cobro__dir" v-if="modoApp && order.delivery === 'Envio' && order.delivery_address">
             <mc-icon name="pin" :size="13" />
             <span>{{ order.delivery_address }}</span>
           </div>
@@ -829,7 +833,10 @@ const agoText = (created) => {
   if (m < 1) return "recién";
   if (m < 60) return `hace ${m} min`;
   const h = Math.floor(m / 60);
-  return `hace ${h} h`;
+  if (h < 24) return `hace ${h} h`;
+  // Antes seguia en horas para siempre: un pedido viejo decia "hace 5051 h".
+  const d = Math.floor(h / 24);
+  return d === 1 ? "hace 1 día" : `hace ${d} días`;
 };
 // Atrasado: pendiente (1) o en preparación (2) por 15+ minutos
 const isOverdue = (order) =>
@@ -1392,6 +1399,14 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 .mc-cobro {
   padding: 9px 13px 0;
 }
+.mc-cobro--escritorio {
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
+  border-top: 1px dashed var(--color-border);
+  margin-top: var(--space-sm);
+
+  .mc-cobro__monto { font-size: var(--text-xl); }
+  .mc-cobro__pago { font-size: var(--text-xs); }
+}
 .mc-cobro__fila { display: flex; align-items: baseline; gap: 9px; }
 .mc-cobro__monto {
   font-size: 17px; font-weight: 700; letter-spacing: -0.035em;
@@ -1417,13 +1432,24 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 
 /* La accion principal manda: grande y sola. Las de apoyo se hacen a un lado. */
 .mc-order-card--app {
-  .mc-order-actions {
-    display: flex; flex-wrap: wrap; gap: 7px;
+  // Los botones viven en __footer desde hace rato; la regla seguia apuntando a
+  // .mc-order-actions y no le pegaba a nada: "Preparar" media 21 px de alto en el
+  // celular, la mitad de lo que necesita un dedo con prisa.
+  .mc-order-actions,
+  .mc-order-card__footer {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
 
     .q-btn { flex: 0 0 auto; }
     // Preparar, Enviar y Entregar son las que avanzan el pedido.
-    .q-btn--unelevated { flex: 1 1 auto; min-height: 42px; border-radius: 12px; font-weight: 620; }
+    .q-btn--unelevated { flex: 1 1 auto; min-height: 44px; border-radius: 12px; font-weight: 620; font-size: 14px; }
   }
+}
+
+// En escritorio tambien un poco mas de cuerpo: es el boton que se toca todo el dia.
+.mc-order-card:not(.mc-order-card--app) .mc-order-card__footer .q-btn--unelevated {
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: var(--text-sm);
 }
 
 .mc-close-day {
@@ -1679,6 +1705,12 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
     width: 70px;
     font-size: var(--text-xs);
   }
+}
+
+// Nombre y contador en el mismo renglon: Quasar apila el contenido del tab.
+.mc-order-status-tabs :deep(.q-tab__content) {
+  flex-direction: row;
+  align-items: center;
 }
 
 @media screen and (max-width: 600px) {

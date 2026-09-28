@@ -39,6 +39,7 @@ const actions = computed(() => {
   return [
     {
       key: "featured",
+      principal: true,
       icon: p.is_featured ? "star" : "star_border",
       color: p.is_featured ? "amber-8" : "grey-7",
       label: p.is_featured ? "Quitar destacado" : "Destacar",
@@ -55,6 +56,7 @@ const actions = computed(() => {
     // lugar de apagarlo en todos los locales de una.
     {
       key: "soldout",
+      principal: true,
       icon: faltaEnAlgunLado(p) ? "remove_shopping_cart" : "shopping_cart_checkout",
       color: faltaEnAlgunLado(p) ? "negative" : "grey-7",
       label: tieneSucursales(companyStore.company)
@@ -66,6 +68,7 @@ const actions = computed(() => {
     },
     {
       key: "edit",
+      principal: true,
       icon: "edit",
       color: "grey-7",
       label: "Editar",

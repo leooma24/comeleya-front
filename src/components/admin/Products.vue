@@ -233,10 +233,23 @@
             </td>
             <td>
               <q-img
+                v-if="element.photo"
                 :src="element.photo"
                 class="mc-product-thumb"
                 :ratio="1"
               />
+              <!-- Sin foto la celda quedaba en blanco y no se notaba que faltaba nada.
+                   Ahora dice que falta y lleva directo a subirla. -->
+              <button
+                v-else
+                type="button"
+                class="mc-product-thumb mc-product-thumb--vacia"
+                aria-label="Agregar foto"
+                @click="editProduct(element)"
+              >
+                <q-icon name="add_a_photo" size="18px" />
+                <q-tooltip>Agregar foto</q-tooltip>
+              </button>
             </td>
             <td class="text-left">
               <span class="text-weight-medium">{{ element.name }}</span>
@@ -607,8 +620,10 @@ const filter = ref("");
 const statusFilter = ref("all"); // all | featured | not_featured | sold_out | available | offer
 const showResults = ref("table");
 const currentPage = ref(1);
-const rowsPerPage = ref(10);
-const rowsPerPageOptions = [5, 10, 15, 20, 50];
+// 25 de entrada: un menu tipico tiene 50-100 platillos y de 10 en 10 se pasaba mas
+// tiempo en el paginador que en la lista.
+const rowsPerPage = ref(25);
+const rowsPerPageOptions = [10, 25, 50, 100];
 
 const categoryFilter = ref(null); // id de categoría o null (todas)
 
@@ -1190,6 +1205,22 @@ body.mc-modo-app {
 
   tr:hover .drag-handle {
     opacity: 0.7;
+  }
+}
+
+.mc-product-thumb--vacia {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface-variant);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+
+  &:hover {
+    color: var(--q-primary);
+    border-color: var(--q-primary);
   }
 }
 

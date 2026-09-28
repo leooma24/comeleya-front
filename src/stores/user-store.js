@@ -31,6 +31,23 @@ export const useUserStore = defineStore("user", {
     setProfileForm() {
       this.userForm = Object.assign({}, this.user);
     },
+    // La credencial es el ID token del boton de Google; el servidor la verifica con
+    // Google y de ahi saca el correo (el del navegador no cuenta).
+    async loginWithGoogle(credential) {
+      this.user = null;
+      try {
+        const { data } = await api.post("/login/google", { credential });
+        this.token = data.token;
+        await this.getUser();
+        return true;
+      } catch (error) {
+        if (error.code === "ERR_NETWORK") return "No hay conexión a internet";
+        if (error.response?.status === 404) {
+          return "No hay una cuenta con ese correo de Google. Regístrate primero o entra con tu contraseña.";
+        }
+        return "No se pudo iniciar sesión con Google";
+      }
+    },
     async loginWithFacebook(payload) {
       this.user = null;
       try {

@@ -1,7 +1,7 @@
 <template>
-  <div :class="{ 'mc-hoy-orden': modoApp }">
+  <div :class="['mc-dash-orden', { 'mc-hoy-orden': modoApp }]">
     <!-- ONBOARDING WIZARD (only if setup incomplete) -->
-    <q-card v-if="showWizard && !loading" flat class="mc-admin-card q-mb-md">
+    <q-card v-if="showWizard && !loading" flat class="mc-admin-card q-mb-md mc-dash-wizard">
       <div class="mc-admin-card__header">
         <div class="mc-admin-card__title">
           <q-icon name="rocket_launch" size="24px" color="primary" class="q-mr-sm" />
@@ -59,7 +59,7 @@
             <span class="text-weight-medium">{{ opt.title }}</span>
             <span class="text-caption text-grey-6">{{ opt.desc }}</span>
           </div>
-          <q-btn outline no-caps :color="opt.color" :label="opt.btnLabel" size="sm" @click="opt.action" />
+          <q-btn outline no-caps color="primary" :label="opt.btnLabel" class="mc-optimization-row__btn" @click="opt.action" />
         </div>
       </div>
     </q-card>
@@ -105,14 +105,14 @@
           <q-btn
             flat dense no-caps color="primary" size="sm" label="Arreglar"
             class="mc-mh-finding__btn"
-            @click="handleSuggestion(f.action)"
+            @click="f.key === 'no_offer' ? (showFlashOffer = true) : handleSuggestion(f.action)"
           />
         </div>
       </div>
     </q-card>
 
     <!-- MAIN DASHBOARD (existing stats) -->
-    <q-card flat class="mc-admin-card" :class="{ 'mc-hoy-app': modoApp }">
+    <q-card flat class="mc-admin-card mc-dash-cifras" :class="{ 'mc-hoy-app': modoApp }">
       <!-- Cabecera de celular: la seccion, la fecha y el periodo como control
            segmentado. Las acciones pasan a dos botones parejos abajo. -->
       <mc-encabezado
@@ -317,7 +317,7 @@
               <span class="text-weight-bold">{{ sug.title }}</span>
               <span class="text-caption text-grey-6">{{ sug.desc }}</span>
             </div>
-            <q-btn v-if="sug.action" flat no-caps :color="sug.color" size="sm" :label="actionLabel(sug.action)" @click="handleSuggestion(sug.action)" />
+            <q-btn v-if="sug.action" flat no-caps color="primary" size="sm" :label="actionLabel(sug.action)" @click="handleSuggestion(sug.action)" />
           </div>
         </div>
 
@@ -386,6 +386,7 @@
 
     <!-- CUSTOMERS SECTION -->
     <q-card
+      id="mc-dash-clientes"
       v-if="stats.customers?.length && !loading"
       flat
       class="mc-admin-card q-mt-md"
@@ -893,34 +894,11 @@ const showWizard = computed(() => wizardProgress.value < 100);
 // --- OPTIMIZATION CHECKLIST ---
 const optimizations = computed(() => {
   const opts = [];
-  const c = adminStore.company || {};
   const products = adminStore.products || [];
 
-  const productsNoPhoto = products.filter((p) => !p.photo).length;
-  if (productsNoPhoto > 0) {
-    opts.push({
-      key: "photos",
-      icon: "photo_camera",
-      color: "orange",
-      title: `${productsNoPhoto} platillos sin foto`,
-      desc: "Los platillos con foto se venden hasta 3x más",
-      btnLabel: "Ir a productos",
-      action: () => { adminStore.tab = "productos"; },
-    });
-  }
-
-  if (!products.some((p) => p.is_featured)) {
-    opts.push({
-      key: "featured",
-      icon: "star",
-      color: "amber-8",
-      title: "Sin platillos destacados",
-      desc: "Destaca tus mejores platillos para que aparezcan primero",
-      btnLabel: "Ir a productos",
-      action: () => { adminStore.tab = "productos"; },
-    });
-  }
-
+  // Las fotos y los destacados los cuenta "Salud de tu menú", con la lista de platillos, y el numero de
+  // WhatsApp lo avisa la banda de arriba (Avisos.vue). Repetidos aqui, el dueño leia
+  // "55 platillos sin foto" dos veces en la misma pantalla.
   const hasCoupons = adminStore.company?.coupons_count > 0;
   if (!hasCoupons && products.length > 0) {
     opts.push({
@@ -931,18 +909,6 @@ const optimizations = computed(() => {
       desc: "Crea un cupón de descuento para atraer nuevos clientes",
       btnLabel: "Crear cupón",
       action: () => { adminStore.tab = "cupones"; },
-    });
-  }
-
-  if (!c.whatsapp) {
-    opts.push({
-      key: "whatsapp",
-      icon: "fab fa-whatsapp",
-      color: "green",
-      title: "WhatsApp no configurado",
-      desc: "Recibe pedidos directamente a tu WhatsApp",
-      btnLabel: "Configurar",
-      action: () => adminStore.setEstablishmentDrawer(true),
     });
   }
 
@@ -1053,12 +1019,17 @@ const actionLabel = (action) => ({
   customers: "Ver clientes",
 })[action] || "Ver";
 
+// Los consejos del panel mandan "products"; los de "Salud de tu menú", "productos".
+// Solo se reconocia el primero, asi que ningun "Arreglar" de la salud del menu hacia
+// nada. Y "Ver clientes" tenia el cuerpo vacio.
 const handleSuggestion = (action) => {
   if (action === "share") window.open(`/${adminStore.slug}`, "_blank");
-  else if (action === "products") adminStore.tab = "productos";
+  else if (action === "products" || action === "productos") adminStore.tab = "productos";
   else if (action === "coupons") adminStore.tab = "cupones";
   else if (action === "loyalty") adminStore.tab = "lealtad";
-  else if (action === "customers") {} // scroll to customers section
+  else if (action === "customers") {
+    document.getElementById("mc-dash-clientes")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 };
 
 // --- CUSTOMER TOOLS ---
@@ -1366,6 +1337,18 @@ onMounted(async () => {
 
 /* El orden importa: en celular lo primero tiene que ser el numero del dia, no el
    asesor del menu. En escritorio el orden de siempre se respeta. */
+// Escritorio: las cifras del dia primero y los consejos despues. El dueño abre el panel
+// para ver como van las ventas; antes tenia que bajar tres tarjetas de sugerencias
+// para encontrarlas. Mientras no termine de configurar, el asistente va arriba de todo:
+// un negocio nuevo no tiene cifras que ver.
+.mc-dash-orden {
+  display: flex;
+  flex-direction: column;
+
+  > .mc-dash-cifras { order: -1; }
+  > .mc-dash-wizard { order: -2; }
+}
+
 .mc-hoy-orden {
   display: flex;
   flex-direction: column;
@@ -1490,6 +1473,9 @@ onMounted(async () => {
   border-bottom: 1px solid var(--color-border-subtle);
   &:last-child { border-bottom: none; }
   &__text { flex: 1; display: flex; flex-direction: column; }
+  // Un solo estilo: antes cada boton traia el color de su icono (naranja, morado,
+  // verde) y se leian como cuatro acciones de distinta importancia.
+  &__btn { border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-xs); flex-shrink: 0; }
 }
 
 // Stats

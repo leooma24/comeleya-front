@@ -138,14 +138,16 @@
               <span class="text-weight-medium">{{ element.name }}</span>
             </td>
             <td class="text-center">
+              <!-- El mismo sello que en Productos (antes uno era verde lleno y el otro
+                   verde claro). Y en femenino: es LA categoria. -->
               <q-chip
                 dense
-                :color="element.status === 'Activa' ? 'positive' : 'grey-4'"
-                :text-color="element.status === 'Activa' ? 'white' : 'grey-7'"
                 size="sm"
-              >
-                {{ element.status === 'Activa' ? 'Activo' : 'Inactivo' }}
-              </q-chip>
+                :color="element.status === 'Activa' ? 'green-1' : 'red-1'"
+                :text-color="element.status === 'Activa' ? 'positive' : 'negative'"
+                :icon="element.status === 'Activa' ? 'check_circle' : 'cancel'"
+                :label="element.status === 'Activa' ? 'Activa' : 'Inactiva'"
+              />
             </td>
             <td class="text-right">
               <row-actions-menu
@@ -226,8 +228,10 @@ const activasCuenta = computed(
   () => (adminStore.categories || []).filter((c) => c.status === "Activa").length
 );
 const currentPage = ref(1);
-const rowsPerPage = ref(10);
-const rowsPerPageOptions = [5, 10, 15, 20, 50];
+// Todas en una pagina: se ordenan arrastrando, y paginadas no se podia subir una de la
+// pagina 2 a la 1. Un menu no pasa de unas decenas de categorias.
+const rowsPerPage = ref(100);
+const rowsPerPageOptions = [25, 50, 100];
 
 watch(filter, () => {
   currentPage.value = 1;
