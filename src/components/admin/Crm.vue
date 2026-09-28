@@ -954,8 +954,26 @@ const accionesDe = (pr) => [
     box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.18);
   }
 
-  :deep(thead th:first-child) {
+  // La tabla mide a lo mas lo que cabe en pantalla y se desplaza por dentro. Asi la
+  // barra horizontal siempre queda a la vista, abajo de la ventana; antes estaba al
+  // final de la tabla y habia que bajar 25 renglones para alcanzarla.
+  // 380 = lo que ocupa arriba (barra, titulo del CRM, filtros) mas el paginador de
+  // abajo. En pantallas bajas no se encoge de mas: minimo 320.
+  :deep(.q-table__middle) {
+    max-height: max(320px, calc(100vh - 380px));
+  }
+
+  // Los titulos tambien fijos, arriba, al bajar por la lista.
+  :deep(thead th) {
+    position: sticky;
+    top: 0;
     z-index: 2;
+    background: var(--color-surface);
+  }
+
+  // La esquina (titulo "Negocio") por encima de todo: es fija en los dos sentidos.
+  :deep(thead th:first-child) {
+    z-index: 3;
   }
 
   :deep(tbody tr:hover td:first-child) {
