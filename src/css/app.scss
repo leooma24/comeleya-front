@@ -776,9 +776,17 @@ h6 {
   margin-bottom: var(--space-md);
   transition: border-color var(--transition-fast);
 
-  &--error {
+  // Doble clase a proposito: el .mc-form-section del panel (mas abajo en este mismo
+  // archivo) redefine `border` y, con la misma especificidad, le ganaba a este. El
+  // cajon de datos marcaba la seccion en error y en pantalla no cambiaba nada.
+  &.mc-form-section--error {
     border-color: var(--q-negative);
+    background: color-mix(in srgb, var(--q-negative) 5%, var(--color-surface));
     animation: shake 0.4s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 }
 
@@ -788,6 +796,14 @@ h6 {
   font-weight: 600;
   margin: 0 0 var(--space-md);
   color: var(--color-text-primary);
+}
+
+// Lo que falta en una seccion del pedido, dicho con palabras y no solo con el borde.
+.mc-section-error {
+  margin: calc(-1 * var(--space-sm)) 0 var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--q-negative);
 }
 
 // ============================================

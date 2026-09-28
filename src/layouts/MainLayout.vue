@@ -137,9 +137,14 @@ import ValidationDialog from "src/components/client/ValidationDialog.vue";
 
 import { useMainStore } from "src/stores/main-store";
 import { cartBarCta } from "src/utils/cartBarCta";
+import { aplicarTemaComeleya } from "src/utils/temaComeleya";
+import { useRoute } from "vue-router";
 
 const mainStore = useMainStore();
-mainStore.checkColor();
+// Este layout tambien lo usan el alta y recuperar contraseña, que son de ComeleYa:
+// ahi el color guardado del ultimo menu visitado no tiene nada que hacer.
+if (useRoute().params.slug) mainStore.checkColor();
+else aplicarTemaComeleya();
 const showSearch = ref(true);
 const searchExpanded = ref(false);
 
@@ -265,7 +270,8 @@ onUnmounted(() => {
   if (cartStopWatch) cartStopWatch();
   if (onParentMessage) window.removeEventListener("message", onParentMessage);
 });
-if (mainStore.router.currentRoute.value.path === "/nuevo-establecimiento") {
+// Sin negocio (alta, recuperar contraseña) no hay menu que buscar.
+if (!mainStore.router.currentRoute.value.params.slug) {
   showSearch.value = false;
 }
 

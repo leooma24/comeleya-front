@@ -31,7 +31,7 @@
           <span class="mc-points-label">puntos</span>
         </div>
         <p class="mc-points-info" v-if="config.points_value">
-          Equivalen a <strong>${{ (points * config.points_value).toFixed(2) }}</strong> en descuentos
+          Equivalen a <strong>{{ dinero(points * config.points_value) }}</strong> en descuentos
         </p>
         <p class="mc-points-info">{{ earnText }}</p>
       </q-card-section>
@@ -46,6 +46,7 @@ import { ref, computed } from "vue";
 import { api } from "boot/axios";
 import { useCompanyStore } from "src/stores/company-store";
 import { useNegocioCargado } from "src/composables/useNegocioCargado";
+import { dinero } from "src/utils/dinero";
 
 const companyStore = useCompanyStore();
 

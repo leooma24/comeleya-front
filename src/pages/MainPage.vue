@@ -118,66 +118,25 @@
           <div class="col-12">
             <h4 class="text-center q-mb-lg">¿Cómo funciona?</h4>
           </div>
-          <div class="col-md-3 col-xs-12">
-            <div class="mc-step">
-              <div class="mc-step-icon">
-                <q-icon name="app_registration" size="32px" color="primary" />
+          <!-- Una sola cuadricula y el orden por ancho. Antes eran cuatro pasos
+               duplicados con mobile-only/desktop-only, que preguntan la PLATAFORMA: en
+               una ventana angosta de computadora o en un iPad se saltaba del 1 al 4. -->
+          <div class="col-12">
+            <div class="mc-steps">
+              <div
+                v-for="(paso, i) in pasos"
+                :key="paso.titulo"
+                :class="['mc-step', `mc-step--${i + 1}`]"
+              >
+                <div class="mc-step-icon">
+                  <q-icon :name="paso.icono" size="32px" color="primary" />
+                </div>
+                <h5 class="q-my-sm text-primary">Paso {{ i + 1 }}</h5>
+                <p class="mc-text-secondary">{{ paso.titulo }}</p>
               </div>
-              <h5 class="q-my-sm text-primary">Paso 1</h5>
-              <p class="mc-text-secondary">Regístrate y crea tu cuenta gratis.</p>
-            </div>
-
-            <q-separator class="q-my-md" />
-
-            <div class="mc-step mobile-only">
-              <div class="mc-step-icon">
-                <q-icon name="restaurant_menu" size="32px" color="primary" />
+              <div class="mc-steps__img">
+                <q-img src="~/assets/Img tableta.png" alt="Menú digital en una tableta" />
               </div>
-              <h5 class="q-my-sm text-primary">Paso 2</h5>
-              <p class="mc-text-secondary">Sube tu menú y personaliza tu tienda.</p>
-            </div>
-
-            <div class="mc-step desktop-only">
-              <div class="mc-step-icon">
-                <q-icon name="share" size="32px" color="primary" />
-              </div>
-              <h5 class="q-my-sm text-primary">Paso 3</h5>
-              <p class="mc-text-secondary">Comparte el link o QR con tus clientes.</p>
-            </div>
-          </div>
-
-          <div class="col-md-6 col-xs-12 flex justify-center">
-            <q-img
-              src="~/assets/Img tableta.png"
-              alt="Tableta"
-            />
-          </div>
-
-          <div class="col-md-3 col-xs-12">
-            <div class="mc-step desktop-only">
-              <div class="mc-step-icon">
-                <q-icon name="restaurant_menu" size="32px" color="primary" />
-              </div>
-              <h5 class="q-my-sm text-primary">Paso 2</h5>
-              <p class="mc-text-secondary">Sube tu menú y personaliza tu tienda.</p>
-            </div>
-
-            <div class="mc-step mobile-only">
-              <div class="mc-step-icon">
-                <q-icon name="share" size="32px" color="primary" />
-              </div>
-              <h5 class="q-my-sm text-primary">Paso 3</h5>
-              <p class="mc-text-secondary">Comparte el link o QR con tus clientes.</p>
-            </div>
-
-            <q-separator class="q-my-md" />
-
-            <div class="mc-step">
-              <div class="mc-step-icon">
-                <q-icon name="rocket_launch" size="32px" color="primary" />
-              </div>
-              <h5 class="q-my-sm text-primary">Paso 4</h5>
-              <p class="mc-text-secondary">Recibe pedidos directo a tu WhatsApp.</p>
             </div>
           </div>
         </div>
@@ -326,21 +285,31 @@
                 ${{ formatPrice(pkg.monthly_price) }}/Mes
               </p>
 
-              <div class="mc-pkg-limits q-mb-sm" v-if="pkg.max_products > 0 || pkg.max_categories > 0">
-                <q-chip v-if="pkg.max_products > 0" dense size="sm" color="blue-1" text-color="blue-8">{{ pkg.max_products }} productos</q-chip>
-                <q-chip v-if="pkg.max_products === 0" dense size="sm" color="green-1" text-color="green-8">Productos ilimitados</q-chip>
-                <q-chip v-if="pkg.max_categories > 0" dense size="sm" color="purple-1" text-color="purple-8">{{ pkg.max_categories }} categorías</q-chip>
+              <!-- Sin limite (0) tambien se dice: el plan mas caro era el unico sin
+                   chips, y se leia como si no incluyera productos. -->
+              <div class="mc-pkg-limits q-mb-sm">
+                <q-chip dense size="sm" :color="pkg.max_products > 0 ? 'blue-1' : 'green-1'" :text-color="pkg.max_products > 0 ? 'blue-8' : 'green-8'">
+                  {{ pkg.max_products > 0 ? `${pkg.max_products} productos` : "Productos ilimitados" }}
+                </q-chip>
+                <q-chip dense size="sm" :color="pkg.max_categories > 0 ? 'purple-1' : 'green-1'" :text-color="pkg.max_categories > 0 ? 'purple-8' : 'green-8'">
+                  {{ pkg.max_categories > 0 ? `${pkg.max_categories} categorías` : "Categorías ilimitadas" }}
+                </q-chip>
               </div>
 
+              <!-- Del segundo plan en adelante solo va lo que agrega. Con la lista
+                   completa las cuatro tarjetas empezaban con las mismas cuatro lineas y
+                   no se veia en que se distinguen. -->
+              <p v-if="i > 0" class="mc-pkg-includes">Todo lo de {{ packages[i - 1].name }}{{ pkgFeatures(i).length ? ", más:" : "." }}</p>
               <ul class="text-left">
-                <li v-for="(feat, fi) in expandedPkgs[pkg.id] ? getPkgFeatures(pkg) : getPkgFeatures(pkg).slice(0, maxVisibleFeatures)" :key="fi">
+                <li v-for="(feat, fi) in expandedPkgs[pkg.id] ? pkgFeatures(i) : pkgFeatures(i).slice(0, maxVisibleFeatures)" :key="fi">
                   <span>{{ feat }}</span>
                 </li>
               </ul>
-              <q-btn v-if="getPkgFeatures(pkg).length > maxVisibleFeatures" flat dense no-caps size="xs"
-                :label="expandedPkgs[pkg.id] ? 'Ver menos' : `+${getPkgFeatures(pkg).length - maxVisibleFeatures} mas`"
+              <q-btn v-if="pkgFeatures(i).length > maxVisibleFeatures" flat dense no-caps
+                class="q-mb-sm mc-pkg-more"
+                :label="expandedPkgs[pkg.id] ? 'Ver menos' : `Ver ${pkgFeatures(i).length - maxVisibleFeatures} más`"
                 :icon-right="expandedPkgs[pkg.id] ? 'expand_less' : 'expand_more'"
-                color="primary" class="q-mb-sm"
+                color="primary"
                 @click="expandedPkgs[pkg.id] = !expandedPkgs[pkg.id]"
               />
 
@@ -455,7 +424,7 @@
         <div class="row items-center">
           <div class="col-md-7 col-xs-12">
             <h2 class="text-white q-mb-md">Empieza gratis y véndelo todo</h2>
-            <p class="text-white text-h5" style="opacity: 0.9">
+            <p class="text-white mc-startnow-sub">
               15 días gratis con todas las funciones. Sin tarjeta. Sin comisiones. Sin compromiso.
             </p>
 
@@ -511,7 +480,7 @@
               <q-card-section>
                 <div class="row q-col-gutter-md">
                   <div class="col-12 col-sm-6">
-                    <q-input v-model="contactForm.name" filled dense label="Nombre" />
+                    <q-input v-model="contactForm.name" filled dense label="Nombre *" />
                   </div>
                   <div class="col-12 col-sm-6">
                     <q-input v-model="contactForm.business" filled dense label="Nombre del negocio" />
@@ -520,7 +489,7 @@
                     <q-input v-model="contactForm.email" filled dense label="Email" type="email" />
                   </div>
                   <div class="col-12 col-sm-6">
-                    <q-input v-model="contactForm.phone" filled dense label="Teléfono / WhatsApp" />
+                    <q-input v-model="contactForm.phone" filled dense label="Teléfono / WhatsApp *" type="tel" />
                   </div>
                   <div class="col-12">
                     <q-select v-model="contactForm.interest" filled dense label="¿Qué te interesa?" :options="interestOptions" />
@@ -535,6 +504,16 @@
                       @click="sendContact"
                     />
                   </div>
+                </div>
+                <div v-if="contactError" class="text-negative text-center q-mt-md text-weight-medium">
+                  {{ contactError }}
+                  <a
+                    v-if="contactErrorWhatsApp"
+                    href="https://wa.me/526688180202?text=Hola%2C%20me%20interesa%20ComeleYa%20para%20mi%20restaurante"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-primary"
+                  >Abrir WhatsApp</a>
                 </div>
                 <div v-if="contactSent" class="text-positive text-center q-mt-md text-weight-medium">
                   <q-icon name="check_circle" size="20px" class="q-mr-xs" />
@@ -629,6 +608,7 @@ import { useMeta } from "quasar";
 import { api } from "boot/axios";
 import EmailCheckoutDialog from "src/components/EmailCheckoutDialog.vue";
 import LogosClientes from "src/components/LogosClientes.vue";
+import { aplicarTemaComeleya } from "src/utils/temaComeleya";
 
 // El <title> del index es "ComeleYa" a secas. La description NO va aqui: la estatica
 // de index.html (productDescription en package.json) ya dice lo correcto y Quasar no
@@ -638,19 +618,13 @@ useMeta({
   title: "ComeleYa | Menú digital con pedidos por WhatsApp, sin comisiones",
 });
 
-// Reset any establishment theme that may have been applied
-const resetTheme = () => {
-  const body = document.querySelector("body");
-  body.style.setProperty("--q-primary", "#E53935");
-  body.style.setProperty("--q-secondary", "#1B1B1F");
-  body.style.setProperty("--q-accent", "#FF6D00");
-  body.style.removeProperty("--mc-bg");
-  body.style.removeProperty("--mc-text");
-  body.style.removeProperty("--mc-radius");
-  body.style.backgroundColor = "";
-  body.style.color = "";
-  body.style.fontFamily = "";
-};
+
+const pasos = [
+  { icono: "app_registration", titulo: "Regístrate y crea tu cuenta gratis." },
+  { icono: "restaurant_menu", titulo: "Sube tu menú y personaliza tu tienda." },
+  { icono: "share", titulo: "Comparte el link o QR con tus clientes." },
+  { icono: "rocket_launch", titulo: "Recibe pedidos directo a tu WhatsApp." },
+];
 
 const billingCycle = ref("monthly");
 const packages = ref([]);
@@ -716,6 +690,14 @@ const getPkgFeatures = (pkg) => {
   return features;
 };
 
+// Lo que el plan i agrega sobre el anterior (el primero lleva todo).
+const pkgFeatures = (i) => {
+  const propias = getPkgFeatures(packages.value[i]);
+  if (i === 0) return propias;
+  const anteriores = new Set(getPkgFeatures(packages.value[i - 1]));
+  return propias.filter((f) => !anteriores.has(f));
+};
+
 const formatPrice = (price) => {
   return Number(price || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
@@ -735,7 +717,10 @@ const loadPackages = async () => {
       sorted[1].is_featured = true;
     }
     packages.value = sorted;
-    if (sorted.length) calcPlan.value = parseFloat(sorted[0].monthly_price);
+    // Contra el primer plan de pago: comparar con el gratis prometia ahorrar la
+    // comision completa con un plan que solo aguanta 20 productos.
+    const primeroDePago = sorted.find((p) => parseFloat(p.monthly_price) > 0) || sorted[0];
+    if (primeroDePago) calcPlan.value = parseFloat(primeroDePago.monthly_price);
   } catch (e) {
     // Fallback hardcoded if API fails
     packages.value = [
@@ -767,6 +752,8 @@ const loadClientes = async () => {
 const contactForm = ref({ name: "", business: "", email: "", phone: "", interest: "", message: "" });
 const sendingContact = ref(false);
 const contactSent = ref(false);
+const contactError = ref("");
+const contactErrorWhatsApp = ref(false);
 const interestOptions = [
   "Quiero una demo",
   "Tengo dudas sobre los planes",
@@ -776,21 +763,30 @@ const interestOptions = [
 ];
 
 const sendContact = async () => {
-  if (!contactForm.value.name || !contactForm.value.phone) return;
+  contactError.value = "";
+  contactErrorWhatsApp.value = false;
+  // Antes se quedaba callado si faltaban estos dos: el boton no hacia nada.
+  if (!contactForm.value.name || !contactForm.value.phone) {
+    contactError.value = "Déjanos tu nombre y tu teléfono para poder contactarte.";
+    return;
+  }
   sendingContact.value = true;
   try {
     await api.post("/contact", contactForm.value);
     contactSent.value = true;
     contactForm.value = { name: "", business: "", email: "", phone: "", interest: "", message: "" };
   } catch (e) {
-    // Still show success to user - the form data can be logged
-    contactSent.value = true;
+    // Antes aqui tambien se decia "Mensaje enviado": el prospecto se iba contento y
+    // nadie recibia nada. Se le dice la verdad y se le da la otra puerta.
+    contactSent.value = false;
+    contactError.value = "No pudimos enviar tu mensaje. Escríbenos por WhatsApp y te atendemos ahí.";
+    contactErrorWhatsApp.value = true;
   } finally {
     sendingContact.value = false;
   }
 };
 
-onMounted(() => { resetTheme(); loadPackages(); loadClientes(); });
+onMounted(() => { aplicarTemaComeleya(); loadPackages(); loadClientes(); });
 
 const newFeatures = ref([
   { icon: "auto_fix_high", title: "Fotos mejoradas con IA", desc: "Mejora las fotos de tus platillos con inteligencia artificial para que se vean irresistibles y profesionales." },
@@ -972,6 +968,36 @@ const faqs = ref([
   padding: var(--space-md);
 }
 
+// Escritorio: 1 y 3 a la izquierda, la tableta al centro, 2 y 4 a la derecha (se lee
+// en renglones: 1-2 arriba, 3-4 abajo). Celular: 1-2-3-4 en orden y la tableta al final.
+.mc-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-areas: "p1" "p2" "p3" "p4" "img";
+  gap: var(--space-sm);
+
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-areas:
+      "p1 img p2"
+      "p3 img p4";
+    align-items: center;
+    gap: var(--space-lg);
+  }
+
+  &__img {
+    grid-area: img;
+    max-width: 520px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+
+.mc-step--1 { grid-area: p1; }
+.mc-step--2 { grid-area: p2; }
+.mc-step--3 { grid-area: p3; }
+.mc-step--4 { grid-area: p4; }
+
 .mc-step-icon {
   width: 64px;
   height: 64px;
@@ -1087,6 +1113,20 @@ const faqs = ref([
   justify-content: center;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+.mc-pkg-includes {
+  margin: var(--space-md) 0 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+// Con size="xs" el "+9 mas" media 10 px: era el unico acceso a la mitad del plan.
+.mc-pkg-more {
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 .packages {
@@ -1269,8 +1309,22 @@ const faqs = ref([
   border-color: var(--color-border);
 }
 
+.mc-startnow-sub {
+  font-size: var(--text-lg);
+  line-height: 1.5;
+  opacity: 0.9;
+  max-width: 520px;
+}
+
 .startnow {
   padding: 80px 0;
+
+  h2 {
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
   background: #d32f2f url("./../assets/Fondo rojo textura 2.jpg") no-repeat center;
   background-size: cover;
 }
@@ -1337,7 +1391,7 @@ const faqs = ref([
 
 footer {
   background-color: var(--color-text-primary);
-  padding: var(--space-2xl) 0;
+  padding: var(--space-2xl) 0 calc(var(--space-2xl) + 72px);
   color: white;
 }
 
@@ -1405,6 +1459,43 @@ footer {
 @media screen and (max-width: 600px) {
   .banner-text h3 {
     margin-top: 0;
+  }
+
+  // En celular las 20 herramientas iban una por pantalla, centradas y con el icono
+  // encima: casi 5,000 px de scroll. En renglon (icono a la izquierda) caben tres o
+  // cuatro por pantalla y se leen como lista.
+  .mc-feature-card {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    column-gap: var(--space-md);
+    text-align: left;
+    padding: var(--space-md);
+
+    &__icon {
+      grid-row: span 2;
+      width: 44px;
+      height: 44px;
+      margin: 0;
+
+      .q-icon {
+        font-size: 22px !important;
+      }
+    }
+
+    &:hover {
+      transform: none;
+    }
+  }
+
+  // Los tres celulares de "Herramientas" median casi una pantalla cada uno.
+  .mc-tool-card {
+    padding: var(--space-md) var(--space-lg);
+
+    // width explicito: en una columna flex centrada el q-img se encogia a 0.
+    .q-img {
+      width: 100%;
+      max-width: 200px;
+    }
   }
 
   .img-mobile-center {

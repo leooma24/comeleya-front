@@ -83,6 +83,9 @@
         ]"
       >
         <h6 class="mc-section-title">Tipo de Entrega</h6>
+        <p v-if="deliveryDataError" class="mc-section-error">
+          Elige cómo quieres recibir tu pedido.
+        </p>
         <div class="mc-delivery-options">
           <div
             v-if="mainStore.hasService(1)"
@@ -165,13 +168,13 @@
         <p class="mc-delivery-charge" v-if="mainStore.deliveryCovered">
           <q-icon name="local_shipping" size="16px" class="q-mr-xs" />
           <template v-if="mainStore.deliveryEstimated">
-            Envío estimado: <strong>${{ Number(mainStore.deliveryCharge).toFixed(2) }}</strong>
+            Envío estimado: <strong>{{ dinero(mainStore.deliveryCharge) }}</strong>
             <span class="mc-delivery-note">
               — el restaurante puede ajustarlo según la distancia
             </span>
           </template>
           <template v-else>
-            Costo de envío: <strong>${{ Number(mainStore.deliveryCharge).toFixed(2) }}</strong>
+            Costo de envío: <strong>{{ dinero(mainStore.deliveryCharge) }}</strong>
           </template>
         </p>
         <p class="mc-delivery-outofrange" v-else>
@@ -326,7 +329,7 @@
         </div>
 
         <div class="column items-center">
-          <span class="mc-total-price">${{ mainStore.total }}</span>
+          <span class="mc-total-price">{{ dinero(mainStore.total) }}</span>
         </div>
 
         <div class="mc-cart-bar-right">
@@ -347,6 +350,7 @@ import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
 import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
 import CheckoutSteps from "./CheckoutSteps.vue";
+import { dinero } from "src/utils/dinero";
 
 const mainStore = useMainStore();
 
@@ -375,6 +379,34 @@ const personalDataError = ref(false);
 const deliveryDataError = ref(false);
 const addressError = ref(false);
 const personsError = ref(false);
+
+// Con una sola forma de entrega no hay nada que elegir: se marca sola. Antes habia que
+// tocar "Recoger" aunque fuera la unica tarjeta, y quien no lo hacia se quedaba con un
+// "Continuar" que no avanzaba.
+const formasDeEntrega = computed(() =>
+  [
+    mainStore.hasService(1) && "Envio",
+    "Recoger",
+    mainStore.hasService(10) && "Reservar",
+  ].filter(Boolean)
+);
+watch(
+  () => mainStore.dataDrawer,
+  (abierto) => {
+    if (!abierto) return;
+    const formas = formasDeEntrega.value;
+    if (formas.length === 1 && !mainStore.data.delivery) {
+      mainStore.data.delivery = formas[0];
+    }
+  },
+  { immediate: true }
+);
+watch(
+  () => mainStore.data.delivery,
+  (d) => {
+    if (d) deliveryDataError.value = false;
+  }
+);
 
 const loadTowns = async () => {
   if (!mainStore.data.zip) return;

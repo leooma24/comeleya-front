@@ -44,8 +44,8 @@
         <q-card-section v-else>
           <div class="text-center q-py-md">
             <q-icon name="check_circle" color="positive" size="56px" />
-            <p class="text-body1 text-weight-medium q-mt-md">Contrasena actualizada</p>
-            <p class="mc-register-subtitle">Ya puedes iniciar sesion con tu nueva contraseña.</p>
+            <p class="text-body1 text-weight-medium q-mt-md">Contraseña actualizada</p>
+            <p class="mc-register-subtitle">Ya puedes iniciar sesión con tu nueva contraseña.</p>
           </div>
         </q-card-section>
 
@@ -55,7 +55,7 @@
         </q-card-actions>
 
         <q-card-actions class="q-px-md q-pb-lg" v-else>
-          <q-btn unelevated no-caps color="primary" label="Iniciar sesion" icon="login"
+          <q-btn unelevated no-caps color="primary" label="Iniciar sesión" icon="login"
             class="full-width mc-register-btn" to="/admin/iniciar-sesion" />
         </q-card-actions>
       </q-card>

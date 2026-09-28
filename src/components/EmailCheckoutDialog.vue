@@ -23,7 +23,7 @@
           dense
           rounded
           type="email"
-          label="Tu correo electronico"
+          label="Tu correo electrónico"
           :error="!!emailError"
           :error-message="emailError"
           class="q-mb-md"

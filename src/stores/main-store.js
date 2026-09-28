@@ -8,6 +8,7 @@ import { useProductStore } from "./products";
 import { useUserStore } from "./user-store";
 import { useCartStore } from "./cart-store";
 import { useCompanyStore } from "./company-store";
+import { aplicarTemaComeleya } from "src/utils/temaComeleya";
 import { useOrderStore } from "./order-store";
 import { useMessageStore } from "./message-store";
 import { initPixel, trackFb } from "src/utils/fbpixel";
@@ -460,7 +461,10 @@ export const useMainStore = defineStore("main", {
   },
   actions: {
     checkColor() {
-      if (this.companyStore.color) {
+      // Solo si lo guardado es de ESTE negocio: al abrir otro menu, pintaba el color
+      // del anterior hasta que llegaba la respuesta.
+      const slug = this.router?.currentRoute?.value?.params?.slug;
+      if (this.companyStore.color && this.companyStore.company?.slug === slug) {
         this.setPrimaryColor(this.companyStore.color);
       }
     },
@@ -740,8 +744,17 @@ export const useMainStore = defineStore("main", {
       establisment.dish_categories = null;
       establisment.items = null;
 
-      if (establisment.color) {
-        this.setPrimaryColor(establisment.color);
+      // Cada negocio parte de los colores de ComeleYa. Sin esto, uno sin color ni tema
+      // propio heredaba los del ultimo menu que el comensal abrio: el color vive en
+      // <body> y en el store persistido, y aqui solo se pisaba cuando habia uno nuevo.
+      aplicarTemaComeleya();
+      // El color del negocio manda; el ?primaryColor= del embebido cubre al que no tiene.
+      const color =
+        establisment.color || this.router?.currentRoute?.value?.query?.primaryColor;
+      if (color) {
+        this.setPrimaryColor(color);
+      } else {
+        this.companyStore.setPrimaryColor("");
       }
 
       this.applyThemeConfig(establisment.theme_config);
@@ -1005,7 +1018,7 @@ export const useMainStore = defineStore("main", {
         const { data } = await api.get(`/towns/${this.data.zip}`);
         this.data.towns = data.towns;
       } catch (error) {
-        this.messageStore.error("No se encontraron colonias para ese codigo postal");
+        this.messageStore.error("No se encontraron colonias para ese código postal");
         this.data.towns = [];
       }
     },

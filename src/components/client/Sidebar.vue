@@ -285,7 +285,7 @@
           <span
             class="mc-total-price"
             :key="mainStore.total"
-          >${{ Number(mainStore.total).toFixed(2) }}</span>
+          >{{ dinero(mainStore.total) }}</span>
         </div>
 
         <!-- Con enlace configurado este lado deja de decir "Ver pedido" y se vuelve la
@@ -377,6 +377,7 @@ import { cartBarCta } from "src/utils/cartBarCta";
 import { centerTabScroll } from "src/utils/categoryScroll";
 import { urlDelMapa, abrirEnMapa } from "src/utils/mapa";
 import { compartirLink } from "src/utils/compartir";
+import { dinero } from "src/utils/dinero";
 
 const $q = useQuasar();
 const mainStore = useMainStore();
@@ -675,11 +676,11 @@ async function shareMenu() {
 
   if (comoTermino === "copiado") {
     mainStore.messageStore.success(
-      "Copiamos el link del menu. Pegalo donde quieras compartirlo."
+      "Copiamos el link del menú. Pégalo donde quieras compartirlo."
     );
   } else if (comoTermino === "fallo") {
     mainStore.messageStore.error(
-      "Este sitio no deja compartir desde aqui. Copia la direccion de la pagina para mandarla."
+      "Este sitio no deja compartir desde aquí. Copia la dirección de la página para mandarla."
     );
   }
 }

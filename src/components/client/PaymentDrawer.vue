@@ -100,7 +100,7 @@
           <div class="mc-coupon-applied__info">
             <q-icon name="check_circle" color="positive" size="20px" />
             <span class="mc-coupon-applied__code">{{ mainStore.coupon.code }}</span>
-            <span class="mc-coupon-applied__discount">-${{ mainStore.coupon.discount.toFixed(2) }}</span>
+            <span class="mc-coupon-applied__discount">-{{ dinero(mainStore.coupon.discount) }}</span>
           </div>
           <q-btn flat dense round icon="close" size="sm" color="grey-6" @click="mainStore.removeCoupon()" />
         </div>
@@ -133,7 +133,7 @@
             <span
               v-if="mainStore.loyalty.use && mainStore.loyaltyDiscount > 0"
               class="mc-loyalty-redeem__disc"
-            >−${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
+            >−{{ dinero(mainStore.loyaltyDiscount) }}</span>
           </div>
         </div>
       </div>
@@ -193,32 +193,33 @@
       <div class="mc-order-summary">
         <div class="mc-summary-row">
           <span>Total del pedido</span>
-          <span class="mc-summary-value">${{ Number(mainStore.total).toFixed(2) }}</span>
+          <span class="mc-summary-value">{{ dinero(mainStore.total) }}</span>
         </div>
-        <div class="mc-summary-row">
+        <!-- Solo a domicilio: para recoger o en mesa, "+ $0.00 de envio" es ruido. -->
+        <div class="mc-summary-row" v-if="mainStore.data.delivery === 'Envio'">
           <span>
             Costo del envío
             <em class="mc-summary-desde" v-if="mainStore.sucursalElegida">
               desde {{ mainStore.sucursalElegida.name }}
             </em>
           </span>
-          <span class="mc-summary-value">+ ${{ Number(mainStore.deliveryCharge).toFixed(2) }}</span>
+          <span class="mc-summary-value">+ {{ dinero(mainStore.deliveryCharge) }}</span>
         </div>
-        <div class="mc-summary-row">
+        <div class="mc-summary-row" v-if="mainStore.getTip > 0">
           <span>Propina</span>
-          <span class="mc-summary-value">+ ${{ Number(mainStore.getTip).toFixed(2) }}</span>
+          <span class="mc-summary-value">+ {{ dinero(mainStore.getTip) }}</span>
         </div>
         <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.coupon.applied">
           <span>Descuento</span>
-          <span class="mc-summary-value">- ${{ mainStore.coupon.discount.toFixed(2) }}</span>
+          <span class="mc-summary-value">- {{ dinero(mainStore.coupon.discount) }}</span>
         </div>
         <div class="mc-summary-row mc-summary-row--discount" v-if="mainStore.loyaltyDiscount > 0">
           <span>Puntos de lealtad</span>
-          <span class="mc-summary-value">- ${{ mainStore.loyaltyDiscount.toFixed(2) }}</span>
+          <span class="mc-summary-value">- {{ dinero(mainStore.loyaltyDiscount) }}</span>
         </div>
         <div class="mc-summary-row mc-summary-row--total">
           <span>Total a pagar</span>
-          <span>${{ Number(mainStore.totalToPay).toFixed(2) }}</span>
+          <span>{{ dinero(mainStore.totalToPay) }}</span>
         </div>
       </div>
 
@@ -369,7 +370,7 @@
         @click="submitOrder"
       >
         <q-icon name="check_circle" size="20px" class="q-mr-sm" />
-        Enviar Pedido &mdash; ${{ Number(mainStore.totalToPay).toFixed(2) }}
+        Enviar Pedido &mdash; {{ dinero(mainStore.totalToPay) }}
       </q-btn>
     </div>
   </q-drawer>
@@ -382,6 +383,7 @@ defineOptions({
 import { ref, watch, computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import CheckoutSteps from "./CheckoutSteps.vue";
+import { dinero } from "src/utils/dinero";
 const mainStore = useMainStore();
 
 /** Que tan lejos le queda cada sucursal al cliente, para poder decidir. */

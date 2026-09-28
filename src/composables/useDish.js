@@ -76,11 +76,11 @@ export function useDish(item) {
 
     if (comoTermino === "copiado") {
       mainStore.messageStore.success(
-        "Copiamos el link del platillo. Pegalo donde quieras compartirlo."
+        "Copiamos el link del platillo. Pégalo donde quieras compartirlo."
       );
     } else if (comoTermino === "fallo") {
       mainStore.messageStore.error(
-        "Este sitio no deja compartir desde aqui. Copia la direccion de la pagina para mandarla."
+        "Este sitio no deja compartir desde aquí. Copia la dirección de la página para mandarla."
       );
     }
   };

@@ -38,7 +38,7 @@
               <span class="mc-history-item__products">
                 {{ order.cart.length }} producto{{ order.cart.length > 1 ? 's' : '' }}
               </span>
-              <span class="mc-history-item__total">${{ order.total }}</span>
+              <span class="mc-history-item__total">{{ dinero(order.total) }}</span>
             </div>
             <div class="mc-history-item__actions">
               <q-btn
@@ -94,6 +94,7 @@ defineOptions({
 
 import { useMainStore } from "src/stores/main-store";
 import { rutaDeSeguimiento } from "src/utils/seguimiento";
+import { dinero } from "src/utils/dinero";
 
 const mainStore = useMainStore();
 const showDrawer = defineModel({ default: false });

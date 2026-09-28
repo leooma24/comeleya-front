@@ -135,7 +135,7 @@
             <div class="receipt__item-main">
               <span class="receipt__item-qty">{{ product.qty }}x</span>
               <span class="receipt__item-name">{{ product.name }}</span>
-              <span class="receipt__item-price">${{ (product.totalPrice * product.qty).toFixed(2) }}</span>
+              <span class="receipt__item-price">{{ dinero(product.totalPrice * product.qty) }}</span>
             </div>
             <div
               class="receipt__item-extra"
@@ -145,7 +145,7 @@
               <template v-for="(option, oi) in extra.options" :key="oi">
                 <span v-if="option.qty > 0" class="receipt__option">
                   &nbsp;&nbsp;- {{ option.name }}
-                  <span v-if="option.price > 0"> ${{ (option.price * option.qty * product.qty).toFixed(2) }}</span>
+                  <span v-if="option.price > 0"> {{ dinero(option.price * option.qty * product.qty) }}</span>
                 </span>
               </template>
             </div>
@@ -160,23 +160,23 @@
         <div class="receipt__totals">
           <div class="receipt__total-row">
             <span>Subtotal</span>
-            <span>${{ mainStore.total.toFixed(2) }}</span>
+            <span>{{ dinero(mainStore.total) }}</span>
           </div>
           <div class="receipt__total-row" v-if="mainStore.deliveryCharge > 0">
             <span>Envío</span>
-            <span>${{ mainStore.deliveryCharge.toFixed(2) }}</span>
+            <span>{{ dinero(mainStore.deliveryCharge) }}</span>
           </div>
           <div class="receipt__total-row" v-if="mainStore.getTip > 0">
             <span>Propina</span>
-            <span>${{ mainStore.getTip.toFixed(2) }}</span>
+            <span>{{ dinero(mainStore.getTip) }}</span>
           </div>
           <div class="receipt__total-row receipt__total-row--discount" v-if="mainStore.coupon.applied">
             <span>Cupón ({{ mainStore.coupon.code }})</span>
-            <span>-${{ mainStore.coupon.discount.toFixed(2) }}</span>
+            <span>-{{ dinero(mainStore.coupon.discount) }}</span>
           </div>
           <div class="receipt__total-row receipt__total-row--final">
             <span>Total</span>
-            <span>${{ mainStore.totalToPay.toFixed(2) }}</span>
+            <span>{{ dinero(mainStore.totalToPay) }}</span>
           </div>
         </div>
       </q-card-section>
@@ -227,6 +227,7 @@ import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
 import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { rutaDeSeguimiento } from "src/utils/seguimiento";
+import { dinero } from "src/utils/dinero";
 const mainStore = useMainStore();
 
 // Paso interno del diálogo: 1 = enviar por WhatsApp, 2 = confirmación

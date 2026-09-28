@@ -324,16 +324,52 @@ describe("main-store", () => {
         },
       });
 
-      // Mock body for setPrimaryColor
+      // Mock body for setPrimaryColor (y el reinicio al tema de ComeleYa, que quita
+      // las variables del negocio anterior antes de poner las de este)
       vi.stubGlobal("document", {
         querySelector: () => ({
-          style: { setProperty: vi.fn() },
+          style: { setProperty: vi.fn(), removeProperty: vi.fn() },
         }),
       });
 
       const result = await store.getEstablishment("test-slug");
       expect(result).toBe(true);
       expect(store.productStore.items).toHaveLength(1);
+    });
+
+    it("un negocio sin color no hereda el del menu anterior", async () => {
+      store.companyStore.slug = "";
+      store.companyStore.color = "1a237e"; // el azul del negocio que se vio antes
+      api.get.mockResolvedValueOnce({
+        data: {
+          status: "Activo",
+          dishes: [],
+          dish_categories: [],
+          color: null,
+        },
+      });
+      const style = { setProperty: vi.fn(), removeProperty: vi.fn() };
+      vi.stubGlobal("document", { querySelector: () => ({ style }) });
+
+      await store.getEstablishment("sin-color");
+
+      expect(store.companyStore.color).toBe("");
+      expect(style.removeProperty).toHaveBeenCalledWith("--q-primary");
+      expect(style.setProperty).not.toHaveBeenCalledWith("--q-primary", "#1a237e");
+    });
+
+    it("con el menu vacio marca que ya cargo (para no quedarse en skeletons)", async () => {
+      store.companyStore.slug = "";
+      api.get.mockResolvedValueOnce({
+        data: { status: "Activo", dishes: [], dish_categories: [], color: null },
+      });
+      vi.stubGlobal("document", {
+        querySelector: () => ({ style: { setProperty: vi.fn(), removeProperty: vi.fn() } }),
+      });
+
+      await store.getEstablishment("vacio");
+
+      expect(store.menuCargado).toBe(true);
     });
   });
 

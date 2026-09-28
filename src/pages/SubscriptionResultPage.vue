@@ -11,7 +11,7 @@
       <template v-else-if="status === 'authorized' || status === 'approved'">
         <q-icon name="check_circle" size="64px" color="positive" />
         <h5 class="q-mt-md q-mb-sm" style="font-weight: 700">Pago exitoso</h5>
-        <p class="text-grey-7">Tu suscripcion ha sido procesada correctamente.</p>
+        <p class="text-grey-7">Tu suscripción ha sido procesada correctamente.</p>
 
         <q-btn
           v-if="isAuthenticated"

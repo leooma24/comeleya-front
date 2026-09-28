@@ -114,7 +114,7 @@
                       <span v-if="option.price">{{ option.qty * product.qty }} x </span>
                       {{ option.name }}
                     </span>
-                    <strong v-if="option.price" class="mc-cart-item__extra-price">${{ option.price * product.qty * option.qty }}</strong>
+                    <strong v-if="option.price" class="mc-cart-item__extra-price">{{ dinero(option.price * product.qty * option.qty) }}</strong>
                   </div>
                 </li>
               </template>
@@ -144,7 +144,7 @@
                   @click="mainStore.cartStore.incrementLine(index)"
                 />
               </div>
-              <div class="mc-cart-item__price">${{ lineTotal(product) }}</div>
+              <div class="mc-cart-item__price">{{ dinero(lineTotal(product)) }}</div>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@
             >
               <q-img :src="item.photo" :ratio="1" class="mc-upsell__img" />
               <span class="mc-upsell__name">{{ item.name }}</span>
-              <span class="mc-upsell__price">${{ Number(item.price).toFixed(2) }}</span>
+              <span class="mc-upsell__price">{{ dinero(item.price) }}</span>
               <span class="mc-upsell__add"><q-icon name="add" size="18px" /></span>
             </button>
           </div>
@@ -172,7 +172,7 @@
         <!-- Subtotal -->
         <div v-if="mainStore.cart.length" class="mc-cart-subtotal">
           <span>Subtotal</span>
-          <span class="mc-cart-subtotal__value">${{ Number(mainStore.total).toFixed(2) }}</span>
+          <span class="mc-cart-subtotal__value">{{ dinero(mainStore.total) }}</span>
         </div>
 
         <!-- Aviso: pedidos pausados por el restaurante -->
@@ -188,8 +188,8 @@
         >
           <q-icon name="info" size="20px" />
           <span>
-            Pedido mínimo <strong>${{ mainStore.minOrder.toFixed(2) }}</strong>.
-            Te faltan <strong>${{ (mainStore.minOrder - Number(mainStore.total)).toFixed(2) }}</strong>.
+            Pedido mínimo <strong>{{ dinero(mainStore.minOrder) }}</strong>.
+            Te faltan <strong>{{ dinero(mainStore.minOrder - Number(mainStore.total)) }}</strong>.
           </span>
         </div>
       </div>
@@ -216,7 +216,7 @@
         </div>
 
         <div class="column items-center">
-          <span class="mc-total-price">${{ mainStore.total }}</span>
+          <span class="mc-total-price">{{ dinero(mainStore.total) }}</span>
         </div>
 
         <div class="mc-cart-bar-right">
@@ -245,6 +245,7 @@ import { useMainStore } from "src/stores/main-store";
 import { marcar } from "src/utils/embudo";
 import CheckoutSteps from "./CheckoutSteps.vue";
 import ItemNotesDialog from "./ItemNotesDialog.vue";
+import { dinero } from "src/utils/dinero";
 const mainStore = useMainStore();
 
 // Comentario por platillo. Un solo diálogo reutilizado para todos los renglones:

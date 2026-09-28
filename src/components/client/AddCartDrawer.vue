@@ -209,7 +209,7 @@
             >
               <div class="row items-center justify-between full-width q-px-sm">
                 <span>{{ mainStore.cartButtonLabel }}</span>
-                <span class="mc-add-btn-price">${{ mainStore.totalPrice }}</span>
+                <span class="mc-add-btn-price">{{ dinero(mainStore.totalPrice) }}</span>
               </div>
             </q-btn>
           </div>
@@ -243,6 +243,7 @@ import {
   isDecorative,
   selectionRuleOf,
 } from "src/utils/extraConfig";
+import { dinero } from "src/utils/dinero";
 const mainStore = useMainStore();
 const addBtnRef = ref(null);
 

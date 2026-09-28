@@ -56,8 +56,8 @@
       </q-img>
 
       <!-- Placeholder cuando el platillo no tiene foto -->
-      <div v-else class="dish-card__image dish-card__no-image" style="aspect-ratio: 4 / 3">
-        <q-icon name="restaurant_menu" size="40px" />
+      <div v-else class="dish-card__image dish-card__no-image">
+        <q-icon name="restaurant_menu" size="32px" />
         <div
           v-if="!sinPrecio || tieneOpciones"
           class="dish-card__price-overlay"
@@ -293,14 +293,18 @@ const urgency = computed(() => offerUrgency(props.item));
     display: block;
   }
 
+  // Sin foto, una franja y no un cuadro de 4:3. En un menu con pocas fotos (Aka Sushi:
+  // 18 de 73) cada platillo ocupaba una pantalla entera en celular para ensenar un
+  // icono gris. El tinte del color del negocio evita que se vea como imagen rota.
   &__no-image {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
-    background: var(--color-surface-variant);
-    color: var(--color-text-tertiary);
+    aspect-ratio: 16 / 7;
+    background: color-mix(in srgb, var(--q-primary) 7%, var(--color-surface-variant));
+    color: color-mix(in srgb, var(--q-primary) 45%, var(--color-text-tertiary));
   }
 
   &__old-price {

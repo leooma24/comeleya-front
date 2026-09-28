@@ -1,5 +1,6 @@
 import { useUserStore } from "src/stores/user-store";
 import { guardarReferencia } from "src/utils/referencia";
+import { aplicarTemaComeleya } from "src/utils/temaComeleya";
 const userStore = useUserStore();
 
 export default ({ router }) => {
@@ -7,6 +8,10 @@ export default ({ router }) => {
     // De que menu viene, si viene de uno: la liga "Menu hecho con ComeleYa" trae ?ref=.
     // Se guarda aqui, entre por la pagina que entre, y el alta la manda al servidor.
     guardarReferencia(to.query);
+
+    // Fuera de un negocio (landing, alta, legales, super admin) van los colores de
+    // ComeleYa, aunque se llegue navegando desde un menu con otro color.
+    if (!to.params.slug) aplicarTemaComeleya();
 
     if (
       window.location.protocol === "http:" &&

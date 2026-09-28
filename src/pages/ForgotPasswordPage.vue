@@ -14,7 +14,7 @@
         <q-card-section class="q-pt-none" v-if="!sent">
           <q-input
             v-model="email"
-            label="Correo electronico"
+            label="Correo electrónico"
             filled rounded dense
             type="email"
             @keyup.enter="submit"
@@ -39,13 +39,13 @@
         </q-card-actions>
 
         <q-card-actions class="q-px-md q-pb-lg" v-else>
-          <q-btn unelevated no-caps color="primary" label="Volver a iniciar sesion" icon="arrow_back"
+          <q-btn unelevated no-caps color="primary" label="Volver a iniciar sesión" icon="arrow_back"
             class="full-width mc-register-btn" to="/admin/iniciar-sesion" />
         </q-card-actions>
       </q-card>
 
       <div class="text-center q-mt-md">
-        <q-btn flat no-caps dense color="primary" label="Volver a iniciar sesion" to="/admin/iniciar-sesion" size="sm" icon="arrow_back" />
+        <q-btn flat no-caps dense color="primary" label="Volver a iniciar sesión" to="/admin/iniciar-sesion" size="sm" icon="arrow_back" />
       </div>
     </div>
   </q-page>

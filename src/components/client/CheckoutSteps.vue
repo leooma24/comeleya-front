@@ -56,7 +56,9 @@ const labels = ["Carrito", "Datos", "Pago"];
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  padding: var(--space-sm) 0 var(--space-md);
+  // A la derecha, el hueco de la X de cerrar (44 px + su margen de 16): la tira corria
+  // por debajo y la X tapaba el paso 3, "Pago".
+  padding: var(--space-sm) calc(var(--toque-min) + var(--space-sm)) var(--space-md) 0;
 }
 
 .mc-steps__back {

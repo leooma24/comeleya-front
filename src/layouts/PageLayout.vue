@@ -12,8 +12,10 @@
 
           <q-space />
 
-          <!-- Desktop nav -->
-          <div class="row items-center q-gutter-sm desktop-only">
+          <!-- Por ancho (gt-sm / lt-md) y no desktop-only/mobile-only: esas preguntan la
+               plataforma, y en un iPad o una ventana angosta no salia ni el menu ni la
+               hamburguesa. -->
+          <div class="row items-center q-gutter-sm gt-sm">
             <q-btn
               flat
               color="grey-8"
@@ -73,14 +75,24 @@
             />
           </div>
 
-          <!-- Mobile menu -->
+          <!-- En celular la accion principal va a la vista, no escondida en el menu. -->
+          <q-btn
+            class="mc-nav-btn lt-md q-mr-sm"
+            color="primary"
+            unelevated
+            dense
+            no-caps
+            label="Regístrate gratis"
+            to="/nuevo-establecimiento"
+          />
           <q-btn
             flat
             round
             color="primary"
             dense
             icon="menu"
-            class="mobile-only"
+            aria-label="Menú"
+            class="lt-md"
             @click="toggleDrawer"
           />
         </div>
