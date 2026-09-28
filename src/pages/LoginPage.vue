@@ -124,17 +124,19 @@
                servidor no aparece nada. -->
           <div ref="googleBtn" class="mc-google-btn" :class="{ 'q-mb-sm': googleDisponible }" />
 
-          <!-- Facebook Button -->
+          <!-- Facebook con la misma forma que el de Google: ese lo pinta Google y no se
+               puede tocar, asi que es este el que se le parece. Mismo alto, borde, esquinas,
+               letra y "Continuar con". -->
           <q-btn
-            outline
+            flat
             no-caps
+            :ripple="false"
             @click="loginWithFacebook"
             :loading="user.loading"
-            class="full-width mc-facebook-btn"
-            text-color="grey-8"
+            class="full-width mc-social-btn"
           >
-            <q-icon name="fab fa-facebook" color="blue-8" size="20px" class="q-mr-sm" />
-            Facebook
+            <q-icon name="fab fa-facebook" size="18px" class="mc-social-btn__logo" />
+            <span>Continuar con Facebook</span>
           </q-btn>
 
           <!-- Back link -->
@@ -455,8 +457,7 @@ onMounted(() => {
 // Los botones del mismo alto: con size="lg" el principal casi doblaba la letra del de
 // Facebook y se veian de dos formularios distintos. 44 y no 48: el de Google mide 40
 // fijo (lo pinta Google) y con 48 los tres quedaban disparejos.
-.mc-login-btn,
-.mc-facebook-btn {
+.mc-login-btn {
   min-height: 44px;
   font-size: var(--text-base);
 }
@@ -504,15 +505,32 @@ onMounted(() => {
   }
 }
 
-.mc-facebook-btn {
-  border-radius: var(--radius-md);
-  border-color: var(--color-border);
-  font-weight: 600;
-  transition: all var(--transition-fast);
+// Copia del boton "standard / outline / large" de Google Identity: 40 px, borde
+// #dadce0, esquinas de 4 px, letra de 14 px y el logo a la izquierda del texto.
+.mc-social-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  background: #fff;
+  color: #3c4043;
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+
+  :deep(.q-btn__content) {
+    gap: 10px;
+  }
 
   &:hover {
-    border-color: var(--color-text-tertiary);
-    background: var(--color-surface-variant);
+    background: #f8faff;
+    border-color: #d2e3fc;
+  }
+
+  &__logo {
+    color: #1877f2;
   }
 }
 
