@@ -169,7 +169,7 @@ const paymentColumns = [
 
 <style lang="scss" scoped>
 .mc-plan-info {
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);

@@ -601,7 +601,7 @@ const removeOption = (extra, optionIndex) => {
 }
 
 .mc-extra-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-subtle);
   margin-bottom: var(--space-sm);

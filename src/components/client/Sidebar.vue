@@ -38,7 +38,15 @@
               :size="$q.screen.lt.md ? '54px' : '62px'"
               class="mc-restaurant-avatar"
             >
-              <img :src="mainStore.company.logo" />
+              <img
+                v-if="mainStore.company.logo && !logoRoto"
+                :src="mainStore.company.logo"
+                :alt="mainStore.company.name"
+                @error="logoRoto = true"
+              />
+              <!-- Sin logo (o con uno que ya no existe) van sus iniciales: el ícono de
+                   imagen rota era lo primero que veía el comensal. -->
+              <span v-else class="mc-restaurant-avatar__iniciales">{{ iniciales }}</span>
             </q-avatar>
             <h1 class="mc-restaurant-cover__name">{{ mainStore.company.name }}</h1>
           </div>
@@ -372,6 +380,20 @@ import { compartirLink } from "src/utils/compartir";
 
 const $q = useQuasar();
 const mainStore = useMainStore();
+
+const logoRoto = ref(false);
+watch(
+  () => mainStore.company?.logo,
+  () => (logoRoto.value = false)
+);
+const iniciales = computed(() =>
+  (mainStore.company?.name || "")
+    .split(/\s+/)
+    .filter((p) => /^[\p{L}\p{N}]/u.test(p))
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join("")
+);
 const dialog = ref(false);
 const fijoRef = ref(null);
 const establishmentRef = ref(null);
@@ -1044,6 +1066,15 @@ function goToCategory(id) {
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
   background: #fff;
+
+  // En em: QAvatar escala con su font-size, y la barra lo encoge al hacer scroll.
+  &__iniciales {
+    font-family: var(--font-display);
+    font-size: 0.8em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--q-primary);
+  }
 }
 
 .mc-restaurant-info {
@@ -1331,6 +1362,18 @@ $mc-cart-bar-z: 2500;
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
   }
+}
+
+// En escritorio (tabs verticales) Quasar no estira el contenido del tab, asi que el
+// nombre y el contador quedaban centrados y cada renglon empezaba en otro lugar. Un
+// indice se lee alineado a la izquierda, con el contador al final.
+.mc-sidebar-tabs.q-tabs--vertical :deep(.q-tab) {
+  justify-content: flex-start;
+  padding: 0 var(--space-md);
+}
+
+.mc-sidebar-tabs.q-tabs--vertical :deep(.q-tab__content) {
+  width: 100%;
 }
 
 .mc-tab-inner {

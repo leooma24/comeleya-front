@@ -47,8 +47,8 @@
             {{ item.name }}
           </h3>
 
-          <p class="dish-card__description q-mb-none">
-            {{ item.description }}
+          <p v-if="descripcion" class="dish-card__description q-mb-none">
+            {{ descripcion }}
           </p>
 
           <!-- La fila es angosta, así que aquí va el ahorro compacto: el sello del
@@ -60,13 +60,14 @@
 
         <!-- Precio + acción (consistente en móvil y desktop) -->
         <div class="dish-card__footer">
-          <span class="dish-card__price-text">
-            <template v-if="hasSpecialPrice">
-              <span class="dish-card__old-price">${{ item.price }}</span>
-              ${{ item.special_price }}
-            </template>
-            <template v-else>${{ item.price }}</template>
+          <span v-if="hasSpecialPrice" class="dish-card__price-text">
+            <span class="dish-card__old-price">{{ precio(item.price) }}</span>
+            {{ precio(item.special_price) }}
           </span>
+          <span v-else-if="sinPrecio" class="dish-card__price-hint">
+            {{ tieneOpciones ? "Ver opciones" : "" }}
+          </span>
+          <span v-else class="dish-card__price-text">{{ precio(item.price) }}</span>
           <div class="dish-card__footer-actions">
             <q-btn
               flat
@@ -94,7 +95,7 @@ defineOptions({
 });
 
 import { computed, toRef } from "vue";
-import { useDish } from "src/composables/useDish";
+import { useDish, precio } from "src/composables/useDish";
 import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
@@ -104,9 +105,16 @@ const props = defineProps({
   },
 });
 
-const { agotado, hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
-  toRef(props, "item")
-);
+const {
+  agotado,
+  hasSpecialPrice,
+  isNew,
+  sinPrecio,
+  tieneOpciones,
+  descripcion,
+  seeProduct,
+  shareProduct,
+} = useDish(toRef(props, "item"));
 
 // Misma regla que la vista de tarjeta: se calla si el descuento no se puede afirmar.
 const savings = computed(() => offerSavings(props.item));
@@ -200,6 +208,7 @@ const urgency = computed(() => offerUrgency(props.item));
   }
 
   &__title {
+    font-family: var(--font-display);
     font-size: var(--text-base);
     font-weight: 600;
     line-height: 1.3;
@@ -253,6 +262,12 @@ const urgency = computed(() => offerUrgency(props.item));
     letter-spacing: -0.5px;
     font-variant-numeric: tabular-nums;
     font-size: var(--text-lg);
+  }
+
+  &__price-hint {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--q-primary);
   }
 
   &__footer-actions {

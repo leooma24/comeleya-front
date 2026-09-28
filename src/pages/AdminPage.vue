@@ -372,7 +372,7 @@ const getStatus = (tab, orderTab) => {
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
   border-left: 4px solid var(--q-warning, #fb8c00);
   box-shadow: var(--shadow-sm);

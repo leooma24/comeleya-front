@@ -64,6 +64,10 @@ export const useMainStore = defineStore("main", {
     loadError: false,
     // Qué falló exactamente, de describeRequestError. Null mientras no haya fallado.
     loadErrorInfo: null,
+    // true cuando el menú ya llegó, tenga platillos o no. Sin esto un negocio con el
+    // menú vacío se quedaba en skeletons para siempre: "no hay categorías" se leía
+    // como "todavía está cargando".
+    menuCargado: false,
     // Vista del menú: "Tarjeta" (cuadrícula) o "Lista" (recordada entre visitas)
     viewType:
       (typeof localStorage !== "undefined" &&
@@ -702,6 +706,7 @@ export const useMainStore = defineStore("main", {
       this.setSlug(slug);
       this.loadError = false;
       this.loadErrorInfo = null;
+      this.menuCargado = false;
 
       let establisment;
       try {
@@ -729,6 +734,7 @@ export const useMainStore = defineStore("main", {
       }
       this.productStore.setProducts(establisment.dishes);
       this.productStore.setCategories(establisment.dish_categories);
+      this.menuCargado = true;
 
       this.tab = establisment.dish_categories[0]?.id ?? 0;
       establisment.dish_categories = null;

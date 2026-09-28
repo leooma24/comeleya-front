@@ -561,7 +561,7 @@ onMounted(async () => {
 }
 
 .mc-ticket-preview {
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-md);

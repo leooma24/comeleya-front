@@ -41,24 +41,34 @@
         </template>
 
         <!-- Precio flotante sobre imagen -->
-        <div class="dish-card__price-overlay" :class="{ 'dish-card__price-overlay--offer': hasSpecialPrice }">
+        <div
+          v-if="!sinPrecio || tieneOpciones"
+          class="dish-card__price-overlay"
+          :class="{ 'dish-card__price-overlay--offer': hasSpecialPrice }"
+        >
           <template v-if="hasSpecialPrice">
-            <span class="dish-card__old-price">${{ item.price }}</span>
-            <span>${{ item.special_price }}</span>
+            <span class="dish-card__old-price">{{ precio(item.price) }}</span>
+            <span>{{ precio(item.special_price) }}</span>
           </template>
-          <span v-else>${{ item.price }}</span>
+          <span v-else-if="sinPrecio" class="dish-card__price-hint">Ver opciones</span>
+          <span v-else>{{ precio(item.price) }}</span>
         </div>
       </q-img>
 
       <!-- Placeholder cuando el platillo no tiene foto -->
       <div v-else class="dish-card__image dish-card__no-image" style="aspect-ratio: 4 / 3">
         <q-icon name="restaurant_menu" size="40px" />
-        <div class="dish-card__price-overlay" :class="{ 'dish-card__price-overlay--offer': hasSpecialPrice }">
+        <div
+          v-if="!sinPrecio || tieneOpciones"
+          class="dish-card__price-overlay"
+          :class="{ 'dish-card__price-overlay--offer': hasSpecialPrice }"
+        >
           <template v-if="hasSpecialPrice">
-            <span class="dish-card__old-price">${{ item.price }}</span>
-            <span>${{ item.special_price }}</span>
+            <span class="dish-card__old-price">{{ precio(item.price) }}</span>
+            <span>{{ precio(item.special_price) }}</span>
           </template>
-          <span v-else>${{ item.price }}</span>
+          <span v-else-if="sinPrecio" class="dish-card__price-hint">Ver opciones</span>
+          <span v-else>{{ precio(item.price) }}</span>
         </div>
       </div>
     </div>
@@ -69,8 +79,8 @@
         {{ item.name }}
       </h3>
 
-      <p class="dish-card__description">
-        {{ item.description }}
+      <p v-if="descripcion" class="dish-card__description">
+        {{ descripcion }}
       </p>
 
       <!-- El ahorro en pesos, que es como la gente decide. La urgencia solo aparece
@@ -124,7 +134,7 @@ defineOptions({
 });
 
 import { computed, toRef } from "vue";
-import { useDish } from "src/composables/useDish";
+import { useDish, precio } from "src/composables/useDish";
 import { offerSavings, offerUrgency } from "src/utils/dishPrice";
 
 const props = defineProps({
@@ -134,9 +144,16 @@ const props = defineProps({
   },
 });
 
-const { agotado, hasSpecialPrice, isNew, seeProduct, shareProduct } = useDish(
-  toRef(props, "item")
-);
+const {
+  agotado,
+  hasSpecialPrice,
+  isNew,
+  sinPrecio,
+  tieneOpciones,
+  descripcion,
+  seeProduct,
+  shareProduct,
+} = useDish(toRef(props, "item"));
 
 // Null cuando no hay oferta vigente o cuando el descuento no se puede afirmar (precio
 // mal capturado). El template usa eso para decidir si habla: es más barato callarse
@@ -312,6 +329,13 @@ const urgency = computed(() => offerUrgency(props.item));
     &--offer {
       background: rgba(244, 67, 54, 0.95);
       color: white;
+    }
+
+    // "Ver opciones" no es un precio: mas chico, para que no compita con los de al lado.
+    .dish-card__price-hint {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      letter-spacing: 0;
     }
     color: var(--q-primary);
     font-variant-numeric: tabular-nums;

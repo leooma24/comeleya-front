@@ -828,7 +828,7 @@ const accionesDe = (pr) => [
 
 // --- Prospect Card ---
 .mc-prospect-card {
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border, #e8e8e8);
   border-radius: 10px;
   margin-bottom: 8px;

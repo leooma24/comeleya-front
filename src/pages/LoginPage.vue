@@ -2,7 +2,10 @@
   <q-page class="mc-login-page">
     <div class="mc-login-container">
       <!-- Left Panel - Branding -->
-      <div class="mc-login-branding desktop-only">
+      <!-- Por ancho y no con desktop-only: esa clase pregunta la plataforma, y un iPad
+           (que Safari reporta como Mac) o una ventana angosta apretaban las dos
+           columnas y cortaban los campos. -->
+      <div class="mc-login-branding">
         <div class="mc-login-branding__content">
           <q-img
             src="~assets/logo.svg"
@@ -37,7 +40,7 @@
       <div class="mc-login-form-wrapper">
         <div class="mc-login-form">
           <!-- Mobile Logo -->
-          <div class="mc-login-logo mobile-only">
+          <div class="mc-login-logo">
             <q-img
               src="~assets/logo.svg"
               width="64px"
@@ -98,7 +101,7 @@
 
           <!-- Forgot Password -->
           <div class="text-right q-mb-sm">
-            <q-btn flat dense no-caps color="primary" label="¿Olvidaste tu contraseña?" size="sm" to="/recuperar-contrasena" />
+            <q-btn flat dense no-caps color="primary" label="¿Olvidaste tu contraseña?" to="/recuperar-contrasena" class="mc-login-link" />
           </div>
 
           <!-- Login Button -->
@@ -107,7 +110,6 @@
             label="Iniciar Sesión"
             no-caps
             unelevated
-            size="lg"
             @click="login"
             :loading="user.loading"
             class="full-width mc-login-btn"
@@ -122,7 +124,6 @@
           <q-btn
             outline
             no-caps
-            size="md"
             @click="loginWithFacebook"
             :loading="user.loading"
             class="full-width mc-facebook-btn"
@@ -140,9 +141,8 @@
               color="primary"
               label="Volver al inicio"
               icon="arrow_back"
-              size="sm"
               to="/"
-              class="mc-back-btn"
+              class="mc-back-btn mc-login-link"
             />
           </div>
         </div>
@@ -403,6 +403,7 @@ onMounted(() => {
 }
 
 .mc-login-logo {
+  display: none;
   text-align: center;
   margin-bottom: var(--space-lg);
 }
@@ -432,6 +433,19 @@ onMounted(() => {
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: var(--space-xs);
+}
+
+// Los dos botones del mismo alto: con size="lg" el principal casi doblaba la letra
+// del de Facebook y se veian de dos formularios distintos.
+.mc-login-btn,
+.mc-facebook-btn {
+  min-height: 48px;
+  font-size: var(--text-base);
+}
+
+.mc-login-link {
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .mc-login-btn {
@@ -487,6 +501,14 @@ onMounted(() => {
 }
 
 @media screen and (max-width: 768px) {
+  .mc-login-branding {
+    display: none;
+  }
+
+  .mc-login-logo {
+    display: block;
+  }
+
   .mc-login-container {
     max-width: 440px;
     min-height: auto;

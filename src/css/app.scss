@@ -87,6 +87,14 @@ html {
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+// Los tokens que salen del color de marca se vuelven a declarar en body, que es donde
+// setPrimaryColor pone el color del negocio. Declarados solo en :root se resolvian con
+// el rojo de ComeleYa: cada tinte suave del menu salia rojo aunque la marca fuera azul.
+body {
+  --color-price: var(--q-primary);
+  --color-primary-soft: color-mix(in srgb, var(--q-primary) 8%, transparent);
+}
+
 // ============================================
 // DARK MODE (usa el dark nativo de Quasar: body.body--dark)
 // ============================================
@@ -311,6 +319,9 @@ h6 {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
   font-weight: 800;
+  // Sin esto hereda el `h2` de Quasar (line-height 3.75rem): el titulo median 92 px de
+  // alto en vez de ~60 y dejaba un hueco entre el nombre de la categoria y sus platillos.
+  line-height: 1.2;
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
 
@@ -336,7 +347,9 @@ h6 {
     position: sticky;
     top: 56px;
     z-index: 5;
-    background: var(--color-header-bg);
+    // El fondo de la pagina, no el blanco del header: pegado se veia como una franja
+    // blanca encima del gris del menu.
+    background: color-mix(in srgb, var(--color-surface-variant) 92%, transparent);
     backdrop-filter: blur(12px);
   }
 
@@ -357,7 +370,7 @@ h6 {
     position: sticky;
     top: 53px;
     z-index: 1;
-    background: var(--color-header-bg);
+    background: color-mix(in srgb, var(--color-surface-variant) 92%, transparent);
     backdrop-filter: blur(12px);
   }
 }

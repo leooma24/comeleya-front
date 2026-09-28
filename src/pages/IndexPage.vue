@@ -99,6 +99,21 @@
             </p>
           </div>
 
+          <!-- El negocio existe pero todavía no sube platillos. -->
+          <div
+            v-else-if="mainStore.menuCargado && !mainStore.categories.length"
+            class="mc-empty-menu"
+          >
+            <div class="mc-empty-menu__icon">
+              <q-icon name="restaurant_menu" size="34px" />
+            </div>
+            <p class="mc-empty-menu__title">El menú está en preparación</p>
+            <p class="mc-empty-menu__desc">
+              {{ mainStore.company?.name || "Este negocio" }} todavía no publica sus
+              platillos. Vuelve pronto.
+            </p>
+          </div>
+
           <!-- Skeleton Loading -->
           <div
             v-else-if="!mainStore.categories.length"
@@ -616,6 +631,40 @@ onBeforeUnmount(() => {
     font-variant-numeric: tabular-nums;
     margin: var(--space-md) 0 0;
     opacity: 0.75;
+  }
+}
+
+.mc-empty-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px var(--space-md);
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-full);
+    background: var(--color-primary-soft);
+    color: var(--q-primary);
+  }
+
+  &__title {
+    margin: var(--space-md) 0 var(--space-xs);
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  &__desc {
+    margin: 0;
+    max-width: 320px;
+    font-size: var(--text-sm);
+    line-height: 1.5;
+    color: var(--color-text-secondary);
   }
 }
 

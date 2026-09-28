@@ -33,18 +33,6 @@
             @click="openMenu"
           />
 
-          <q-btn
-            v-if="$q.screen.gt.xs"
-            flat
-            round
-            dense
-            icon="notifications_none"
-            color="grey-7"
-            size="sm"
-          >
-            <q-tooltip>Notificaciones</q-tooltip>
-          </q-btn>
-
           <q-btn flat dense no-wrap class="mc-user-btn">
             <q-avatar size="28px" color="primary" text-color="white" class="mc-user-avatar">
               <span>{{ adminStore.user.name?.charAt(0)?.toUpperCase() }}</span>
@@ -448,7 +436,7 @@ const logout = () => {
 }
 
 .mc-admin-header {
-  background: white;
+  background: var(--color-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -529,7 +517,7 @@ const logout = () => {
 }
 
 .mc-admin-tabs {
-  background: white;
+  background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   padding: 0 var(--space-md);
 }
