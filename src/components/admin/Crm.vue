@@ -212,7 +212,8 @@
 
     <!-- List View -->
     <q-table v-else-if="view === 'list' && !modoApp" flat :rows="filteredProspects" :columns="columns" row-key="id"
-      no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table"
+      no-data-label="Sin prospectos" rows-per-page-label="Por página:" class="mc-inner-table mc-crm-lista"
+      v-model:pagination="paginacionLista" :rows-per-page-options="[10, 25, 50, 100]"
     >
       <template v-slot:body="props">
         <q-tr :props="props" class="cursor-pointer" @click="openActivities(props.row)">
@@ -741,6 +742,9 @@ onMounted(() => {
   loadStats();
 });
 
+// De 5 en 5 eran 69 paginas para 342 prospectos.
+const paginacionLista = ref({ rowsPerPage: 25 });
+
 const columns = [
   { name: "business_name", label: "Negocio", align: "left", field: "business_name", sortable: true },
   { name: "phone", label: "Teléfono", align: "left", field: "phone", sortable: true },
@@ -933,4 +937,29 @@ const accionesDe = (pr) => [
 }
 
 .mc-inner-table { box-shadow: none; background: transparent; :deep(.q-table__top) { display: none; } }
+
+// La primera columna (negocio y contacto) se queda fija al desplazar la tabla de lado.
+// Con once columnas no cabe completa, y al moverla se perdia de quien era cada renglon.
+.mc-crm-lista {
+  :deep(thead th:first-child),
+  :deep(tbody td:first-child) {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--color-surface);
+    min-width: 200px;
+    max-width: 260px;
+    white-space: normal;
+    // La sombra marca el borde cuando hay filas pasando por debajo.
+    box-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.18);
+  }
+
+  :deep(thead th:first-child) {
+    z-index: 2;
+  }
+
+  :deep(tbody tr:hover td:first-child) {
+    background: var(--color-surface-variant);
+  }
+}
 </style>
