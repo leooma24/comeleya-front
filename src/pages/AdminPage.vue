@@ -1,6 +1,6 @@
 <template>
   <q-page class="mc-admin-page">
-    <div class="mc-admin-content">
+    <div class="mc-admin-content" :class="{ 'mc-admin-content--ancho': isAdmin }">
       <!-- Los avisos de plan y de configuracion pendiente. En celular NO van aqui:
            dibujados antes de la cabecera la empujaban hacia abajo y le cortaban el
            titulo, asi que la pantalla empezaba con un aviso a medias. Ahi los pone la
@@ -352,6 +352,13 @@ const getStatus = (tab, orderTab) => {
   max-width: 1400px;
   margin: 0 auto;
   padding: var(--space-lg);
+}
+
+/* El panel de ComeleYa es de tablas anchas (CRM, negocios, usuarios, suscripciones).
+   Con el tope de 1400 px, en un monitor grande quedaba espacio muerto a los lados
+   mientras la lista del CRM tenia que desplazarse de lado para ver las acciones. */
+.mc-admin-content--ancho {
+  max-width: none;
 }
 
 @media screen and (max-width: 600px) {

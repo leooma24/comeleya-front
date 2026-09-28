@@ -961,6 +961,21 @@ const accionesDe = (pr) => [
   // abajo. En pantallas bajas no se encoge de mas: minimo 320.
   :deep(.q-table__middle) {
     max-height: max(320px, calc(100vh - 380px));
+
+    // En Mac las barras se esconden hasta que uno ya esta desplazando: nadie sabia que
+    // la tabla se movia de lado. Con estilo propio el sistema la deja siempre visible.
+    &::-webkit-scrollbar {
+      height: 10px;
+      width: 10px;
+    }
+    &::-webkit-scrollbar-track {
+      background: var(--color-surface-variant);
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-text-tertiary);
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-surface-variant);
+    }
   }
 
   // Los titulos tambien fijos, arriba, al bajar por la lista.
