@@ -404,6 +404,7 @@
 
   <FormDrawer />
   <ActivityDrawer />
+  <WhatsAppDialog v-model="waAbierto" :prospecto="waProspecto" @enviado="alEnviarWa" />
 </template>
 
 <script setup>
@@ -417,6 +418,7 @@ import { useModoApp } from "src/composables/useModoApp";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
 import FormDrawer from "./crm/FormDrawer.vue";
 import ActivityDrawer from "./crm/ActivityDrawer.vue";
+import WhatsAppDialog from "./crm/WhatsAppDialog.vue";
 import CrmSegments from "./crm/CrmSegments.vue";
 import CrmCampaignDialog from "./crm/CrmCampaignDialog.vue";
 import CrmDashboard from "./crm/CrmDashboard.vue";
@@ -640,78 +642,20 @@ const campaignSegment = ref("");
 const openCampaign = (segment) => { campaignSegment.value = segment; showCampaign.value = true; };
 
 // Quick actions
-const siteUrl = (slug) => slug ? `https://comeleya.com/${slug}` : "https://comeleya.com";
 
-const buildWaMsg = (lines) => lines.join("\n");
-const loginUrl = "https://comeleya.com/admin/iniciar-sesion";
-
-const whatsappMessages = {
-  pedidos_sin_pago: (n, email, url) => buildWaMsg([
-    `Hola ${n}, ya tienes tu menú digital en ComeleYa! Tu usuario actual es: ${email}`,
-    "",
-    "Vimos que ya recibes pedidos, nos gustaría ayudarte a hacer crecer tu negocio.",
-    `Inicia Sesión con tu cuenta en ${loginUrl}`,
-    "",
-    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
-  ]),
-  menu_sin_pedidos: (n, email, url) => buildWaMsg([
-    `Hola ${n}, ya tienes tu menú digital en ComeleYa! Tu usuario actual es: ${email}`,
-    "",
-    "Necesitas ayuda para empezar a recibir pedidos?",
-    `Inicia Sesión con tu cuenta en ${loginUrl}`,
-    "",
-    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
-  ]),
-  sin_configurar: (n, email, url) => buildWaMsg([
-    `Hola ${n}, creaste tu cuenta en ComeleYa! Tu usuario actual es: ${email}`,
-    "",
-    "Aún no has configurado tu menú, te podemos ayudar a configurarlo en menos de 15 minutos.",
-    `Inicia Sesión con tu cuenta en ${loginUrl}`,
-    "",
-    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
-  ]),
-  inactivo: (n, email, url) => buildWaMsg([
-    `Hola ${n}, hace tiempo que no te vemos en ComeleYa! Tu usuario actual es: ${email}`,
-    "",
-    "Te gustaría retomar? Tenemos una oferta especial para ti.",
-    `Inicia Sesión con tu cuenta en ${loginUrl}`,
-    "",
-    `Si deseas ver tu cuenta actual en línea visita: ${url}`,
-  ]),
+// El boton verde ya no abre un mensaje fijo: abre la ventana para elegirlo (con el
+// sugerido segun su etapa y lo que ha hecho en ComeleYa). Ver utils/plantillasWhatsApp.
+const waAbierto = ref(false);
+const waProspecto = ref(null);
+const openWhatsApp = (p) => {
+  waProspecto.value = p;
+  waAbierto.value = true;
 };
-
-const normalizePhone = (phone) => {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  return digits.length === 10 ? "52" + digits : digits;
-};
-
-let waOpening = false;
-const openWhatsApp = async (p) => {
-  if (waOpening) return;
-  waOpening = true;
-  const phone = normalizePhone(p.phone);
-  const name = p.name || p.business_name || "";
-  const email = p.email || "";
-  const url = siteUrl(p.establishment?.slug);
-  const msg = (whatsappMessages[p.segment] || whatsappMessages.sin_configurar)(name, email, url);
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-
-  // Log WhatsApp activity
-  try {
-    const { data } = await api.post(`/admin/prospects/${p.id}/activity`, {
-      type: "whatsapp",
-      description: `WhatsApp enviado a ${phone}`,
-    });
-    // Update prospect in list (may have auto-transitioned stage)
-    if (data.prospect) {
-      adminStore.prospects = adminStore.prospects.map((pr) => pr.id === data.prospect.id ? data.prospect : pr);
-    }
-  } catch (e) {
-    console.warn("No se pudo registrar actividad de WhatsApp", e);
+const alEnviarWa = (actualizado) => {
+  // Anotar un WhatsApp puede cambiarle la etapa y le para los correos automaticos.
+  if (actualizado) {
+    adminStore.prospects = adminStore.prospects.map((pr) => pr.id === actualizado.id ? actualizado : pr);
   }
-
-  setTimeout(() => { waOpening = false; }, 1500);
 };
 
 const templateForSegment = (seg) => {
