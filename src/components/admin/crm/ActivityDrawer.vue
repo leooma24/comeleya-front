@@ -32,17 +32,25 @@
           <q-input v-model="form.scheduled_at" filled dense type="datetime-local" label="Agendar para (opcional)" class="q-mb-sm" />
           <div class="row q-gutter-sm">
             <q-btn unelevated no-caps color="primary" label="Agregar" icon="add" size="sm" @click="addActivity" :loading="saving" />
-            <q-btn v-if="adminStore.activeProspect?.email && !['cerrado_ganado','cerrado_perdido'].includes(adminStore.activeProspect?.status)" outline no-caps color="teal" label="Iniciar secuencia" icon="auto_fix_high" size="sm" @click="startSequence">
+            <!-- Arrancar o parar los correos automaticos de este prospecto. Parar sirve
+                 cuando ya se esta platicando con el por un medio que no se anota aqui. -->
+            <q-btn v-if="adminStore.activeProspect?.email && adminStore.activeProspect?.status !== 'cerrado_ganado'" outline no-caps color="teal" label="Correos automáticos" icon="auto_fix_high" size="sm" @click="startSequence">
               <q-menu auto-close>
-                <q-list dense style="min-width: 180px">
+                <q-list dense style="min-width: 220px">
+                  <q-item-label header>Iniciar</q-item-label>
                   <q-item clickable @click="launchSequence('welcome')">
-                    <q-item-section>Bienvenida (2 emails)</q-item-section>
+                    <q-item-section>Bienvenida (2 correos)</q-item-section>
                   </q-item>
                   <q-item clickable @click="launchSequence('nurture')">
-                    <q-item-section>Nutrición (2 emails)</q-item-section>
+                    <q-item-section>Seguimiento (2 correos)</q-item-section>
                   </q-item>
                   <q-item clickable @click="launchSequence('reactivation')">
-                    <q-item-section>Reactivación (3 emails)</q-item-section>
+                    <q-item-section>Recuperación (3 correos)</q-item-section>
+                  </q-item>
+                  <q-separator />
+                  <q-item clickable class="text-negative" @click="stopSequence">
+                    <q-item-section avatar><q-icon name="stop_circle" size="20px" /></q-item-section>
+                    <q-item-section>Detener correos automáticos</q-item-section>
                   </q-item>
                 </q-list>
               </q-menu>
@@ -142,6 +150,15 @@ const launchSequence = async (type) => {
     adminStore.prospects = fresh.prospects || [];
   } catch (e) {
     adminStore.messageStore.error(e.response?.data?.message || "Error al iniciar secuencia");
+  }
+};
+
+const stopSequence = async () => {
+  try {
+    const { data } = await api.delete(`/admin/prospects/${adminStore.activeProspect.id}/sequence`);
+    adminStore.messageStore.success(data.message);
+  } catch (e) {
+    adminStore.messageStore.error(e.response?.data?.message || "No se pudieron detener los correos");
   }
 };
 

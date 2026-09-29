@@ -66,14 +66,23 @@ export default boot(({ app, router }) => {
   app.config.globalProperties.$api = api;
 });
 
+/**
+ * A donde mandar a quien se le vencio la sesion.
+ *
+ * Antes tomaba el primer pedazo de la direccion como negocio: en el panel de ComeleYa
+ * (/admin) salia /admin/admin/iniciar-sesion, y en el menu de un cliente con una sesion
+ * vieja guardada lo mandaba a /negocio/iniciar-sesion. Ninguna de las dos existe, y el
+ * comensal se quedaba sin ver el menu.
+ */
 function redirectToLogin(router) {
-  const slug = window.location.pathname.split("/")[1];
-  const path = window.location.pathname;
-  if (path.includes("/admin")) {
-    router.push(`/${slug}/admin/iniciar-sesion`);
-  } else {
-    router.push(`/${slug}/iniciar-sesion`);
+  const partes = window.location.pathname.split("/").filter(Boolean);
+  if (partes.includes("iniciar-sesion")) return;
+  if (partes[0] === "admin") {
+    router.push("/admin/iniciar-sesion");
+  } else if (partes[1] === "admin") {
+    router.push(`/${partes[0]}/admin/iniciar-sesion`);
   }
+  // En el menu no se redirige: el comensal no necesita sesion para pedir.
 }
 
 export { api };

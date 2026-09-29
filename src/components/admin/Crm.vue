@@ -93,6 +93,24 @@
       </q-chip>
     </div>
 
+    <!-- En que van los correos automaticos. Antes habia que abrir el historial de cada
+         prospecto para saber si ya le llegaron y cual sigue. -->
+    <div class="mc-crm-correos q-px-md q-pb-md" v-if="!modoApp">
+      <span class="mc-crm-correos__titulo">Correos:</span>
+      <q-chip
+        v-for="op in opcionesCorreos"
+        :key="op.valor"
+        clickable
+        dense
+        :outline="filtroCorreos !== op.valor"
+        :color="op.color"
+        :text-color="filtroCorreos === op.valor ? 'white' : undefined"
+        @click="filtroCorreos = filtroCorreos === op.valor ? '' : op.valor"
+      >
+        {{ op.label }}: {{ conteoCorreos[op.valor] || 0 }}
+      </q-chip>
+    </div>
+
     <!-- Dashboard View (Hoy) -->
     <div v-if="view === 'dashboard'" class="q-pa-md">
       <CrmDashboard
@@ -240,6 +258,12 @@
           </q-td>
           <q-td key="status" :props="props">
             <q-chip dense size="sm" :color="statusColor(props.row.status)" text-color="white">{{ statusLabel(props.row.status) }}</q-chip>
+          </q-td>
+          <q-td key="correos" :props="props">
+            <div :class="['mc-correos', `mc-correos--${estadoCorreos(props.row).clave}`]">
+              <span class="mc-correos__txt">{{ estadoCorreos(props.row).texto }}</span>
+              <span v-if="estadoCorreos(props.row).detalle" class="mc-correos__det">{{ estadoCorreos(props.row).detalle }}</span>
+            </div>
           </q-td>
           <q-td key="last_activity" :props="props">
             <template v-if="lastActivity(props.row)">
@@ -436,10 +460,60 @@ const totalStats = computed(() => Object.values(stats.value).reduce((a, n) => a 
 
 const visibleStages = computed(() => (filter.value ? stages.filter((s) => s.value === filter.value) : stages));
 
+// --- En que van sus correos automaticos ---
+const NOMBRE_SECUENCIA = { welcome: "Bienvenida", nurture: "Seguimiento", reactivation: "Recuperación" };
+const fechaCorta = (d) => new Date(d).toLocaleDateString("es-MX", { day: "numeric", month: "short" });
+
+/**
+ * clave: activa | terminada | detenida | rebote | ninguna. `orden` es para ordenar la
+ * columna: primero los que tienen correos en curso.
+ */
+const estadoCorreos = (p) => {
+  if ((p.tags || []).includes("correo rebotado")) {
+    return { clave: "rebote", texto: "Rebotó", detalle: "Correo inválido", orden: 4 };
+  }
+  const s = p.ultima_secuencia;
+  if (!s) return { clave: "ninguna", texto: "—", detalle: "", orden: 5 };
+  const nombre = NOMBRE_SECUENCIA[s.sequence_type] || s.sequence_type;
+  const enviados = `${s.current_step} de ${s.total_steps}`;
+  if (s.status === "active") {
+    return {
+      clave: "activa",
+      texto: `${nombre} · ${enviados}`,
+      detalle: s.next_send_at ? `Sigue el ${fechaCorta(s.next_send_at)}` : "",
+      orden: 1,
+    };
+  }
+  if (s.status === "completed") {
+    return { clave: "terminada", texto: `${nombre} · terminada`, detalle: `${s.total_steps} correos enviados`, orden: 2 };
+  }
+  return { clave: "detenida", texto: `${nombre} · detenida`, detalle: `Se enviaron ${enviados}`, orden: 3 };
+};
+
+const opcionesCorreos = [
+  { valor: "activa", label: "En curso", color: "teal" },
+  { valor: "terminada", label: "Terminados", color: "blue-grey" },
+  { valor: "detenida", label: "Detenidos", color: "orange-8" },
+  { valor: "rebote", label: "Rebotaron", color: "negative" },
+  { valor: "ninguna", label: "Sin correos", color: "grey-6" },
+];
+const filtroCorreos = ref("");
+const conteoCorreos = computed(() => {
+  const c = {};
+  for (const p of adminStore.prospects) {
+    const k = estadoCorreos(p).clave;
+    c[k] = (c[k] || 0) + 1;
+  }
+  return c;
+});
+
 const filteredProspects = computed(() => {
-  const byStatus = filter.value
+  const porEtapa = filter.value
     ? adminStore.prospects.filter((p) => p.status === filter.value)
     : adminStore.prospects;
+  const byStatus = filtroCorreos.value
+    ? porEtapa.filter((p) => estadoCorreos(p).clave === filtroCorreos.value)
+    : porEtapa;
   if (!search.value) return byStatus;
   const q = search.value.toLowerCase();
   return byStatus.filter((p) =>
@@ -753,6 +827,7 @@ const columns = [
   { name: "source", label: "Fuente", align: "center", field: "source", sortable: true },
   { name: "tags", label: "Tags", align: "left", field: (r) => (r.tags || []).join(", "), sortable: true },
   { name: "status", label: "Etapa", align: "center", field: "status", sortable: true },
+  { name: "correos", label: "Correos", align: "left", field: (r) => estadoCorreos(r).orden, sortable: true },
   { name: "last_activity", label: "Última actividad", align: "center", field: (r) => r.activities?.[0]?.created_at, sortable: true },
   { name: "next_contact_at", label: "Próx. contacto", align: "center", field: "next_contact_at", sortable: true },
   { name: "actions", label: "Acciones", align: "right" },
@@ -994,5 +1069,36 @@ const accionesDe = (pr) => [
   :deep(tbody tr:hover td:first-child) {
     background: var(--color-surface-variant);
   }
+}
+
+.mc-crm-correos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: -8px;
+
+  &__titulo {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-right: 4px;
+  }
+}
+
+.mc-correos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  white-space: nowrap;
+
+  &__txt { font-size: var(--text-xs); font-weight: 600; }
+  &__det { font-size: 11px; color: var(--color-text-tertiary); }
+
+  &--activa .mc-correos__txt { color: var(--q-positive); }
+  &--terminada .mc-correos__txt { color: var(--color-text-secondary); }
+  &--detenida .mc-correos__txt { color: #e65100; }
+  &--rebote .mc-correos__txt { color: var(--q-negative); }
+  &--ninguna .mc-correos__txt { color: var(--color-text-tertiary); }
 }
 </style>
