@@ -64,14 +64,16 @@ const segmentOptions = [
 const templateOptions = [
   { label: "Ya tienes tu menú, necesitas ayuda?", value: "menu_help" },
   { label: "Tus clientes están ordenando, hora de crecer", value: "orders_growing" },
-  { label: "Todavía interesado? 30 días gratis", value: "reactivation" },
+  { label: "¿Todavía interesado? 15 días gratis", value: "reactivation" },
   { label: "Tu menú digital te espera", value: "welcome_back" },
 ];
 
 const previews = {
   menu_help: { subject: "Ya tienes tu menú, necesitas ayuda?", preview: "Vimos que ya configuraste tu menú digital. El siguiente paso es compartirlo con tus clientes..." },
   orders_growing: { subject: "Tus clientes están ordenando, hora de crecer!", preview: "Tus clientes ya usan tu menú y hacen pedidos. Es momento de activar pagos en línea, lealtad..." },
-  reactivation: { subject: "Todavía interesado? Te ofrecemos 30 días gratis", preview: "Hace un tiempo creaste tu cuenta. Te ofrecemos 30 días gratis del plan Premium..." },
+  // 15 y no 30: es la prueba que de verdad da el sistema (services.prueba_dias). A quien
+  // ya tenia cuenta se le reactiva desde "Asignar plan" cuando responde.
+  reactivation: { subject: "¿Todavía interesado? Te regalamos 15 días más", preview: "Hace un tiempo creaste tu menú. Si quieres retomarlo, te reactivamos 15 días gratis con todas las funciones..." },
   welcome_back: { subject: "Tu menú digital te espera", preview: "Creaste tu cuenta pero no has configurado tu menú. En 15 minutos puedes tenerlo listo..." },
 };
 

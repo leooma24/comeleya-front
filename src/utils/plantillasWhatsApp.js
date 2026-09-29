@@ -61,7 +61,7 @@ export function plantillasPara(p, vendedor = "") {
         {
           clave: "reactivar",
           titulo: "Retomar (se había ido)",
-          texto: `${hola}${soy}. Hace tiempo creaste tu menú en ComeleYa y queríamos saber cómo vas. Si te interesa retomarlo, te ayudo a dejarlo listo de nuevo.`,
+          texto: `${hola}${soy}. Hace tiempo creaste tu menú en ComeleYa y queríamos saber cómo vas. Si te interesa retomarlo, te reactivo 15 días gratis con todas las funciones y te ayudo a dejarlo listo.`,
         },
       ]
     : [
