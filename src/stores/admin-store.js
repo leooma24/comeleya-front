@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { api } from "boot/axios";
+import { Dialog } from "quasar";
 
 import { useUserStore } from "./user-store";
 import { useOrderStore } from "./order-store";
@@ -1660,7 +1661,7 @@ export const useAdminStore = defineStore({
         this.messageStore.error("Error al obtener prospectos");
       }
     },
-    async saveProspect() {
+    async saveProspect(forzar = false) {
       if (this.loading) return;
       this.loading = true;
       try {
@@ -1669,12 +1670,28 @@ export const useAdminStore = defineStore({
           this.prospects = this.prospects.map((p) => p.id === data.prospect.id ? data.prospect : p);
           this.messageStore.success("Prospecto actualizado");
         } else {
-          const { data } = await api.post("/admin/prospects", this.prospectForm);
+          // Solo un true explicito: el @save del cajon puede pasar un evento como argumento,
+          // y eso se saltaria la revision de duplicados.
+          const { data } = await api.post("/admin/prospects", { ...this.prospectForm, forzar: forzar === true });
           this.prospects.unshift(data.prospect);
           this.messageStore.success("Prospecto creado");
         }
         this.prospectDrawer = false;
       } catch (e) {
+        // 409: ya hay alguien con ese telefono o correo. Se pregunta en vez de
+        // bloquear: dos sucursales de un mismo negocio pueden compartir numero.
+        if (e.response?.status === 409) {
+          this.loading = false;
+          Dialog.create({
+            title: "¿Ya lo tienes?",
+            message: `${e.response.data.message} ¿Lo guardo de todos modos?`,
+            cancel: { label: "No, cancelar", flat: true, noCaps: true },
+            ok: { label: "Guardar de todos modos", color: "primary", noCaps: true, unelevated: true },
+            persistent: true,
+          }).onOk(() => this.saveProspect(true));
+          return;
+        }
+        // 422 trae el porque: "¿quisiste decir ana@gmail.com?", "el dominio no existe".
         this.messageStore.error(e.response?.data?.message ?? "Error al guardar prospecto");
       } finally {
         this.loading = false;
