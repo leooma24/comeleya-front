@@ -212,6 +212,9 @@
             </q-chip>
           </q-td>
           <q-td key="actions" :props="props">
+            <q-btn flat size="sm" dense round icon="restaurant_menu" color="primary" @click="verMenu(props.row)">
+              <q-tooltip>Ver menú</q-tooltip>
+            </q-btn>
             <q-btn flat size="sm" dense round icon="open_in_new" color="grey-7" @click="adminEstablishment(props.row)">
               <q-tooltip>Abrir panel</q-tooltip>
             </q-btn>
@@ -262,6 +265,9 @@
               </div>
             </q-card-section>
             <q-card-actions class="mc-establishment-card__actions">
+              <q-btn flat size="sm" dense round icon="restaurant_menu" color="primary" @click="verMenu(props.row)">
+                <q-tooltip>Ver menú</q-tooltip>
+              </q-btn>
               <q-btn flat size="sm" dense round icon="open_in_new" color="grey-7" @click="adminEstablishment(props.row)">
                 <q-tooltip>Abrir panel</q-tooltip>
               </q-btn>
@@ -512,6 +518,10 @@ const searchUserShow = async (establishment) => {
     await adminStore.getUsers();
   }
   adminStore.searchUserDialog = true;
+};
+
+const verMenu = (establishment) => {
+  window.open(`/${establishment.slug}`, "_blank");
 };
 
 const adminEstablishment = (establishment) => {

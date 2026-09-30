@@ -35,6 +35,13 @@ describe("plantillas de WhatsApp", () => {
     expect(plantillasPara(sinRegistro({ status: "cerrado_perdido" }))[0].clave).toBe("reactivar");
   });
 
+  it("retomar a un registrado incluye la liga de su menú", () => {
+    const perdido = registrado({ status: "cerrado_perdido" });
+    const [primera] = plantillasPara(perdido);
+    expect(primera.clave).toBe("reactivar");
+    expect(primera.texto).toContain("https://comeleya.com/sushi-ana");
+  });
+
   it("firma con el nombre de quien escribe", () => {
     expect(plantillasPara(sinRegistro(), "Alberto Montoya")[0].texto).toContain("soy Alberto de ComeleYa");
   });
