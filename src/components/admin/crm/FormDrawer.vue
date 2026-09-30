@@ -27,6 +27,10 @@
           filled dense
           :options="sourceOptions"
           emit-value map-options
+          use-input hide-selected fill-input input-debounce="0"
+          hint="Escribe y presiona Enter para agregar otra"
+          @filter="filtrarFuentes"
+          @new-value="agregarFuente"
         />
       </div>
       <div class="col-6">
@@ -77,17 +81,49 @@
 
 <script setup>
 defineOptions({ name: "ProspectFormDrawer" });
+import { computed, ref } from "vue";
 import { useAdminStore } from "src/stores/admin-store";
 import BaseFormDrawer from "../BaseFormDrawer.vue";
 const adminStore = useAdminStore();
 
-const sourceOptions = [
+const baseSources = [
   { label: "Referido", value: "referido" },
   { label: "Redes sociales", value: "redes" },
   { label: "Llamada", value: "llamada" },
   { label: "Web", value: "web" },
   { label: "Otro", value: "otro" },
 ];
+
+// Las fuentes que agregas a mano se guardan en el prospecto; las que ya se usaron en
+// otros prospectos vuelven a salir en la lista, y las recien escritas entran por "nuevas".
+const nuevas = ref([]);
+const filtro = ref("");
+
+const todas = computed(() => {
+  const conocidas = new Set(baseSources.map((s) => s.value));
+  const propias = [...adminStore.prospects.map((p) => p.source), ...nuevas.value]
+    .filter((s) => s && !conocidas.has(s));
+  return [...baseSources, ...[...new Set(propias)].map((s) => ({ label: s, value: s }))];
+});
+
+const sourceOptions = computed(() => {
+  const q = filtro.value.trim().toLowerCase();
+  return q ? todas.value.filter((o) => o.label.toLowerCase().includes(q)) : todas.value;
+});
+
+function filtrarFuentes(val, update) {
+  update(() => { filtro.value = val; });
+}
+
+function agregarFuente(val, done) {
+  const nueva = val.trim().slice(0, 50);
+  if (!nueva) return done();
+  // Si ya existe con otras mayusculas, se usa esa en vez de duplicarla.
+  const existente = todas.value.find((o) => o.label.toLowerCase() === nueva.toLowerCase());
+  if (existente) return done(existente.value, "add-unique");
+  nuevas.value.push(nueva);
+  done(nueva, "add-unique");
+}
 
 const tagSuggestions = [
   "restaurante", "cafeteria", "bar", "sushi", "pizzeria",

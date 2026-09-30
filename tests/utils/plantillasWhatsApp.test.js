@@ -16,12 +16,18 @@ describe("plantillas de WhatsApp", () => {
     expect(todas).not.toMatch(/usuario/i);
   });
 
-  it("sugiere presentar ComeleYa a un nuevo sin registro", () => {
+  it("a un nuevo sin registro le sugiere la invitación a registrarse", () => {
     const [primera] = plantillasPara(sinRegistro());
-    expect(primera.clave).toBe("presentacion");
+    expect(primera.clave).toBe("registro");
     expect(primera.sugerida).toBe(true);
     expect(primera.texto).toContain("Hola Juan");
     expect(primera.texto).toContain("Tacos Juan");
+    expect(primera.texto).toContain("15 días gratis");
+    expect(primera.texto).toContain("/nuevo-establecimiento");
+  });
+
+  it("la presentación sigue disponible para un nuevo sin registro", () => {
+    expect(plantillasPara(sinRegistro()).map((t) => t.clave)).toContain("presentacion");
   });
 
   it("la etapa cambia la sugerencia", () => {

@@ -66,6 +66,11 @@ export function plantillasPara(p, vendedor = "") {
       ]
     : [
         {
+          clave: "registro",
+          titulo: "Invitarlo a registrarse (15 días gratis)",
+          texto: `${hola}${soy}. Te invito a registrar ${negocio} en ComeleYa: tienes 15 días gratis con todas las funciones del plan Premium (menú digital, pedidos por WhatsApp, pagos en línea, puntos para clientes), sin tarjeta y sin comisión por pedido.\n\nRegístrate aquí: ${SITIO}/nuevo-establecimiento\n\nSi prefieres, mándame una foto de tu menú y te ayudo a subirlo.`,
+        },
+        {
           clave: "presentacion",
           titulo: "Presentarle ComeleYa",
           texto: `${hola}${soy}. Ayudamos a restaurantes como ${negocio} a recibir pedidos por WhatsApp con un menú digital, sin pagar comisión por pedido. ¿Te puedo mandar un ejemplo de cómo se ve?`,
@@ -74,11 +79,6 @@ export function plantillasPara(p, vendedor = "") {
           clave: "demo",
           titulo: "Mandarle el ejemplo",
           texto: `${hola}, te comparto cómo se ve un menú en ComeleYa: ${SITIO}/demo-restaurante\n\nTus clientes ven fotos y precios, arman su pedido y te llega directo a tu WhatsApp. ¿Qué te parece?`,
-        },
-        {
-          clave: "registro",
-          titulo: "Invitarlo a crear su menú",
-          texto: `${hola}, puedes crear tu menú gratis aquí (15 días con todas las funciones): ${SITIO}/nuevo-establecimiento\n\nSi prefieres, mándame una foto de tu menú y te ayudo a subirlo.`,
         },
         {
           clave: "seguimiento",
@@ -104,7 +104,7 @@ function sugerencia(p, registrado) {
     return ultimoHito(p) || "sin_menu";
   }
   return {
-    nuevo: "presentacion",
+    nuevo: "registro",
     contactado: "demo",
     demo: "registro",
     negociando: "seguimiento",
