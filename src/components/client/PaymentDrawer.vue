@@ -139,45 +139,21 @@
       </div>
 
       <!-- De que sucursal sale.
-           Va ANTES del resumen y no despues: el costo del envio que se muestra abajo
-           depende de esta eleccion, y un control que cambia una cifra tiene que estar
-           arriba de la cifra que cambia. Solo aparece si el negocio tiene sucursales;
-           en los demas -que son casi todos- el flujo no cambia en nada. -->
-      <div class="mc-sucursal" v-if="mainStore.sucursales.length > 1">
-        <div class="mc-sucursal__tit">¿De qué sucursal?</div>
-        <div class="mc-sucursal__lista">
-          <button
-            v-for="s in mainStore.sucursales"
-            :key="s.id"
-            type="button"
-            :class="[
-              'mc-sucursal__op',
-              {
-                'mc-sucursal__op--on': mainStore.sucursalElegida?.id === s.id,
-                'mc-sucursal__op--pausa': s.orders_paused,
-              },
-            ]"
-            :disabled="s.orders_paused"
-            @click="mainStore.elegirSucursal(s.id)"
-          >
-            <span class="mc-sucursal__nom">
-              {{ s.name }}
-              <!-- En pausa se sigue viendo -el cliente sabe que existe y que vuelve- pero no
-                   se puede elegir. -->
-              <em v-if="s.orders_paused">En pausa</em>
-              <em v-else-if="mainStore.sucursalMasCercana?.id === s.id">la más cerca</em>
-            </span>
-            <span class="mc-sucursal__dir">{{ s.full_address }}</span>
-            <span class="mc-sucursal__km" v-if="kmDe(s) !== null">
-              a {{ kmDe(s).toFixed(1) }} km
-            </span>
-          </button>
-        </div>
+           La sucursal YA se eligio en el paso de Datos; aqui no se vuelve a preguntar -eran
+           las mismas opciones dos veces seguidas-. Solo se dice de cual sale, porque el
+           costo del envio de abajo depende de ella, y se deja "Cambiar" que regresa a
+           Datos. Solo aparece si el negocio tiene sucursales. -->
+      <div class="mc-sucursal-resumen" v-if="mainStore.sucursales.length > 1 && mainStore.sucursalElegida">
+        <q-icon name="storefront" size="18px" />
+        <span class="mc-sucursal-resumen__txt">
+          Tu pedido sale de <strong>{{ mainStore.sucursalElegida.name }}</strong>
+        </span>
+        <q-btn flat dense no-caps size="sm" color="primary" label="Cambiar" @click="cambiarSucursal" />
       </div>
 
       <!-- Lo que no hay en el local elegido.
-           Va pegado al selector porque es su consecuencia: armó el pedido viendo el menú
-           de un local y al cambiarse se entera aquí, no con un error al enviarlo. -->
+           Es consecuencia de la sucursal: armó el pedido viendo el menú de un local y al
+           cambiarse se entera aquí, no con un error al enviarlo. -->
       <div class="mc-falta" v-if="mainStore.faltanEnElLocal.length">
         <q-icon name="report_problem" size="20px" />
         <div>
@@ -185,7 +161,8 @@
             En {{ mainStore.sucursalElegida?.name }} no hay
             {{ mainStore.faltanEnElLocal.join(", ") }}.
           </strong>
-          <span>Quítalo del pedido o elige otra sucursal.</span>
+          <span>Quítalo del pedido o </span>
+          <a class="mc-falta__cambiar" href="#" @click.prevent="cambiarSucursal">elige otra sucursal</a>.
         </div>
       </div>
 
@@ -394,11 +371,9 @@ const mainStore = useMainStore();
 // pruebas lo esconde de los clientes.
 const ligaDePruebas = esLigaDePruebas();
 
-/** Que tan lejos le queda cada sucursal al cliente, para poder decidir. */
-const kmDe = (sucursal) => {
-  const { latitude, longitude } = mainStore.data;
-  if (latitude == null || longitude == null) return null;
-  return mainStore.kmEntre(sucursal.coordinates, latitude, longitude);
+/** La sucursal se elige en el paso de Datos, que queda abierto debajo: se regresa a el. */
+const cambiarSucursal = () => {
+  mainStore.paymentDrawer = false;
 };
 
 // Mínimo para programar: 15 min en el futuro, en formato datetime-local.
@@ -459,72 +434,31 @@ const submitOrder = async () => {
   span { opacity: 0.85; }
 }
 
-/* ===== Elegir sucursal ===== */
-.mc-sucursal {
-  margin-bottom: var(--space-md);
-}
-
-.mc-sucursal__tit {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  margin-bottom: var(--space-sm);
-  color: var(--color-text-primary);
-}
-
-.mc-sucursal__lista {
+/* ===== De que sucursal sale (ya elegida en Datos) ===== */
+.mc-sucursal-resumen {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
-}
-
-.mc-sucursal__op {
-  appearance: none;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-md);
+  padding: 8px 12px;
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  padding: 10px 12px;
-  display: grid;
-  gap: 2px;
-
-  /* El borde en el color del negocio: es el mismo lenguaje que el resto del menu,
-     que ya se pinta con el tema de cada restaurante. */
-  &--on {
-    border-color: var(--q-primary);
-    box-shadow: inset 0 0 0 1px var(--q-primary);
-  }
-}
-
-.mc-sucursal__op--pausa {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.mc-sucursal__nom {
+  background: var(--color-surface-variant);
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text-primary);
-
-  em {
-    font-style: normal;
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--q-primary);
-    margin-left: 6px;
-  }
-}
-
-.mc-sucursal__dir {
-  font-size: var(--text-xs);
   color: var(--color-text-secondary);
+
+  .q-icon { flex-shrink: 0; color: var(--q-primary); }
+  strong { color: var(--color-text-primary); }
 }
 
-.mc-sucursal__km {
-  font-size: var(--text-xs);
-  color: var(--color-text-tertiary);
+.mc-sucursal-resumen__txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.mc-falta__cambiar {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 /* Que el cobro salga de una sucursal y no de "el restaurante" tiene que estar dicho
