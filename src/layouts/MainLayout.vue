@@ -116,6 +116,8 @@
 
     <validation-dialog />
 
+    <pago-de-vuelta-dialog />
+
     <q-page-container>
       <router-view />
     </q-page-container>
@@ -134,6 +136,7 @@ import DataDrawer from "src/components/client/DataDrawer.vue";
 import PaymentDrawer from "src/components/client/PaymentDrawer.vue";
 
 import ValidationDialog from "src/components/client/ValidationDialog.vue";
+import PagoDeVueltaDialog from "src/components/client/PagoDeVueltaDialog.vue";
 
 import { useMainStore } from "src/stores/main-store";
 import { cartBarCta } from "src/utils/cartBarCta";

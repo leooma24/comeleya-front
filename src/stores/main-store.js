@@ -17,6 +17,7 @@ import { describeRequestError } from "src/utils/requestError";
 import { etiquetaPago, esLigaDePruebas } from "src/utils/metodosPago.js";
 import { agotadoEn, matrizDe, MATRIZ } from "src/utils/sucursales";
 import { ligaDeSeguimiento } from "src/utils/seguimiento";
+import { leerPagoDeVuelta } from "src/utils/pagoDeVuelta";
 
 /**
  * Cuánto esperar antes de cada reintento del menú.
@@ -43,6 +44,9 @@ export const useMainStore = defineStore("main", {
     paymentDrawer: false,
 
     validationDialog: false,
+    // El cliente que regresa de pagar en Mercado Pago: {estado, codigo} para el aviso. Null
+    // si no viene de ahi. No se persiste: es de esta visita.
+    pagoDeVuelta: null,
 
     productStore: useProductStore(),
     cartStore: useCartStore(),
@@ -518,6 +522,21 @@ export const useMainStore = defineStore("main", {
 
       this.productStore.clear();
       this.clearAll();
+    },
+    /**
+     * El cliente regresa de Mercado Pago (?payment=success|pending|failure&order=...).
+     *
+     * Pagado o pendiente: el pedido ya existe y ya no hay nada que mandar, asi que el carrito se
+     * vacia -si no, el cliente lo veria lleno y lo pediria otra vez-. Rechazado: el carrito se
+     * queda para que pueda volver a intentarlo. Devuelve si la liga era de un pago.
+     */
+    recibirPagoDeVuelta(query) {
+      const pago = leerPagoDeVuelta(query);
+      if (!pago) return false;
+
+      if (pago.estado !== "rechazado") this.clearAll();
+      this.pagoDeVuelta = pago;
+      return true;
     },
     clearAll() {
       this.cartStore.clear();

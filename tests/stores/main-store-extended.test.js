@@ -478,3 +478,45 @@ describe("main-store - extended coverage", () => {
     });
   });
 });
+
+/**
+ * El cliente regresa de pagar en Mercado Pago (?payment=success|pending|failure&order=...).
+ */
+describe("recibirPagoDeVuelta", () => {
+  let store;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    store = useMainStore();
+    store.cartStore.cart = [{ id: 1, name: "Rollo", price: 100, totalPrice: 100, qty: 1, extras: [] }];
+    store.cartStore.total = 100;
+  });
+
+  it("pagado: avisa y vacía el carrito, porque el pedido ya existe", () => {
+    expect(store.recibirPagoDeVuelta({ payment: "success", order: "21" })).toBe(true);
+
+    expect(store.pagoDeVuelta).toEqual({ estado: "pagado", codigo: "21" });
+    expect(store.cartStore.cart).toHaveLength(0);
+  });
+
+  it("pendiente: también vacía el carrito", () => {
+    store.recibirPagoDeVuelta({ payment: "pending", order: "21" });
+
+    expect(store.pagoDeVuelta.estado).toBe("pendiente");
+    expect(store.cartStore.cart).toHaveLength(0);
+  });
+
+  it("rechazado: avisa pero deja el carrito para volver a intentar", () => {
+    store.recibirPagoDeVuelta({ payment: "failure", order: "21" });
+
+    expect(store.pagoDeVuelta.estado).toBe("rechazado");
+    expect(store.cartStore.cart).toHaveLength(1);
+  });
+
+  it("un menú normal no avisa nada ni toca el carrito", () => {
+    expect(store.recibirPagoDeVuelta({ local: "matriz" })).toBe(false);
+
+    expect(store.pagoDeVuelta).toBeNull();
+    expect(store.cartStore.cart).toHaveLength(1);
+  });
+});

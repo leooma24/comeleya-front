@@ -326,12 +326,14 @@ import SidebarComponent from "src/components/client/Sidebar.vue";
 import HechoConComeleya from "src/components/client/HechoConComeleya.vue";
 import CardDish from "src/components/client/CardDish.vue";
 import ListDish from "src/components/client/ListDish.vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
+import { sinParametrosDePago } from "src/utils/pagoDeVuelta";
 import { useMainStore } from "src/stores/main-store";
 import { estaEnElFondo, spyThresholdFor } from "src/utils/categoryScroll";
 
 const mainStore = useMainStore();
 const route = useRoute();
+const router = useRouter();
 const $q = useQuasar();
 
 // Clases de columna para la cuadrícula de productos (una sola fuente de verdad).
@@ -563,6 +565,11 @@ onMounted(async () => {
   await mainStore.getEstablishment(route.params.slug);
   // El QR de un local trae ?local=: se abre el menu con ese local elegido.
   if (route.query.local) mainStore.elegirSucursalDeLaUrl(route.query.local);
+  // Regresa de pagar en Mercado Pago: se le dice como quedo su pago, y la liga se limpia para
+  // que recargar la pagina no vuelva a mostrar el aviso.
+  if (mainStore.recibirPagoDeVuelta(route.query)) {
+    router.replace({ query: sinParametrosDePago(route.query) });
+  }
   // Los destacados pueden venir ya cargados (store persistido), así que el watch
   // no siempre dispara: inicializamos el carrusel aquí también.
   if (mainStore.featuredProducts.length) {
