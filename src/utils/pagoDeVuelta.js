@@ -72,11 +72,14 @@ export function textosDePago(estado, codigo) {
       titulo: "Tu pago está pendiente",
       mensaje: `Mercado Pago todavía no confirma el pago de tu ${pedido} (pasa con OXXO o transferencia). El restaurante lo prepara en cuanto se acredite.`,
     },
+    // Un pedido que no se pagó no le llegó al restaurante: ni lo ve ni lo prepara. Por eso aquí no
+    // hay número de pedido ni "Seguir mi pedido": no hay nada que seguir.
     rechazado: {
       icono: "error",
       tono: "negative",
       titulo: "No se completó el pago",
-      mensaje: `No se cobró nada de tu ${pedido}. Puedes hacer el pedido otra vez y elegir otra forma de pago.`,
+      mensaje:
+        "Tu pedido no se envió al restaurante porque el pago no se completó. No se cobró nada: puedes intentarlo de nuevo o elegir otra forma de pago.",
     },
   }[estado];
 }

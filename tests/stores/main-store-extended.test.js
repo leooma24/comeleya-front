@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useMainStore } from "stores/main-store";
 import { api } from "boot/axios";
@@ -518,5 +518,82 @@ describe("recibirPagoDeVuelta", () => {
 
     expect(store.pagoDeVuelta).toBeNull();
     expect(store.cartStore.cart).toHaveLength(1);
+  });
+});
+
+/**
+ * Cuando el pago no pasó: volver a intentarlo con el mismo cobro, o cambiar de forma de pago.
+ */
+describe("pago que no pasó", () => {
+  let store;
+  const original = window.location;
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.clearAllMocks();
+    store = useMainStore();
+    store.companyStore.slug = "sushi-express";
+    store.orderStore.orderHistory = [
+      { establishment: "sushi-express", order_code: 37, tracking_token: "tok-37" },
+    ];
+    Object.defineProperty(window, "location", { value: { href: "https://comeleya.com/sushi-express" }, writable: true });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, "location", { value: original, writable: true });
+  });
+
+  it("volver a intentar manda a Mercado Pago con el mismo cobro", async () => {
+    api.post.mockResolvedValueOnce({ data: { init_point: "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=abc" } });
+
+    expect(await store.reintentarPago(37)).toBe(true);
+
+    // Pide la liga con el token del pedido, guardado en este navegador.
+    expect(api.post).toHaveBeenCalledWith(
+      "/establishment/sushi-express/order/37/pay-again",
+      expect.objectContaining({ t: "tok-37" })
+    );
+    expect(window.location.href).toBe("https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=abc");
+  });
+
+  it("sin el token del pedido (otro aparato) no inventa nada y avisa", async () => {
+    store.orderStore.orderHistory = [];
+    const error = vi.spyOn(store.messageStore, "error").mockImplementation(() => {});
+
+    expect(await store.reintentarPago(37)).toBe(false);
+
+    expect(api.post).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalled();
+  });
+
+  it("si el servidor dice que ya no se puede, muestra su motivo y no se va a ningún lado", async () => {
+    api.post.mockRejectedValueOnce({ response: { status: 409, data: { message: "Este pedido ya no está esperando un pago." } } });
+    const error = vi.spyOn(store.messageStore, "error").mockImplementation(() => {});
+
+    expect(await store.reintentarPago(37)).toBe(false);
+
+    expect(error).toHaveBeenCalledWith("Este pedido ya no está esperando un pago.");
+    expect(window.location.href).toBe("https://comeleya.com/sushi-express");
+  });
+
+  it("cambiar forma de pago vuelve al paso de pago con el carrito y sin Mercado Pago elegido", () => {
+    store.cartStore.cart = [{ id: 1, name: "Rollo", price: 100, totalPrice: 100, qty: 1, extras: [] }];
+    store.payment.type = "MercadoPago";
+
+    expect(store.cambiarFormaDePago()).toBe(true);
+
+    expect(store.payment.type).toBe("cash");
+    expect(store.paymentDrawer).toBe(true);
+    expect(store.dataDrawer).toBe(true);
+  });
+
+  it("con el carrito vacío no abre nada: hay que armar el pedido otra vez", () => {
+    store.cartStore.cart = [];
+    const error = vi.spyOn(store.messageStore, "error").mockImplementation(() => {});
+
+    expect(store.cambiarFormaDePago()).toBe(false);
+
+    expect(store.paymentDrawer).toBe(false);
+    expect(error).toHaveBeenCalled();
   });
 });

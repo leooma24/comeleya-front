@@ -206,7 +206,7 @@
                 <div class="mc-ticket-total"><span>TOTAL:</span><span>${{ ticketData.total }}</span></div>
               </div>
               <div class="mc-ticket-preview__footer">
-                <span>{{ etiquetaPago(ticketData.payment_method) }}</span>
+                <span>{{ pagoConTransaccion({ payment_method: ticketData.payment_method, transaccion_mp: ticketData.transaccion_mp }) }}</span>
                 <span>¡Gracias por su compra!</span>
               </div>
             </div>
@@ -224,7 +224,7 @@ const { modoApp } = useModoApp();
 defineOptions({ name: "AnalyticsComponent" });
 
 import { ref, computed, onMounted } from "vue";
-import { etiquetaPago } from "src/utils/metodosPago.js";
+import { pagoConTransaccion } from "src/utils/metodosPago.js";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
@@ -324,6 +324,7 @@ const generateTicket = async () => {
       tip: Number(data.totals?.tip || 0).toFixed(2),
       total: Number(data.totals?.total || 0).toFixed(2),
       payment_method: data.payment?.method || "",
+      transaccion_mp: data.payment?.transaction || null,
     };
   } catch (e) {
     adminStore.messageStore.error(

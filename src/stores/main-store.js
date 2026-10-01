@@ -524,6 +524,55 @@ export const useMainStore = defineStore("main", {
       this.clearAll();
     },
     /**
+     * Volver a intentar el pago de un pedido que no se cobró: regresa a Mercado Pago con el MISMO
+     * cobro, sin rehacer el pedido. El token del pedido quedó guardado en este navegador al crearlo;
+     * sin él (otro aparato) no se puede, y se le dice que haga el pedido otra vez.
+     * Devuelve true si ya lo mandó a Mercado Pago.
+     */
+    async reintentarPago(codigo) {
+      const slug = this.companyStore.slug;
+      const guardado = (this.orderStore.orderHistory ?? []).find(
+        (o) => o.establishment === slug && String(o.order_code) === String(codigo)
+      );
+
+      if (!guardado?.tracking_token) {
+        this.messageStore.error("No encontramos ese pedido en este aparato. Haz el pedido otra vez.");
+        return false;
+      }
+
+      try {
+        const { data } = await api.post(
+          `/establishment/${slug}/order/${encodeURIComponent(codigo)}/pay-again`,
+          { t: guardado.tracking_token, pruebas: esLigaDePruebas() }
+        );
+        if (!data?.init_point) throw new Error("sin liga de pago");
+
+        window.location.href = data.init_point;
+        return true;
+      } catch (error) {
+        this.messageStore.error(
+          error.response?.data?.message || "No pudimos volver a abrir el pago. Elige otra forma de pago."
+        );
+        return false;
+      }
+    },
+    /**
+     * "Cambiar forma de pago" tras un pago que no pasó: se vuelve al paso de pago con el carrito y
+     * los datos como estaban, sin Mercado Pago elegido. El pedido anterior se queda sin pagar y el
+     * restaurante nunca lo vio; el nuevo se crea al enviar.
+     */
+    cambiarFormaDePago() {
+      if (!this.cartStore.cart.length) {
+        this.messageStore.error("Tu carrito está vacío. Arma tu pedido otra vez.");
+        return false;
+      }
+
+      this.payment.type = "cash";
+      this.dataDrawer = true;
+      this.paymentDrawer = true;
+      return true;
+    },
+    /**
      * El cliente regresa de Mercado Pago (?payment=success|pending|failure&order=...).
      *
      * Pagado o pendiente: el pedido ya existe y ya no hay nada que mandar, asi que el carrito se
