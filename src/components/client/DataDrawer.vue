@@ -179,8 +179,12 @@
         </p>
         <p class="mc-delivery-outofrange" v-else>
           <q-icon name="wrong_location" size="16px" class="q-mr-xs" />
-          Tu ubicación está <strong>fuera del área de entrega</strong> de este restaurante.
-          Puedes elegir <strong>Recoger</strong> en su lugar.
+          <!-- Un solo bloque de texto: el <p> es flex, y sin esto cada trozo y cada negrita
+               se volvia su propia columna ("Tu ubicación está" | "fuera" | "de este..."). -->
+          <span class="mc-delivery-outofrange__txt">
+            Tu ubicación está <strong>fuera del área de entrega</strong> de este restaurante.
+            Puedes elegir <strong>Recoger</strong> en su lugar.
+          </span>
         </p>
 
         <q-input
@@ -639,8 +643,11 @@ const getMapDirection = () => {
   align-items: flex-start;
   line-height: 1.4;
 
-  .q-icon { color: var(--q-negative); margin-top: 2px; }
+  .q-icon { color: var(--q-negative); margin-top: 2px; flex-shrink: 0; }
   strong { color: var(--q-negative); }
+
+  // El texto es UN bloque que ocupa el ancho que sobra junto al icono.
+  &__txt { flex: 1; min-width: 0; }
 }
 
 .mc-cart-bar-left {
