@@ -668,6 +668,36 @@ describe("admin-store - extended coverage", () => {
       await store.saveConfiguration();
       expect(store.loading).toBe(false);
     });
+
+    it("guarda las llaves de Mercado Pago: queda conectado y el token se limpia", async () => {
+      store.slug = "test";
+      store.companyStore.company = { id: 1, mercadopago_ready: false };
+      store.companyStore.configuration.mp_access_token = "APP_USR-token";
+      store.companyStore.configuration.mp_public_key = "APP_USR-public";
+
+      api.put.mockResolvedValueOnce({ data: { mercadopago_ready: true, mp_public_key: "APP_USR-public" } });
+
+      expect(await store.saveConfiguration()).toBe(true);
+      expect(store.companyStore.company.mercadopago_ready).toBe(true);
+      expect(store.companyStore.configuration.mp_access_token).toBe("");
+      expect(store.companyStore.configuration.mp_quitar).toBe(false);
+    });
+
+    it("si Mercado Pago rechaza el token, enseña el motivo y no marca conectado", async () => {
+      store.slug = "test";
+      store.companyStore.company = { id: 1, mercadopago_ready: false };
+      store.companyStore.configuration.mp_access_token = "malo";
+
+      const error = Object.assign(new Error("422"), {
+        response: { status: 422, data: { message: "Mercado Pago no acepta ese Access Token." } },
+      });
+      api.put.mockRejectedValueOnce(error);
+      const mostrar = vi.spyOn(store.messageStore, "error").mockImplementation(() => {});
+
+      expect(await store.saveConfiguration()).toBe(false);
+      expect(store.companyStore.company.mercadopago_ready).toBe(false);
+      expect(mostrar).toHaveBeenCalledWith("Mercado Pago no acepta ese Access Token.");
+    });
   });
 
   describe("saveEstablishment", () => {

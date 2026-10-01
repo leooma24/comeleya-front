@@ -256,6 +256,63 @@
           </p>
         </admin-section>
 
+        <!-- Pagos en línea: llaves de Mercado Pago del negocio -->
+        <admin-section
+          class="q-mt-md"
+          icon="credit_score"
+          title="Pagos en línea (Mercado Pago)"
+          description="Con tus llaves, el cliente paga con tarjeta y el dinero llega directo a tu cuenta de Mercado Pago."
+        >
+
+          <div class="q-mb-md">
+            <q-chip
+              dense
+              :color="mpConectado ? 'positive' : 'grey-4'"
+              :text-color="mpConectado ? 'white' : 'grey-7'"
+              :icon="mpConectado ? 'check_circle' : 'link_off'"
+            >
+              {{ mpConectado ? "Conectado" : "Sin conectar" }}
+            </q-chip>
+          </div>
+
+          <q-input
+            v-model="adminStore.companyConfiguration.mp_public_key"
+            label="Public Key"
+            filled
+            dense
+            class="q-mb-md"
+            placeholder="APP_USR-..."
+          />
+
+          <q-input
+            v-model="adminStore.companyConfiguration.mp_access_token"
+            label="Access Token"
+            type="password"
+            autocomplete="off"
+            filled
+            dense
+            :placeholder="mpConectado ? 'Ya está guardado. Escribe uno nuevo solo para cambiarlo' : 'APP_USR-...'"
+            hint="Lo revisamos con Mercado Pago al guardar."
+            class="q-mb-md"
+          />
+
+          <p class="mc-config-hint">
+            Las sacas en Mercado Pago, en Tus integraciones &rarr; Credenciales de producción.
+            En cuanto queden conectadas, tus clientes ven la opción de pagar en línea.
+          </p>
+
+          <q-btn
+            v-if="mpConectado"
+            flat
+            no-caps
+            dense
+            color="negative"
+            icon="link_off"
+            label="Quitar mis llaves"
+            @click="quitarLlavesMp"
+          />
+        </admin-section>
+
         <!-- Ticket impreso -->
         <admin-section
           class="q-mt-md"
@@ -366,6 +423,22 @@ const requestClose = () =>
     () => { adminStore.saveConfiguration(); adminStore.configurationDrawer = false; },
     () => { adminStore.configurationDrawer = false; }
   );
+
+const mpConectado = computed(() => !!adminStore.company?.mercadopago_ready);
+
+const quitarLlavesMp = () => {
+  $q.dialog({
+    title: "Quitar llaves de Mercado Pago",
+    message: "Tus clientes dejarán de ver el pago en línea hasta que vuelvas a guardar tus llaves.",
+    cancel: { label: "Cancelar", flat: true, noCaps: true },
+    ok: { label: "Quitar", color: "negative", noCaps: true },
+    persistent: true,
+  }).onOk(() => {
+    adminStore.companyConfiguration.mp_quitar = true;
+    adminStore.companyConfiguration.mp_access_token = "";
+    adminStore.saveConfiguration();
+  });
+};
 
 const locating = ref(false);
 

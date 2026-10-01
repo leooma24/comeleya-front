@@ -306,9 +306,9 @@
           />
         </div>
 
-        <!-- MercadoPago Online (feature 15 = online_payments; el 10 es Comedor) -->
+        <!-- MercadoPago Online: lo prenden las llaves que el negocio guardó en su panel -->
         <div
-          v-if="mainStore.hasService(15)"
+          v-if="mainStore.company.mercadopago_ready"
           :class="[
             'mc-payment-option',
             mainStore.payment.type === 'MercadoPago' ? 'mc-payment-option--active' : ''

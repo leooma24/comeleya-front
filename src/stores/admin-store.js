@@ -1362,9 +1362,25 @@ export const useAdminStore = defineStore({
           this.companyConfiguration
         );
         //this.companyStore.setConfiguration(data.configuration);
+        // Lo que pasó con las llaves de Mercado Pago: el panel solo ve "conectado o no".
+        if (this.companyStore.company) {
+          this.companyStore.company.mercadopago_ready = !!data.mercadopago_ready;
+          this.companyStore.company.mp_public_key = data.mp_public_key ?? null;
+        }
+        this.companyStore.configuration.mp_access_token = "";
+        this.companyStore.configuration.mp_quitar = false;
+        this.companyStore.configuration.mp_public_key = data.mp_public_key ?? "";
         this.messageStore.success("Configuración actualizada");
+        return true;
       } catch (error) {
-        this.messageStore.error("Error al actualizar la configuración");
+        // El 422 de las llaves trae el motivo (token que Mercado Pago rechaza): se muestra
+        // tal cual en vez del mensaje genérico.
+        this.messageStore.error(
+          error?.response?.status === 422 && error.response.data?.message
+            ? error.response.data.message
+            : "Error al actualizar la configuración"
+        );
+        return false;
       } finally {
         this.loading = false;
       }

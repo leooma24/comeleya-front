@@ -34,6 +34,11 @@ export const useCompanyStore = defineStore("company", {
       delivery_max_km: 0,
       delivery_free_from: 0,
       coordinates: "",
+      // Llaves de Mercado Pago del negocio. El servidor nunca devuelve el token: aqui solo
+      // se escribe uno nuevo (vacio = no lo cambies) o se pide quitarlas.
+      mp_public_key: "",
+      mp_access_token: "",
+      mp_quitar: false,
       ticket_config: {
         business_legal_name: "",
         rfc: "",
@@ -126,6 +131,9 @@ export const useCompanyStore = defineStore("company", {
       this.configuration.delivery_max_km = Number(this.company.delivery_max_km ?? 0);
       this.configuration.delivery_free_from = Number(this.company.delivery_free_from ?? 0);
       this.configuration.coordinates = this.company.coordinates ?? "";
+      this.configuration.mp_public_key = this.company.mp_public_key ?? "";
+      this.configuration.mp_access_token = "";
+      this.configuration.mp_quitar = false;
       // Config del ticket impreso (razón social, RFC, pie legal, email de sugerencias).
       const tc = this.company.ticket_config ?? {};
       this.configuration.ticket_config = {
