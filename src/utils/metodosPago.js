@@ -26,6 +26,18 @@ export const METODOS_PAGO = [
 ];
 
 /**
+ * El método de pago con el número de transacción de Mercado Pago, cuando ya está pagado:
+ * "MercadoPago (180846765067)". Con ese número el dueño encuentra el cobro en su cuenta de
+ * Mercado Pago. Lo manda el servidor (`transaccion_mp`) solo cuando el pago ya se confirmó; si
+ * no, queda el nombre del método como siempre.
+ */
+export function pagoConTransaccion(order) {
+  const etiqueta = etiquetaPago(order?.payment_method);
+
+  return etiqueta && order?.transaccion_mp ? `${etiqueta} (${order.transaccion_mp})` : etiqueta;
+}
+
+/**
  * ¿Se le ofrece al cliente pagar en línea?
  *
  * Con las llaves de Mercado Pago del negocio guardadas, y fuera del modo de pruebas. Dentro

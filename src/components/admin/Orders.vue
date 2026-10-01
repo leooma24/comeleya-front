@@ -759,7 +759,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
-import { etiquetaPago, estadoDePagoEnLinea } from "src/utils/metodosPago.js";
+import { estadoDePagoEnLinea, pagoConTransaccion } from "src/utils/metodosPago.js";
 import McEncabezado from "./movil/Encabezado.vue";
 import PruebaDePedido from "./PruebaDePedido.vue";
 import { orderTotals } from "src/utils/orderTotals";
@@ -1075,7 +1075,7 @@ const totalCobrar = (order) => {
 };
 const dinero = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-const pagoTexto = (order) => etiquetaPago(order?.payment_method);
+const pagoTexto = (order) => pagoConTransaccion(order);
 const estadoPagoEnLinea = (order) => estadoDePagoEnLinea(order);
 const currentPage = ref(1);
 const rowsPerPage = ref(12);

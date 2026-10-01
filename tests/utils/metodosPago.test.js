@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { etiquetaPago, estadoDePagoEnLinea, pagoEnLineaDisponible, esLigaDePruebas, METODOS_PAGO } from "src/utils/metodosPago.js";
+import { etiquetaPago, estadoDePagoEnLinea, pagoEnLineaDisponible, esLigaDePruebas, pagoConTransaccion, METODOS_PAGO } from "src/utils/metodosPago.js";
 
 /**
  * La traduccion de codigo a etiqueta, en un solo lugar.
@@ -120,5 +120,30 @@ describe("esLigaDePruebas", () => {
   it("se acuerda en la pestaña aunque el query ya no esté", () => {
     expect(esLigaDePruebas("?pruebas=mp")).toBe(true);
     expect(esLigaDePruebas("")).toBe(true);
+  });
+});
+
+/**
+ * Con el número de transacción el dueño encuentra el cobro en su cuenta de Mercado Pago.
+ * Lo manda el servidor solo cuando el pago ya se confirmó.
+ */
+describe("pagoConTransaccion", () => {
+  it("pagado: el método y su número de transacción", () => {
+    expect(pagoConTransaccion({ payment_method: "mercadopago", transaccion_mp: "180846765067" }))
+      .toBe("MercadoPago (180846765067)");
+  });
+
+  it("sin transacción (aún no se paga) queda el método como siempre", () => {
+    expect(pagoConTransaccion({ payment_method: "mercadopago", transaccion_mp: null })).toBe("MercadoPago");
+    expect(pagoConTransaccion({ payment_method: "mercadopago" })).toBe("MercadoPago");
+  });
+
+  it("los demás métodos no llevan número si el servidor no lo manda", () => {
+    expect(pagoConTransaccion({ payment_method: "cash" })).toBe("Efectivo");
+  });
+
+  it("sin método no inventa nada", () => {
+    expect(pagoConTransaccion({ transaccion_mp: "123" })).toBe("");
+    expect(pagoConTransaccion(null)).toBe("");
   });
 });
