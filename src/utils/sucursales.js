@@ -25,12 +25,20 @@ export function direccionCompleta(a = {}) {
   return [calle, a.town, a.city, a.postal_code].map(limpio).filter(Boolean).join(", ");
 }
 
+/**
+ * Como se le dice al local principal: lo que el dueño le puso ("Centro", "Plaza del Valle"),
+ * o "Matriz". Solo cambia lo que se lee; el id interno sigue siendo "matriz".
+ */
+export function nombreMatriz(negocio) {
+  return limpio(negocio?.matriz_name) || "Matriz";
+}
+
 /** El negocio visto como un local mas, con la misma forma que una sucursal. */
 export function matrizDe(negocio = {}) {
   return {
     id: MATRIZ,
     matriz: true,
-    name: "Matriz",
+    name: nombreMatriz(negocio),
     coordinates: negocio.coordinates || null,
     whatsapp: negocio.whatsapp || null,
     phone: negocio.phone || null,
@@ -88,7 +96,7 @@ export function opcionesDeLocal(negocio) {
   if (!tieneSucursales(negocio)) return [];
   return [
     { value: null, label: "Todos los locales" },
-    { value: MATRIZ, label: "Matriz" },
+    { value: MATRIZ, label: nombreMatriz(negocio) },
     ...negocio.active_branches.map((s) => ({ value: String(s.id), label: s.name })),
   ];
 }
@@ -128,11 +136,12 @@ export const claveLocalVisto = (slug) => `mc-local:${slug}`;
 
 /**
  * De que local salio un pedido, para el panel y la comanda: el nombre de la sucursal
- * o "Matriz". Null en un negocio de un solo local, donde no hay nada que distinguir.
+ * o la Matriz (con el nombre que el dueño le puso). Null en un negocio de un solo local,
+ * donde no hay nada que distinguir.
  */
 export function origenDelPedido(order, negocio) {
   if (order?.branch?.name) return order.branch.name;
   // Trae sucursal pero no vino cargada: mejor no decir nada que decir "Matriz".
   if (order?.branch_id) return null;
-  return tieneSucursales(negocio) ? "Matriz" : null;
+  return tieneSucursales(negocio) ? nombreMatriz(negocio) : null;
 }

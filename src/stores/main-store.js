@@ -14,7 +14,7 @@ import { useMessageStore } from "./message-store";
 import { initPixel, trackFb } from "src/utils/fbpixel";
 import { initMessenger } from "src/utils/fbchat";
 import { describeRequestError } from "src/utils/requestError";
-import { etiquetaPago } from "src/utils/metodosPago.js";
+import { etiquetaPago, esLigaDePruebas } from "src/utils/metodosPago.js";
 import { agotadoEn, matrizDe, MATRIZ } from "src/utils/sucursales";
 import { ligaDeSeguimiento } from "src/utils/seguimiento";
 
@@ -628,6 +628,9 @@ export const useMainStore = defineStore("main", {
         // El servidor vuelve a decidir con la misma regla; esto es lo que eligio el
         // cliente, no una orden.
         branch_id: this.sucursalElegida?.id ?? null,
+        // Entró por la liga de prueba del dueño (?pruebas=mp): el servidor solo deja pagar en
+        // línea a un negocio en modo de pruebas si llega esto.
+        pruebas: esLigaDePruebas(),
         schedule_at:
           this.schedule.enabled && this.schedule.at
             ? this.schedule.at.replace("T", " ") + ":00"

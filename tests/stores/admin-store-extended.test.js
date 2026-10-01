@@ -683,6 +683,24 @@ describe("admin-store - extended coverage", () => {
       expect(store.companyStore.configuration.mp_quitar).toBe(false);
     });
 
+    it("lo que se guarda en Ticket impreso se ve ya en el negocio (para el ticket)", async () => {
+      store.slug = "test";
+      store.companyStore.company = { id: 1, ticket_config: {} };
+      store.companyStore.configuration.ticket_config = {
+        business_legal_name: "Irma Davizon",
+        rfc: "",
+        footer_text: "Gracias por su preferencia.",
+        suggestions_email: "contacto@negocio.com",
+        show_business_address: true,
+      };
+
+      api.put.mockResolvedValueOnce({ data: {} });
+      await store.saveConfiguration();
+
+      expect(store.companyStore.company.ticket_config.business_legal_name).toBe("Irma Davizon");
+      expect(store.companyStore.company.ticket_config.footer_text).toBe("Gracias por su preferencia.");
+    });
+
     it("si Mercado Pago rechaza el token, enseña el motivo y no marca conectado", async () => {
       store.slug = "test";
       store.companyStore.company = { id: 1, mercadopago_ready: false };

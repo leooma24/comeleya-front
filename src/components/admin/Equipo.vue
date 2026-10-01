@@ -198,7 +198,7 @@ import AdminSection from "./AdminSection.vue";
 import RowActionsMenu from "./RowActionsMenu.vue";
 import McIcon from "./movil/McIcon.vue";
 import McEncabezado from "./movil/Encabezado.vue";
-import { MATRIZ } from "src/utils/sucursales";
+import { MATRIZ, nombreMatriz } from "src/utils/sucursales";
 
 const adminStore = useAdminStore();
 const { confirm } = useConfirmDialog();
@@ -243,7 +243,7 @@ const mostrarLocal = computed(
 
 const opcionesLocal = computed(() => [
   { value: TODOS, label: "Todos los locales" },
-  { value: MATRIZ, label: "Matriz" },
+  { value: MATRIZ, label: nombreMatriz(adminStore.company) },
   ...sucursales.value.map((s) => ({
     value: String(s.id),
     label: s.active ? s.name : `${s.name} (apagada)`,

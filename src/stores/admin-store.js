@@ -1366,11 +1366,39 @@ export const useAdminStore = defineStore({
         if (this.companyStore.company) {
           this.companyStore.company.mercadopago_ready = !!data.mercadopago_ready;
           this.companyStore.company.mp_public_key = data.mp_public_key ?? null;
+          this.companyStore.company.mp_sandbox = !!data.mp_sandbox;
+          // El servidor puede prender el modo de pruebas por su cuenta (llaves de una cuenta
+          // de prueba de Mercado Pago): el interruptor tiene que reflejarlo.
+          this.companyStore.configuration.mp_sandbox = !!data.mp_sandbox;
+
+          // Lo que se acaba de guardar tiene que verse YA en el resto del panel. El ticket
+          // impreso lee razón social, RFC y pie legal de `company`, no de `configuration`:
+          // sin esto el dueño guardaba su razón social y el ticket seguía saliendo sin ella
+          // hasta que recargaba la página.
+          const c = this.companyStore.configuration;
+          Object.assign(this.companyStore.company, {
+            ticket_config: { ...c.ticket_config },
+            min_order: c.min_order,
+            orders_paused: c.orders_paused,
+            paused_message: c.paused_message,
+            delivery_mode: c.delivery_mode,
+            delivery_charge: c.delivery_charge,
+            delivery_base_fee: c.delivery_base_fee,
+            delivery_base_km: c.delivery_base_km,
+            delivery_per_km: c.delivery_per_km,
+            delivery_max_km: c.delivery_max_km,
+            delivery_free_from: c.delivery_free_from,
+            coordinates: c.coordinates,
+          });
         }
         this.companyStore.configuration.mp_access_token = "";
         this.companyStore.configuration.mp_quitar = false;
         this.companyStore.configuration.mp_public_key = data.mp_public_key ?? "";
-        this.messageStore.success("Configuración actualizada");
+        this.messageStore.success(
+          data.mp_prueba_detectada
+            ? "Configuración actualizada. Son llaves de prueba: dejamos prendido el modo de pruebas."
+            : "Configuración actualizada"
+        );
         return true;
       } catch (error) {
         // El 422 de las llaves trae el motivo (token que Mercado Pago rechaza): se muestra

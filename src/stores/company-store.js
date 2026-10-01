@@ -39,6 +39,8 @@ export const useCompanyStore = defineStore("company", {
       mp_public_key: "",
       mp_access_token: "",
       mp_quitar: false,
+      // Modo de pruebas: los clientes no ven el pago en línea (solo con la liga de prueba).
+      mp_sandbox: false,
       ticket_config: {
         business_legal_name: "",
         rfc: "",
@@ -134,6 +136,7 @@ export const useCompanyStore = defineStore("company", {
       this.configuration.mp_public_key = this.company.mp_public_key ?? "";
       this.configuration.mp_access_token = "";
       this.configuration.mp_quitar = false;
+      this.configuration.mp_sandbox = !!this.company.mp_sandbox;
       // Config del ticket impreso (razón social, RFC, pie legal, email de sugerencias).
       const tc = this.company.ticket_config ?? {};
       this.configuration.ticket_config = {

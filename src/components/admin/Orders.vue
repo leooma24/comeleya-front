@@ -531,6 +531,13 @@
           <div class="mc-cobro__fila">
             <span class="mc-cobro__monto">{{ dinero(totalCobrar(order)) }}</span>
             <span class="mc-cobro__pago" v-if="pagoTexto(order)">{{ pagoTexto(order) }}</span>
+            <!-- Pago en línea: el pedido entra ANTES de que el cliente pague. Sin esto no
+                 se sabe si ya se puede preparar o si el pago todavía no llega. -->
+            <span
+              v-if="estadoPagoEnLinea(order)"
+              class="mc-cobro__estado"
+              :class="`mc-cobro__estado--${estadoPagoEnLinea(order).tono}`"
+            >{{ estadoPagoEnLinea(order).texto }}</span>
           </div>
           <div class="mc-cobro__dir" v-if="modoApp && order.delivery === 'Envio' && order.delivery_address">
             <mc-icon name="pin" :size="13" />
@@ -752,7 +759,7 @@ import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useModoApp } from "src/composables/useModoApp";
 import McIcon from "./movil/McIcon.vue";
-import { etiquetaPago } from "src/utils/metodosPago.js";
+import { etiquetaPago, estadoDePagoEnLinea } from "src/utils/metodosPago.js";
 import McEncabezado from "./movil/Encabezado.vue";
 import PruebaDePedido from "./PruebaDePedido.vue";
 import { orderTotals } from "src/utils/orderTotals";
@@ -1069,6 +1076,7 @@ const totalCobrar = (order) => {
 const dinero = (n) => "$" + Number(n || 0).toLocaleString("es-MX", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 const pagoTexto = (order) => etiquetaPago(order?.payment_method);
+const estadoPagoEnLinea = (order) => estadoDePagoEnLinea(order);
 const currentPage = ref(1);
 const rowsPerPage = ref(12);
 const rowsPerPageOptions = [6, 12, 24, 48];
@@ -1415,6 +1423,12 @@ body.mc-modo-app .q-dialog__inner--bottom > div {
 .mc-cobro__pago {
   font-size: 10px; font-weight: 620; color: var(--color-text-secondary);
   background: var(--color-surface-variant); border-radius: 6px; padding: 2.5px 7px;
+}
+.mc-cobro__estado {
+  font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2.5px 7px;
+  &--pagado { background: var(--color-success-bg); color: #2e7d32; }
+  &--espera { background: var(--color-warning-bg); color: #b06f00; }
+  &--fallido { background: var(--color-error-bg); color: #c62828; }
 }
 .mc-cobro__dir {
   display: flex; align-items: flex-start; gap: 6px; margin-top: 5px;

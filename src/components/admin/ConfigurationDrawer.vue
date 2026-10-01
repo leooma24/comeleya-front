@@ -301,6 +301,41 @@
             En cuanto queden conectadas, tus clientes ven la opción de pagar en línea.
           </p>
 
+          <!-- Modo de pruebas. Con las llaves de prueba guardadas en un negocio de verdad, sin
+               esto sus clientes verían el pago en línea y pagarían en un sandbox. -->
+          <div class="mc-config-toggle">
+            <q-toggle
+              v-model="adminStore.companyConfiguration.mp_sandbox"
+              checked-icon="science"
+              unchecked-icon="clear"
+              label="Modo de pruebas"
+              color="warning"
+              dense
+            />
+          </div>
+          <p class="mc-config-hint">
+            <template v-if="adminStore.companyConfiguration.mp_sandbox">
+              Prendido: tus clientes <strong>no ven</strong> el pago en línea y los cobros van al checkout de prueba.
+              Para probarlo entra con tu liga de prueba y paga con una tarjeta de prueba.
+              Apágalo cuando quieras empezar a cobrar en serio.
+            </template>
+            <template v-else>
+              Apagado: tus clientes ya pueden pagar en línea. Si guardas llaves de una cuenta de prueba,
+              se prende solo.
+            </template>
+          </p>
+          <div v-if="mpConectado" class="q-mb-md">
+            <q-btn
+              flat
+              no-caps
+              dense
+              color="primary"
+              icon="content_copy"
+              label="Copiar liga de prueba"
+              @click="copiarLigaDePruebas"
+            />
+          </div>
+
           <q-btn
             v-if="mpConectado"
             flat
@@ -425,6 +460,17 @@ const requestClose = () =>
   );
 
 const mpConectado = computed(() => !!adminStore.company?.mercadopago_ready);
+
+/** El menú con ?pruebas=mp: el único camino para ver el pago en línea en modo de pruebas. */
+const copiarLigaDePruebas = async () => {
+  const liga = `${window.location.origin}/${adminStore.slug}?pruebas=mp`;
+  try {
+    await navigator.clipboard.writeText(liga);
+    adminStore.messageStore.success("Liga de prueba copiada");
+  } catch {
+    adminStore.messageStore.error("No se pudo copiar la liga");
+  }
+};
 
 const quitarLlavesMp = () => {
   $q.dialog({

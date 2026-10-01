@@ -308,7 +308,7 @@
 
         <!-- MercadoPago Online: lo prenden las llaves que el negocio guardó en su panel -->
         <div
-          v-if="mainStore.company.mercadopago_ready"
+          v-if="pagoEnLineaDisponible(mainStore.establishment, ligaDePruebas)"
           :class="[
             'mc-payment-option',
             mainStore.payment.type === 'MercadoPago' ? 'mc-payment-option--active' : ''
@@ -316,7 +316,10 @@
           @click="mainStore.payment.type = 'MercadoPago'"
         >
           <q-icon name="credit_score" size="24px" />
-          <span class="mc-payment-option__label">Pago en línea (MercadoPago)</span>
+          <span class="mc-payment-option__label">
+            Pago en línea (MercadoPago)
+            <q-badge v-if="mainStore.establishment?.mp_sandbox" color="warning" text-color="black" label="PRUEBA" class="q-ml-xs" />
+          </span>
           <q-space />
           <q-icon
             :name="mainStore.payment.type === 'MercadoPago' ? 'check_circle' : 'radio_button_unchecked'"
@@ -384,7 +387,12 @@ import { ref, watch, computed } from "vue";
 import { useMainStore } from "src/stores/main-store";
 import CheckoutSteps from "./CheckoutSteps.vue";
 import { dinero } from "src/utils/dinero";
+import { pagoEnLineaDisponible, esLigaDePruebas } from "src/utils/metodosPago";
 const mainStore = useMainStore();
+
+// El dueño abre el menú con ?pruebas=mp para probar el pago en línea mientras el modo de
+// pruebas lo esconde de los clientes.
+const ligaDePruebas = esLigaDePruebas();
 
 /** Que tan lejos le queda cada sucursal al cliente, para poder decidir. */
 const kmDe = (sucursal) => {

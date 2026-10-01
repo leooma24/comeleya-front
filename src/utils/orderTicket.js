@@ -11,7 +11,7 @@
 // No conoce stores a proposito: recibe el negocio y a donde avisar si falla, asi que
 // lo puede llamar cualquier pantalla —o una prueba— sin montar Pinia.
 
-import { etiquetaPago } from "src/utils/metodosPago.js";
+import { etiquetaPago, estadoDePagoEnLinea } from "src/utils/metodosPago.js";
 
 import { fitPageToContent, TICKET_BODY_CSS } from "src/utils/ticketPageSize";
 import { amountToWords } from "src/utils/numberToWords";
@@ -125,6 +125,7 @@ export function printOrderTicket(order, { company = {}, onError } = {}) {
   const hora = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   const payment = etiquetaPago(order.payment_method);
+  const estadoPago = estadoDePagoEnLinea(order);
   const driverName = order.delivery_assignment?.driver?.name || "";
 
   // ---- Bloque de entrega ----
@@ -196,6 +197,7 @@ export function printOrderTicket(order, { company = {}, onError } = {}) {
       <div class="row total"><span>TOTAL:</span><span>$${f(grandTotal)}</span></div>
       <div class="letras">${esc(amountToWords(grandTotal))}</div>
       ${payment ? `<div class="row"><span>PAGO:</span><span>${esc(payment)}</span></div>` : ""}
+      ${estadoPago ? `<div class="row"><span>ESTADO:</span><span>${esc(estadoPago.texto)}</span></div>` : ""}
       ${order.comments ? `${SEP}<div class="section-title">Comentarios</div><div class="info"><div>${esc(order.comments)}</div></div>` : ""}
       ${footer}
     </body></html>

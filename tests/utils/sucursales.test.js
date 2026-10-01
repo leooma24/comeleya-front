@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   MATRIZ,
   matrizDe,
+  nombreMatriz,
   direccionCompleta,
   tieneSucursales,
   origenDelPedido,
@@ -212,5 +213,34 @@ describe("los repartidores para un pedido", () => {
   it("los de la Matriz van primero en un pedido de la Matriz", () => {
     const repartidores = [{ name: "Centro", local: "7" }, { name: "Matriz", local: MATRIZ }];
     expect(ordenarRepartidores(repartidores, MATRIZ).map((d) => d.name)).toEqual(["Matriz", "Centro"]);
+  });
+});
+
+/**
+ * El nombre del local principal. Hay negocios cuyos clientes lo conocen por otro nombre
+ * ("Centro", "Plaza del Valle"); sin uno propio sigue siendo "Matriz". El id interno no cambia.
+ */
+describe("nombre de la matriz", () => {
+  const sucursales = [{ id: 7, name: "Norte" }];
+
+  it("sin nombre propio se llama Matriz", () => {
+    expect(nombreMatriz({})).toBe("Matriz");
+    expect(nombreMatriz({ matriz_name: null })).toBe("Matriz");
+    expect(nombreMatriz({ matriz_name: "   " })).toBe("Matriz");
+    expect(nombreMatriz(undefined)).toBe("Matriz");
+  });
+
+  it("con nombre propio, lo usa en todos lados y el id sigue siendo 'matriz'", () => {
+    const negocio = { matriz_name: "Centro", active_branches: sucursales };
+
+    expect(matrizDe(negocio).name).toBe("Centro");
+    expect(matrizDe(negocio).id).toBe(MATRIZ);
+    expect(origenDelPedido({ branch_id: null }, negocio)).toBe("Centro");
+    expect(opcionesDeLocal(negocio)[1]).toEqual({ value: MATRIZ, label: "Centro" });
+    expect(nombreDelLocal(MATRIZ, negocio)).toBe("Centro");
+  });
+
+  it("un negocio de un solo local sigue sin decir de cuál es el pedido", () => {
+    expect(origenDelPedido({ branch_id: null }, { matriz_name: "Centro" })).toBeNull();
   });
 });

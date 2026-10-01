@@ -41,7 +41,7 @@
            primero que se pregunta el dueño es si va a tener que capturar sus platillos
            otra vez, o si tiene que dar de alta su propio negocio como sucursal. -->
       <div class="mc-suc-intro" v-if="!cargando">
-        Tu negocio ya cuenta como la <strong>Matriz</strong>, con los datos de Dirección:
+        Tu negocio ya cuenta como <strong>{{ matriz.name }}</strong> (tu local principal), con los datos de Dirección:
         aquí das de alta tus <strong>otros</strong> locales. El menú, los precios y las
         reglas de cobro son los mismos para todos; lo que cambia es el costo del envío,
         porque se mide desde el local más cercano al cliente.
@@ -53,7 +53,7 @@
         <div class="mc-lista__fila" @click="editarMatriz">
           <span class="mc-lista__ini">MA</span>
           <div class="mc-lista__txt">
-            <div class="mc-lista__nom">Matriz</div>
+            <div class="mc-lista__nom">{{ matriz.name }}</div>
             <div class="mc-lista__meta">
               {{ matriz.full_address || "Sin dirección" }}
               <span v-if="!matriz.coordinates" class="mc-lista__apagado"> · sin ubicación</span>
@@ -61,7 +61,7 @@
             </div>
           </div>
           <div class="mc-lista__der" @click.stop>
-            <row-actions-menu titulo="Matriz" :actions="accionesMatriz" />
+            <row-actions-menu :titulo="matriz.name" :actions="accionesMatriz" />
           </div>
         </div>
 
@@ -88,7 +88,7 @@
         </div>
 
         <div v-if="!sucursales.length" class="mc-lista__vacio">
-          Con tu primera sucursal, tus clientes van a poder elegir entre la Matriz y esa.
+          Con tu primera sucursal, tus clientes van a poder elegir entre {{ matriz.name }} y esa.
           Agrégala con el botón de arriba.
         </div>
       </div>
@@ -107,7 +107,7 @@
           <tbody>
             <!-- La Matriz, fija arriba. Sin interruptor: es el negocio mismo. -->
             <tr>
-              <td class="text-left text-weight-medium">Matriz</td>
+              <td class="text-left text-weight-medium">{{ matriz.name }}</td>
               <td class="text-left">{{ matriz.full_address || "—" }}</td>
               <td class="text-center">
                 <q-chip
@@ -126,7 +126,7 @@
                 <template v-else>Datos del negocio</template>
               </td>
               <td class="text-right">
-                <row-actions-menu titulo="Matriz" :actions="accionesMatriz" />
+                <row-actions-menu :titulo="matriz.name" :actions="accionesMatriz" />
               </td>
             </tr>
             <tr v-for="s in sucursales" :key="s.id">
@@ -160,7 +160,7 @@
         </table>
         <div v-if="!sucursales.length" class="mc-empty-state">
           <q-icon name="storefront" size="48px" color="grey-4" />
-          <p>Con tu primera sucursal, tus clientes van a poder elegir entre la Matriz y esa.</p>
+          <p>Con tu primera sucursal, tus clientes van a poder elegir entre {{ matriz.name }} y esa.</p>
         </div>
       </div>
 
@@ -403,6 +403,7 @@
 defineOptions({ name: "AdminSucursales" });
 
 import { ref, computed, onMounted } from "vue";
+import { useQuasar } from "quasar";
 import { api } from "boot/axios";
 import { useAdminStore } from "src/stores/admin-store";
 import { useConfirmDialog } from "src/composables/useConfirmDialog";
@@ -415,6 +416,7 @@ import McEncabezado from "./movil/Encabezado.vue";
 import { matrizDe } from "src/utils/sucursales";
 import { coordenadasDeTexto, pareceLiga } from "src/utils/coordenadas";
 
+const $q = useQuasar();
 const adminStore = useAdminStore();
 const { confirmDelete } = useConfirmDialog();
 const { modoApp } = useModoApp();
@@ -573,10 +575,40 @@ const accionPausa = (local, pausado) => ({
   },
 });
 
+/**
+ * Cambiar como se llama el local principal. Hay negocios cuyos clientes lo conocen por otro
+ * nombre ("Centro", "Plaza del Valle"). Vacio vuelve a "Matriz". El id interno no cambia.
+ */
+const renombrarMatriz = () => {
+  $q.dialog({
+    title: "Nombre del local principal",
+    message: "Así lo ven tus clientes al elegir local, y así sale en el ticket. Déjalo vacío para llamarlo “Matriz”.",
+    prompt: { model: adminStore.company?.matriz_name ?? "", type: "text", maxlength: 60, filled: true, dense: true },
+    cancel: { label: "Cancelar", flat: true, noCaps: true },
+    ok: { label: "Guardar", noCaps: true },
+    persistent: true,
+  }).onOk(async (nombre) => {
+    try {
+      const { data } = await api.put(`/admin/${adminStore.slug}/local/matriz-nombre`, { nombre });
+      if (adminStore.company?.id) adminStore.company.matriz_name = data.matriz_name;
+      adminStore.messageStore.success(`Ahora se llama ${data.nombre}`);
+    } catch (e) {
+      adminStore.messageStore.error(e?.response?.data?.message || "No se pudo cambiar el nombre");
+    }
+  });
+};
+
 const accionesMatriz = computed(() => [
+  {
+    key: "nombre",
+    icon: "edit",
+    color: "grey-7",
+    label: "Cambiar nombre",
+    handler: renombrarMatriz,
+  },
   ...(hayActivas.value ? [accionPausa("matriz", matriz.value.orders_paused)] : []),
   // El QR propio de la Matriz solo tiene sentido cuando hay mas locales de donde elegir.
-  ...(hayActivas.value ? accionesDeQr("matriz", "Matriz") : []),
+  ...(hayActivas.value ? accionesDeQr("matriz", matriz.value.name) : []),
   {
     key: "dir",
     icon: "place",
