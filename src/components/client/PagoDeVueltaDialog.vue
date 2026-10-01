@@ -3,9 +3,10 @@
        ?payment=... de la liga justo al abrir este aviso. Se cierra con sus botones. -->
   <q-dialog v-model="abierto" persistent backdrop-filter="blur(8px)" @hide="mainStore.pagoDeVuelta = null">
     <q-card v-if="textos" class="mc-pago-vuelta">
-      <div class="mc-pago-vuelta__icono" :class="`mc-pago-vuelta__icono--${textos.tono}`">
+      <!-- span y no div: QCard le pone a su primer div hijo el redondeo de la tarjeta -->
+      <span class="mc-pago-vuelta__icono" :class="`mc-pago-vuelta__icono--${textos.tono}`">
         <q-icon :name="textos.icono" size="34px" />
-      </div>
+      </span>
 
       <h3 class="mc-pago-vuelta__titulo">{{ textos.titulo }}</h3>
       <p class="mc-pago-vuelta__mensaje">{{ textos.mensaje }}</p>
