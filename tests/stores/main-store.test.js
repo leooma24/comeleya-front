@@ -285,6 +285,41 @@ describe("main-store", () => {
       expect(result).toBe(true);
     });
 
+    it("con pago en línea guarda el mensaje de WhatsApp con el pedido antes de salir a Mercado Pago", async () => {
+      store.payment = { type: "MercadoPago", value: "" };
+      store.userStore.data = { name: "Omar", phone: "6681234567", delivery: "Recoger" };
+      // jsdom no navega: se sustituye la ubicación para ver a dónde lo manda.
+      const original = window.location;
+      delete window.location;
+      window.location = { origin: "https://comeleya.com", href: "" };
+
+      api.post.mockResolvedValueOnce({
+        data: { id: 1, order_code: "41", tracking_token: "tok", payment: { init_point: "https://mp.test/pagar" } },
+      });
+
+      try {
+        await store.creatingOrder();
+
+        expect(window.location.href).toBe("https://mp.test/pagar");
+        const guardado = store.orderStore.orderHistory.find((o) => o.order_code === "41");
+        expect(guardado.whatsapp_url).toContain("https://wa.me/521234567890?text=");
+        expect(decodeURIComponent(guardado.whatsapp_url)).toContain("Orden #41");
+        expect(decodeURIComponent(guardado.whatsapp_url)).toContain("MercadoPago");
+      } finally {
+        window.location = original;
+      }
+    });
+
+    it("con pago en efectivo no guarda mensaje aparte: sale en su diálogo de siempre", async () => {
+      store.payment = { type: "cash", value: 100 };
+      api.post.mockResolvedValueOnce({ data: { id: 2, order_code: "42" } });
+
+      await store.creatingOrder();
+
+      expect(store.orderStore.orderHistory.find((o) => o.order_code === "42").whatsapp_url).toBeNull();
+      expect(store.validationDialog).toBe(true);
+    });
+
     it("allows cash when value >= total", async () => {
       store.payment = { type: "cash", value: 100 };
 

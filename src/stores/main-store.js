@@ -717,6 +717,13 @@ export const useMainStore = defineStore("main", {
         marcar(this.companyStore.slug, "pedido");
 
         this.orderStore.setOrder(data);
+
+        // Con pago en línea el cliente se va a Mercado Pago y, al volver, el carrito ya no está: el
+        // mensaje para el restaurante se arma ahora y se guarda con el pedido, para que el botón de
+        // WhatsApp del aviso de regreso lo tenga.
+        const mpUrl = data.payment?.init_point;
+        if (mpUrl) this.buildWhatsAppUrl();
+
         this.orderStore.saveToHistory({
           order_code: data.order_code,
           // Sin esto, el "Ver estado" del historial guardado en este navegador se
@@ -726,11 +733,11 @@ export const useMainStore = defineStore("main", {
           total: this.cartStore.total,
           establishment: this.companyStore.slug,
           establishmentName: this.establishment?.name || "",
+          whatsapp_url: mpUrl ? this.whatsappUrl : null,
         });
 
         // Pago en línea (MercadoPago): si el backend devolvió la preferencia de pago,
         // se redirige al checkout de MercadoPago en vez de continuar por WhatsApp.
-        const mpUrl = data.payment?.init_point;
         if (mpUrl) {
           this.paymentDrawer = false;
           this.dataDrawer = false;
@@ -1202,6 +1209,9 @@ export const useMainStore = defineStore("main", {
         }
       } else {
         lines.push(`*Pago*: ${etiquetaPago(this.payment.type)}`);
+        if (String(this.payment.type).toLowerCase() === "mercadopago") {
+          lines.push(`Pago en línea con Mercado Pago: revisa su estado en tu panel de ComeleYa`);
+        }
       }
 
       // Delivery info

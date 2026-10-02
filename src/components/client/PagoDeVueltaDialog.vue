@@ -52,6 +52,18 @@
         </template>
 
         <template v-else>
+          <!-- El pedido ya lo tiene el restaurante en su panel; esto es el aviso por WhatsApp de
+               siempre. Va en un clic del cliente: abrirlo solo lo bloquea el navegador del celular. -->
+          <q-btn
+            v-if="urlWhatsApp"
+            unelevated
+            no-caps
+            color="positive"
+            icon="fab fa-whatsapp"
+            label="Avisar al restaurante por WhatsApp"
+            class="full-width"
+            @click="avisarPorWhatsApp"
+          />
           <q-btn
             v-if="rutaSeguimiento"
             unelevated
@@ -105,19 +117,34 @@ const textos = computed(() => {
 
 const rechazado = computed(() => mainStore.pagoDeVuelta?.estado === "rechazado");
 
-// El token del seguimiento quedó guardado en este navegador al crear el pedido. Sin él (otro
-// aparato, o un pedido sin token) no se ofrece el botón: no se inventa una liga que no abre.
-const rutaSeguimiento = computed(() => {
+// El pedido que quedó guardado en este navegador al crearlo (con su token y su mensaje de
+// WhatsApp). En otro aparato no existe: entonces no se ofrecen los botones que dependen de él.
+const pedidoGuardado = computed(() => {
   const pago = mainStore.pagoDeVuelta;
   if (!pago?.codigo || pago.estado === "rechazado") return null;
 
   const slug = mainStore.companyStore.slug;
-  const guardado = (mainStore.orderStore.orderHistory ?? []).find(
-    (o) => o.establishment === slug && String(o.order_code) === String(pago.codigo)
+  return (
+    (mainStore.orderStore.orderHistory ?? []).find(
+      (o) => o.establishment === slug && String(o.order_code) === String(pago.codigo)
+    ) ?? null
   );
-
-  return guardado ? rutaDeSeguimiento(slug, guardado.order_code, guardado.tracking_token) : null;
 });
+
+// Sin token no se inventa una liga que no abre.
+const rutaSeguimiento = computed(() => {
+  const o = pedidoGuardado.value;
+  return o ? rutaDeSeguimiento(mainStore.companyStore.slug, o.order_code, o.tracking_token) : null;
+});
+
+const urlWhatsApp = computed(() => pedidoGuardado.value?.whatsapp_url || null);
+
+const avisarPorWhatsApp = () => {
+  const url = urlWhatsApp.value;
+  if (!url) return;
+  const ventana = window.open(url, "_blank");
+  if (!ventana) window.location.href = url;
+};
 
 // Regresa a Mercado Pago con el mismo cobro. Si lo logra, la página se va; si no, el aviso queda
 // abierto con el error y los otros botones.
