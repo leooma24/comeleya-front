@@ -54,6 +54,14 @@ describe("plantillas de WhatsApp", () => {
     expect(plantillasPara(porVencer)[0].clave).toBe("prueba");
   });
 
+  it("al invitado que terminó sus correos y sigue sin cuenta le sugiere ayudarle a registrarse", () => {
+    const invitado = sinRegistro({ activities: [{ description: "Recibió los 3 correos de invitación y sigue sin registrarse. Escríbele." }] });
+    const [primera] = plantillasPara(invitado);
+    expect(primera.clave).toBe("ayuda_registro");
+    expect(primera.texto).not.toContain("Creaste");
+    expect(primera.texto).toContain("15 días gratis");
+  });
+
   it("registrado sin hitos: ayudarle a subir su menú", () => {
     expect(plantillasPara(registrado())[0].clave).toBe("sin_menu");
   });

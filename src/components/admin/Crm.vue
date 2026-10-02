@@ -109,6 +109,20 @@
       >
         {{ op.label }}: {{ conteoCorreos[op.valor] || 0 }}
       </q-chip>
+      <span class="mc-crm-correos__titulo q-ml-md">Cuenta:</span>
+      <q-chip
+        v-for="op in opcionesCuenta"
+        :key="op.valor"
+        clickable
+        dense
+        :outline="filtroCuenta !== op.valor"
+        :color="op.color"
+        :text-color="filtroCuenta === op.valor ? 'white' : undefined"
+        @click="filtroCuenta = filtroCuenta === op.valor ? '' : op.valor"
+      >
+        {{ op.label }}: {{ conteoCuenta[op.valor] || 0 }}
+        <q-tooltip>{{ op.ayuda }}</q-tooltip>
+      </q-chip>
     </div>
 
     <!-- Dashboard View (Hoy) -->
@@ -154,6 +168,7 @@
                 <div class="mc-prospect-card__contact">{{ p.name }}</div>
               </div>
               <div class="row items-center q-gutter-xs">
+                <q-chip v-if="!tieneCuenta(p)" dense size="xs" color="orange-2" text-color="orange-10">Sin cuenta</q-chip>
                 <q-chip dense size="xs" :color="sourceColor(p.source)">{{ p.source }}</q-chip>
                 <q-chip v-for="tag in (p.tags || []).slice(0, 2)" :key="tag" dense size="xs" color="grey-3" text-color="grey-8">{{ tag }}</q-chip>
               </div>
@@ -189,7 +204,7 @@
                 <q-tooltip>WhatsApp</q-tooltip>
               </q-btn>
               <q-btn v-if="p.email" flat dense round size="xs" icon="mail" color="teal" @click.stop="sendQuickEmail(p)">
-                <q-tooltip>Email</q-tooltip>
+                <q-tooltip>{{ tieneCuenta(p) ? "Email" : "Enviar invitación a registrarse" }}</q-tooltip>
               </q-btn>
               <q-space />
               <q-btn flat dense round size="xs" icon="edit" color="grey-6" @click.stop="adminStore.editProspect(p)">
@@ -237,6 +252,10 @@
         <q-tr :props="props" class="cursor-pointer" @click="openActivities(props.row)">
           <q-td key="business_name" :props="props">
             <span class="text-weight-medium">{{ props.row.business_name || '-' }}</span>
+            <q-chip v-if="!tieneCuenta(props.row)" dense size="sm" color="orange-2" text-color="orange-10" class="q-ml-sm">
+              Sin cuenta
+              <q-tooltip>Todavía no se registra en ComeleYa: se le está invitando</q-tooltip>
+            </q-chip>
             <div class="text-caption text-grey-6">{{ props.row.name }}</div>
           </q-td>
           <q-td key="phone" :props="props">
@@ -282,7 +301,7 @@
               <q-tooltip>WhatsApp</q-tooltip>
             </q-btn>
             <q-btn v-if="props.row.email" flat size="sm" dense round icon="mail" color="teal" @click.stop="sendQuickEmail(props.row)">
-              <q-tooltip>Email</q-tooltip>
+              <q-tooltip>{{ tieneCuenta(props.row) ? "Email" : "Enviar invitación a registrarse" }}</q-tooltip>
             </q-btn>
             <q-btn flat size="sm" dense round icon="edit" color="grey-6" @click.stop="adminStore.editProspect(props.row)">
               <q-tooltip>Editar</q-tooltip>
@@ -313,6 +332,7 @@
             <q-chip dense size="sm" :color="statusColor(pr.status)" text-color="white">
               {{ statusLabel(pr.status) }}
             </q-chip>
+            <q-chip v-if="!tieneCuenta(pr)" dense size="sm" color="orange-2" text-color="orange-10">Sin cuenta</q-chip>
           </div>
           <div class="mc-lista__meta">
             <span v-if="pr.deal_value > 0">
@@ -476,7 +496,8 @@ const estadoCorreos = (p) => {
   }
   const s = p.ultima_secuencia;
   if (!s) return { clave: "ninguna", texto: "—", detalle: "", orden: 5 };
-  const nombre = NOMBRE_SECUENCIA[s.sequence_type] || s.sequence_type;
+  // "Bienvenida" a quien nunca se registro es en realidad la invitacion.
+  const nombre = s.sequence_type === "welcome" && !tieneCuenta(p) ? "Invitación" : NOMBRE_SECUENCIA[s.sequence_type] || s.sequence_type;
   const enviados = `${s.current_step} de ${s.total_steps}`;
   if (s.status === "active") {
     return {
@@ -491,6 +512,20 @@ const estadoCorreos = (p) => {
   }
   return { clave: "detenida", texto: `${nombre} · detenida`, detalle: `Se enviaron ${enviados}`, orden: 3 };
 };
+
+// Con cuenta = ya se registro en ComeleYa (su prospecto esta ligado a un negocio). Sin cuenta =
+// se le esta invitando: los correos y mensajes son de presentacion, no de "ya tienes cuenta".
+const tieneCuenta = (p) => !!p.establishment_id;
+
+const opcionesCuenta = [
+  { valor: "sin", label: "Sin cuenta", color: "orange-8", ayuda: "Invitados que todavía no se registran" },
+  { valor: "con", label: "Con cuenta", color: "teal", ayuda: "Ya se registraron en ComeleYa" },
+];
+const filtroCuenta = ref("");
+const conteoCuenta = computed(() => {
+  const sin = adminStore.prospects.filter((p) => !tieneCuenta(p)).length;
+  return { sin, con: adminStore.prospects.length - sin };
+});
 
 const opcionesCorreos = [
   { valor: "activa", label: "En curso", color: "teal" },
@@ -513,9 +548,12 @@ const filteredProspects = computed(() => {
   const porEtapa = filter.value
     ? adminStore.prospects.filter((p) => p.status === filter.value)
     : adminStore.prospects;
-  const byStatus = filtroCorreos.value
-    ? porEtapa.filter((p) => estadoCorreos(p).clave === filtroCorreos.value)
+  const porCuenta = filtroCuenta.value
+    ? porEtapa.filter((p) => tieneCuenta(p) === (filtroCuenta.value === "con"))
     : porEtapa;
+  const byStatus = filtroCorreos.value
+    ? porCuenta.filter((p) => estadoCorreos(p).clave === filtroCorreos.value)
+    : porCuenta;
   if (!search.value) return byStatus;
   const q = search.value.toLowerCase();
   return byStatus.filter((p) =>
@@ -658,7 +696,9 @@ const alEnviarWa = (actualizado) => {
   }
 };
 
-const templateForSegment = (seg) => {
+const templateForSegment = (seg, p) => {
+  // A quien no se ha registrado siempre la invitacion, sin importar su "segmento".
+  if (p && !tieneCuenta(p)) return "welcome_back";
   const map = { pedidos_sin_pago: "orders_growing", menu_sin_pedidos: "menu_help", sin_configurar: "welcome_back", inactivo: "reactivation" };
   return map[seg] || "welcome_back";
 };
@@ -666,7 +706,7 @@ const templateForSegment = (seg) => {
 const sendQuickEmail = async (p) => {
   if (!p.email) return adminStore.messageStore.error("Sin email");
   try {
-    const { data } = await api.post(`/admin/prospects/${p.id}/send-email`, { template_key: templateForSegment(p.segment) });
+    const { data } = await api.post(`/admin/prospects/${p.id}/send-email`, { template_key: templateForSegment(p.segment, p) });
     adminStore.messageStore.success("Email enviado a " + p.name);
     // Update prospect in list (may have auto-transitioned stage via activity)
     if (data.prospect) {

@@ -15,7 +15,7 @@
         </q-card>
 
         <div v-if="segment" class="text-caption text-grey-6">
-          Se enviará a prospectos con email en el segmento seleccionado (excluyendo cerrados).
+          Se enviará a los prospectos con email en el segmento (excluyendo cerrados). Los segmentos son de negocios que YA tienen cuenta: a quienes apenas invitas (sin cuenta) les llega su invitación sola, o con el botón de correo de su fila.
         </div>
       </q-card-section>
 
@@ -74,6 +74,7 @@ const previews = {
   // 15 y no 30: es la prueba que de verdad da el sistema (services.prueba_dias). A quien
   // ya tenia cuenta se le reactiva desde "Asignar plan" cuando responde.
   reactivation: { subject: "¿Todavía interesado? Te regalamos 15 días más", preview: "Hace un tiempo creaste tu menú. Si quieres retomarlo, te reactivamos 15 días gratis con todas las funciones..." },
+  // A quien ya se registro y no ha subido menu. A quien no se ha registrado le llega la invitacion ("Te presentamos ComeleYa").
   welcome_back: { subject: "Tu menú digital te espera", preview: "Creaste tu cuenta pero no has configurado tu menú. En 15 minutos puedes tenerlo listo..." },
 };
 

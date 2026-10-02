@@ -71,6 +71,11 @@ export function plantillasPara(p, vendedor = "") {
           texto: `${hola}${soy}. Te invito a registrar ${negocio} en ComeleYa: tienes 15 días gratis con todas las funciones del plan Premium (menú digital, pedidos por WhatsApp, pagos en línea, puntos para clientes), sin tarjeta y sin comisión por pedido.\n\nRegístrate aquí: ${SITIO}/nuevo-establecimiento\n\nSi prefieres, mándame una foto de tu menú y te ayudo a subirlo.`,
         },
         {
+          clave: "ayuda_registro",
+          titulo: "Sigue sin registrarse: ofrecerle ayuda",
+          texto: `${hola}${soy}. Te mandé la información de ComeleYa por correo. ¿Quieres que te ayude a crear la cuenta de ${negocio} ahorita? Son 5 minutos, son 15 días gratis y sin tarjeta. Si me mandas una foto de tu menú, te lo dejo subido.`,
+        },
+        {
           clave: "presentacion",
           titulo: "Presentarle ComeleYa",
           texto: `${hola}${soy}. Ayudamos a restaurantes como ${negocio} a recibir pedidos por WhatsApp con un menú digital, sin pagar comisión por pedido. ¿Te puedo mandar un ejemplo de cómo se ve?`,
@@ -103,6 +108,8 @@ function sugerencia(p, registrado) {
   if (registrado) {
     return ultimoHito(p) || "sin_menu";
   }
+  // Ya recibio los correos de invitacion y sigue sin cuenta: lo que sigue es ayudarle a registrarse.
+  if ((p.activities || []).some((a) => (a.description || "").includes("sigue sin registrarse"))) return "ayuda_registro";
   return {
     nuevo: "registro",
     contactado: "demo",
